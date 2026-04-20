@@ -1,0 +1,9 @@
+{
+  "query": "DELETE FROM kanban_columns WHERE name LIKE 'Test Column%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2nNrg59QCNacEGz.root --database 3UHh2vU4JT8Fteay8nzJ7E --execute DELETE FROM kanban_columns WHERE name LIKE 'Test Column%';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 380
+}

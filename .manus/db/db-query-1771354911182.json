@@ -1,0 +1,35 @@
+{
+  "query": "SELECT * FROM leads LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2nNrg59QCNacEGz.root --database 3UHh2vU4JT8Fteay8nzJ7E --execute SELECT * FROM leads LIMIT 1;",
+  "rows": [
+    {
+      "id": "630001",
+      "company_name": "Exemplo Clínica 1",
+      "contact_name": "Dr. João Silva",
+      "phone": "11 98765-4321",
+      "email": "joao@clinica.com",
+      "lead_status": "Entrar em contato",
+      "city": "São Paulo",
+      "notes": "Primeira consulta agendada",
+      "last_interaction": "NULL",
+      "created_at": "2026-02-17 18:55:39",
+      "updated_at": "2026-02-17 18:55:39",
+      "site": "www.clinica1.com.br",
+      "lead_type": "Site",
+      "implementation_value": "NULL",
+      "recurring_value": "NULL",
+      "final_status": "NULL",
+      "data_status_final": "NULL",
+      "motivo_saida": "",
+      "valor_fechado": "NULL",
+      "mes_referencia": "NULL",
+      "tempo_no_funil": "NULL",
+      "data_criacao": "2026-02-17 18:55:39",
+      "segment": "Clínica"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tcompany_name\tcontact_name\tphone\temail\tlead_status\tcity\tnotes\tlast_interaction\tcreated_at\tupdated_at\tsite\tlead_type\timplementation_value\trecurring_value\tfinal_status\tdata_status_final\tmotivo_saida\tvalor_fechado\tmes_referencia\ttempo_no_funil\tdata_criacao\tsegment\n630001\tExemplo Clínica 1\tDr. João Silva\t11 98765-4321\tjoao@clinica.com\tEntrar em contato\tSão Paulo\tPrimeira consulta agendada\tNULL\t2026-02-17 18:55:39\t2026-02-17 18:55:39\twww.clinica1.com.br\tSite\tNULL\tNULL\tNULL\tNULL\t\tNULL\tNULL\tNULL\t2026-02-17 18:55:39\tClínica\n",
+  "stderr": "",
+  "execution_time_ms": 355
+}

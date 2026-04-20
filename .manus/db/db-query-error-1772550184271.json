@@ -1,0 +1,8 @@
+{
+  "query": "DELETE FROM user;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2nNrg59QCNacEGz.root --database 3UHh2vU4JT8Fteay8nzJ7E --execute DELETE FROM user;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1146 (42S02) at line 1: Table '3uhh2vu4jt8fteay8nzj7e.user' doesn't exist"
+  ]
+}

@@ -1,0 +1,194 @@
+{
+  "query": "DESCRIBE leads;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2nNrg59QCNacEGz.root --database 3UHh2vU4JT8Fteay8nzJ7E --execute DESCRIBE leads;",
+  "rows": [
+    {
+      "Field": "id",
+      "Type": "int(11)",
+      "Null": "NO",
+      "Key": "PRI",
+      "Default": "NULL",
+      "Extra": "auto_increment"
+    },
+    {
+      "Field": "company_name",
+      "Type": "varchar(255)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "contact_name",
+      "Type": "varchar(255)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "phone",
+      "Type": "varchar(20)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "email",
+      "Type": "varchar(255)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "lead_status",
+      "Type": "enum('Entrar em contato','Contatado','Não Respondeu','Interessado','Não possui Interesse','Perdido','Abandonado','Ganho')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "Entrar em contato",
+      "Extra": ""
+    },
+    {
+      "Field": "city",
+      "Type": "varchar(100)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "notes",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "last_interaction",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "created_at",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "updated_at",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP"
+    },
+    {
+      "Field": "site",
+      "Type": "varchar(255)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "lead_type",
+      "Type": "enum('CRM','Site')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CRM",
+      "Extra": ""
+    },
+    {
+      "Field": "implementation_value",
+      "Type": "decimal(10,2)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "recurring_value",
+      "Type": "decimal(10,2)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "final_status",
+      "Type": "enum('perdido','abandonado','ganho')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "data_status_final",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "motivo_saida",
+      "Type": "text",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "valor_fechado",
+      "Type": "decimal(10,2)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "mes_referencia",
+      "Type": "varchar(7)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "tempo_no_funil",
+      "Type": "int(11)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "data_criacao",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "segment",
+      "Type": "varchar(100)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\nid\tint(11)\tNO\tPRI\tNULL\tauto_increment\ncompany_name\tvarchar(255)\tNO\t\tNULL\t\ncontact_name\tvarchar(255)\tYES\t\tNULL\t\nphone\tvarchar(20)\tNO\t\tNULL\t\nemail\tvarchar(255)\tYES\t\tNULL\t\nlead_status\tenum('Entrar em contato','Contatado','Não Respondeu','Interessado','Não possui Interesse','Perdido','Abandonado','Ganho')\tNO\t\tEntrar em contato\t\ncity\tvarchar(100)\tYES\t\tNULL\t\nnotes\ttext\tYES\t\tNULL\t\nlast_interaction\ttimestamp\tYES\t\tNULL\t\ncreated_at\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\nupdated_at\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\tDEFAULT_GENERATED on update CURRENT_TIMESTAMP\nsite\tvarchar(255)\tYES\t\tNULL\t\nlead_type\tenum('CRM','Site')\tNO\t\tCRM\t\nimplementation_value\tdecimal(10,2)\tYES\t\tNULL\t\nrecurring_value\tdecimal(10,2)\tYES\t\tNULL\t\nfinal_status\tenum('perdido','abandonado','ganho')\tYES\t\tNULL\t\ndata_status_final\ttimestamp\tYES\t\tNULL\t\nmotivo_saida\ttext\tNO\t\tNULL\t\nvalor_fechado\tdecimal(10,2)\tYES\t\tNULL\t\nmes_referencia\tvarchar(7)\tYES\t\tNULL\t\ntempo_no_funil\tint(11)\tYES\t\tNULL\t\ndata_criacao\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\nsegment\tvarchar(100)\tNO\t\tNULL\t\n",
+  "stderr": "",
+  "execution_time_ms": 357
+}

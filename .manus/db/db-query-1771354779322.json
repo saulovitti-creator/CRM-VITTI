@@ -1,0 +1,60 @@
+{
+  "query": "SELECT id, name, color FROM kanban_columns LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2nNrg59QCNacEGz.root --database 3UHh2vU4JT8Fteay8nzJ7E --execute SELECT id, name, color FROM kanban_columns LIMIT 10;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Test Column 1771257764375",
+      "color": "#3B82F6"
+    },
+    {
+      "id": "2",
+      "name": "Test Column No Desc 1771257764509",
+      "color": "#06B6D4"
+    },
+    {
+      "id": "3",
+      "name": "Test #3B82F6 1771257765115",
+      "color": "#3B82F6"
+    },
+    {
+      "id": "4",
+      "name": "A",
+      "color": "#3B82F6"
+    },
+    {
+      "id": "12",
+      "name": "A",
+      "color": "#3B82F6"
+    },
+    {
+      "id": "30008",
+      "name": "A",
+      "color": "#3B82F6"
+    },
+    {
+      "id": "30016",
+      "name": "A",
+      "color": "#3B82F6"
+    },
+    {
+      "id": "30024",
+      "name": "A",
+      "color": "#3B82F6"
+    },
+    {
+      "id": "30032",
+      "name": "A",
+      "color": "#3B82F6"
+    },
+    {
+      "id": "30040",
+      "name": "A",
+      "color": "#3B82F6"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tcolor\n1\tTest Column 1771257764375\t#3B82F6\n2\tTest Column No Desc 1771257764509\t#06B6D4\n3\tTest #3B82F6 1771257765115\t#3B82F6\n4\tA\t#3B82F6\n12\tA\t#3B82F6\n30008\tA\t#3B82F6\n30016\tA\t#3B82F6\n30024\tA\t#3B82F6\n30032\tA\t#3B82F6\n30040\tA\t#3B82F6\n",
+  "stderr": "",
+  "execution_time_ms": 675
+}
