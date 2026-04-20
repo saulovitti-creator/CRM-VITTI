@@ -93,12 +93,10 @@ export default function Home() {
     },
   });
 
-  const statsQuery = trpc.leads.stats.useQuery({ type: activeType });
   const crmCountQuery = trpc.leads.countByType.useQuery({ type: "CRM" });
   const siteCountQuery = trpc.leads.countByType.useQuery({ type: "Site" });
 
   const leads = leadsQuery.data || [];
-  const stats = statsQuery.data || {};
   const crmCount = crmCountQuery.data || 0;
   const siteCount = siteCountQuery.data || 0;
 
@@ -133,6 +131,14 @@ export default function Home() {
     if (!duplicateLeadIds || duplicateLeadIds.size === 0) return [];
     return leads.filter((l: any) => duplicateLeadIds.has(l.id));
   }, [leads, duplicatesOnly, duplicateLeadIds]);
+
+  const filteredStats = useMemo(() => {
+    const counts: Record<string, number> = {};
+    visibleLeads.forEach((lead: any) => {
+      counts[lead.status] = (counts[lead.status] || 0) + 1;
+    });
+    return counts;
+  }, [visibleLeads]);
 
   const handleDeleteFiltered = async () => {
     const ids = visibleLeads.map((l: any) => l.id);
@@ -324,7 +330,7 @@ export default function Home() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-4xl font-bold text-cyan-100">
-                      {stats[status] || 0}
+                      {filteredStats[status] || 0}
                     </div>
                   </CardContent>
                 </Card>
@@ -543,7 +549,7 @@ export default function Home() {
               <CardTitle className="text-cyan-400">Quadro Kanban</CardTitle>
             </CardHeader>
             <CardContent>
-              <KanbanBoard leads={leads} stats={stats} />
+              <KanbanBoard leads={visibleLeads} stats={filteredStats} />
             </CardContent>
           </Card>
         )}
