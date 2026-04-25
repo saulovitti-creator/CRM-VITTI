@@ -32,7 +32,9 @@ export function registerOAuthRoutes(app: Express) {
         openId: userInfo.openId,
         name: userInfo.name || null,
         email: userInfo.email || `oauth-${userInfo.openId}@manus.local`,
-        loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
+        username: userInfo.email || `oauth-${userInfo.openId}@manus.local`,
+        passwordHash: 'oauth-not-used',
+        loginMethod: userInfo.loginMethod ?? userInfo.platform ?? undefined,
         lastSignedIn: new Date(),
       });
 

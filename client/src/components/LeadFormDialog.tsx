@@ -39,11 +39,11 @@ export function LeadFormDialog({ lead, onSuccess, type }: LeadFormDialogProps) {
     phone: lead?.phone || "",
     email: lead?.email || "",
     segment: lead?.segment || "",
-    status: lead?.status || "Entrar em contato",
+    status: (lead?.status || "Entrar em contato") as "Entrar em contato" | "Contatado" | "Não Respondeu" | "Interessado" | "Não possui Interesse" | "Perdido" | "Abandonado" | "Ganho",
     site: lead?.site || "",
     city: lead?.city || "",
     notes: lead?.notes || "",
-    type: lead?.type || type || "CRM",
+    type: (lead?.type || type || "CRM") as "CRM" | "Site",
     dataCriacao: lead?.dataCriacao ? new Date(lead.dataCriacao).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
     tagIds: (lead as any)?.tags?.map((t: any) => t.id) || [],
   });
@@ -102,6 +102,7 @@ export function LeadFormDialog({ lead, onSuccess, type }: LeadFormDialogProps) {
     try {
       const dataToSend = {
         ...formData,
+        type: formData.type as "CRM" | "Site",
         dataCriacao: new Date(formData.dataCriacao),
       };
 

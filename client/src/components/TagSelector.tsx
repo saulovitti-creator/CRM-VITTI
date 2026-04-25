@@ -58,7 +58,7 @@ export function TagSelector({
   const createTagMutation = trpc.tags.create.useMutation({
     onSuccess: (newTag) => {
       utils.tags.list.invalidate();
-      onChange([...selectedTagIds, newTag.id]);
+      onChange([...selectedTagIds, (newTag as any).id || (newTag as any).insertId]);
       setSearch("");
     },
   });

@@ -106,7 +106,7 @@ export function TodayTasks() {
                   </button>
                   <div>
                     <p className="text-red-400 font-medium text-sm flex items-center gap-1">
-                      {task.source === 'auto' && <Zap className="w-3 h-3 text-yellow-400" title="Tarefa automática" />}
+                      {task.source === 'auto' && <Zap className="w-3 h-3 text-yellow-400" />}
                       {task.title}
                     </p>
                     <div className="flex items-center gap-1 text-xs text-red-500/80 mt-1">
@@ -131,7 +131,7 @@ export function TodayTasks() {
                   </button>
                   <div>
                     <p className="text-slate-200 font-medium text-sm group-hover:text-white transition-colors flex items-center gap-1">
-                      {task.source === 'auto' && <Zap className="w-3 h-3 text-yellow-400" title="Tarefa automática" />}
+                      {task.source === 'auto' && <Zap className="w-3 h-3 text-yellow-400" />}
                       {task.title}
                     </p>
                     <div className="flex items-center gap-1 text-xs text-slate-400 mt-1">

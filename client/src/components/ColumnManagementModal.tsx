@@ -52,8 +52,7 @@ export default function ColumnManagementModal({ isOpen, onClose }: ColumnManagem
 
   const filteredColumns = columns?.filter(
     (col) =>
-      col.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (col.description && col.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      col.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (showCreateForm || editingId) {
@@ -117,8 +116,8 @@ export default function ColumnManagementModal({ isOpen, onClose }: ColumnManagem
                       {/* Color Badge */}
                       <div
                         className="w-4 h-4 rounded-full flex-shrink-0 mt-1 border border-slate-600"
-                        style={{ backgroundColor: column.color }}
-                        title={column.color}
+                        style={{ backgroundColor: column.color || '#3b82f6' }}
+                        title={column.color || '#3b82f6'}
                       />
 
                       {/* Column Info */}

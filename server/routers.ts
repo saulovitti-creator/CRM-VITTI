@@ -274,7 +274,7 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) return fetchedLeads;
 
-        const leadIds = fetchedLeads.map(l => l.id);
+        const leadIds = fetchedLeads.map((l: { id: number }) => l.id);
         const tagsData = await db.select({
           leadId: leadTags.leadId,
           id: tags.id,

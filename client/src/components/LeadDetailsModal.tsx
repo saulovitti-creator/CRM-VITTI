@@ -97,6 +97,7 @@ export default function LeadDetailsModal({
   const [finalStatusModal, setFinalStatusModal] = useState<{ open: boolean; status: "Perdido" | "Abandonado" | "Ganho" | null }>({ open: false, status: null });
 
   // Custom Fields
+  const utils = trpc.useUtils();
   const [customValues, setCustomValues] = useState<Record<number, string | null>>({});
   
   const { data: customFields } = trpc.customFields.listDefinitions.useQuery(

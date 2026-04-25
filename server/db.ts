@@ -33,6 +33,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     const values: InsertUser = {
       openId: user.openId,
       email: user.email || `oauth-${user.openId}@manus.local`,
+      username: user.email || `oauth-${user.openId}@manus.local`,
+      passwordHash: 'oauth-not-used',
     };
     const updateSet: Record<string, unknown> = {};
 
@@ -42,7 +44,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     const assignNullable = (field: TextField) => {
       const value = user[field];
       if (value === undefined) return;
-      const normalized = value ?? null;
+      const normalized = value ?? undefined;
       values[field] = normalized as any;
       updateSet[field] = normalized;
     };
@@ -798,7 +800,7 @@ export async function getKanbanColumns() {
 /**
  * Create a new kanban column
  */
-export async function createKanbanColumn(column: InsertKanbanColumn) {
+export async function createKanbanColumn(column: Omit<InsertKanbanColumn, 'order'>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 

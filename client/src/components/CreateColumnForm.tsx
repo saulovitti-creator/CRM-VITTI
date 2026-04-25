@@ -59,8 +59,8 @@ export default function CreateColumnForm({ columnId, onSuccess, onCancel }: Crea
     if (columnData) {
       setFormData({
         name: columnData.name,
-        color: columnData.color,
-        description: columnData.description || '',
+        color: columnData.color || '#3B82F6',
+        description: '',
       });
     }
   }, [columnData]);

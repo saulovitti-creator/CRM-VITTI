@@ -36,14 +36,14 @@ export function normalizeLead(lead: Lead): NormalizedLead {
     .trim();
 
   // Normalizar telefone: apenas dígitos, remover DDI (55) se existir
-  let normalizedPhone = lead.phone.replace(/\D/g, "");
+  let normalizedPhone = (lead.phone || "").replace(/\D/g, "");
   // Se começa com 55 (DDI Brasil), remover
   if (normalizedPhone.startsWith("55") && normalizedPhone.length > 10) {
     normalizedPhone = normalizedPhone.substring(2);
   }
   // Se vazio ou muito curto, manter como está
   if (normalizedPhone.length < 6) {
-    normalizedPhone = lead.phone.replace(/\D/g, "");
+    normalizedPhone = (lead.phone || "").replace(/\D/g, "");
   }
 
   return {
