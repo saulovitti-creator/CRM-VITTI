@@ -5,7 +5,7 @@ import { getSegmentIcon, getSegmentColor } from "@shared/segment-icons";
 import { useState } from 'react';
 import { LeadFormDialog } from "@/components/LeadFormDialog";
 import { DeleteLeadDialog } from "@/components/DeleteLeadDialog";
-
+import { TagBadge } from "@/components/TagBadge";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import LeadDetailsModal from "@/components/LeadDetailsModal";
 import { useTasks } from "@/hooks/useTasks";
@@ -49,6 +49,7 @@ export function KanbanCard({ lead, isDragging = false }: KanbanCardProps) {
     type: lead.type || "CRM",
     createdAt: lead.createdAt || new Date(),
     updatedAt: lead.updatedAt || new Date(),
+    tags: lead.tags || [],
   };
 
   // Estilo inline com transições CSS
@@ -121,6 +122,18 @@ export function KanbanCard({ lead, isDragging = false }: KanbanCardProps) {
             </p>
           )}
         </div>
+
+        {/* Tags */}
+        {lead.tags && lead.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {lead.tags.slice(0, 3).map((tag: any) => (
+              <TagBadge key={tag.id} tag={tag} className="text-[10px] px-1.5 py-0" />
+            ))}
+            {lead.tags.length > 3 && (
+              <span className="text-[10px] text-slate-400 self-center">+{lead.tags.length - 3}</span>
+            )}
+          </div>
+        )}
 
         {/* Date Badge and Tasks */}
         <div className="mb-3 flex items-center gap-2">

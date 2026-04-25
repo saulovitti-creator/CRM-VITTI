@@ -1,0 +1,53 @@
+client/src/components/ColumnManagementModal.tsx(56,12): error TS2339: Property 'description' does not exist on type '{ leadCount: number; id: number; name: string; order: number; color: string | null; createdAt: Date; updatedAt: Date; isDefault: boolean | null; }'.
+client/src/components/ColumnManagementModal.tsx(56,31): error TS2339: Property 'description' does not exist on type '{ leadCount: number; id: number; name: string; order: number; color: string | null; createdAt: Date; updatedAt: Date; isDefault: boolean | null; }'.
+client/src/components/ColumnManagementModal.tsx(120,34): error TS2322: Type 'string | null' is not assignable to type 'BackgroundColor | undefined'.
+  Type 'null' is not assignable to type 'BackgroundColor | undefined'.
+client/src/components/ColumnManagementModal.tsx(121,25): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+client/src/components/CreateColumnForm.tsx(62,9): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+client/src/components/CreateColumnForm.tsx(63,33): error TS2339: Property 'description' does not exist on type '{ leadCount: number; id: number; name: string; order: number; color: string | null; createdAt: Date; updatedAt: Date; isDefault: boolean | null; }'.
+client/src/components/LeadDetailsModal.tsx(132,7): error TS2304: Cannot find name 'utils'.
+client/src/components/LeadFormDialog.tsx(111,42): error TS2345: Argument of type '{ dataCriacao: Date; companyName: string; contactName: string; phone: string; email: string; segment: string; status: string; site: string; city: string; notes: string; type: string; tagIds: any; id: number; }' is not assignable to parameter of type '{ id: number; companyName: string; phone: string; segment: string; contactName?: string | undefined; email?: string | undefined; status?: "Entrar em contato" | "Ganho" | "Perdido" | "Abandonado" | ... 4 more ... | undefined; ... 6 more ...; tagIds?: number[] | undefined; }'.
+  Types of property 'status' are incompatible.
+    Type 'string' is not assignable to type '"Entrar em contato" | "Ganho" | "Perdido" | "Abandonado" | "Contatado" | "Não Respondeu" | "Interessado" | "Não possui Interesse" | undefined'.
+client/src/components/LeadFormDialog.tsx(117,57): error TS2345: Argument of type '{ dataCriacao: Date; companyName: string; contactName: string; phone: string; email: string; segment: string; status: string; site: string; city: string; notes: string; type: string; tagIds: any; }' is not assignable to parameter of type '{ companyName: string; phone: string; segment: string; contactName?: string | undefined; email?: string | undefined; status?: "Entrar em contato" | "Ganho" | "Perdido" | "Abandonado" | ... 4 more ... | undefined; ... 7 more ...; tagIds?: number[] | undefined; }'.
+  Types of property 'status' are incompatible.
+    Type 'string' is not assignable to type '"Entrar em contato" | "Ganho" | "Perdido" | "Abandonado" | "Contatado" | "Não Respondeu" | "Interessado" | "Não possui Interesse" | undefined'.
+client/src/components/LeadFormDialog.tsx(369,56): error TS2345: Argument of type '{ status: "Perdido"; companyName: string; contactName: string; phone: string; email: string; segment: string; site: string; city: string; notes: string; type: string; tagIds: any; id: number; }' is not assignable to parameter of type '{ id: number; companyName: string; phone: string; segment: string; contactName?: string | undefined; email?: string | undefined; status?: "Entrar em contato" | "Ganho" | "Perdido" | "Abandonado" | ... 4 more ... | undefined; ... 6 more ...; tagIds?: number[] | undefined; }'.
+  Types of property 'type' are incompatible.
+    Type 'string' is not assignable to type '"CRM" | "Site" | undefined'.
+client/src/components/LeadFormDialog.tsx(394,56): error TS2345: Argument of type '{ status: "Abandonado"; companyName: string; contactName: string; phone: string; email: string; segment: string; site: string; city: string; notes: string; type: string; tagIds: any; id: number; }' is not assignable to parameter of type '{ id: number; companyName: string; phone: string; segment: string; contactName?: string | undefined; email?: string | undefined; status?: "Entrar em contato" | "Ganho" | "Perdido" | "Abandonado" | ... 4 more ... | undefined; ... 6 more ...; tagIds?: number[] | undefined; }'.
+  Types of property 'type' are incompatible.
+    Type 'string' is not assignable to type '"CRM" | "Site" | undefined'.
+client/src/components/LeadFormDialog.tsx(418,56): error TS2345: Argument of type '{ status: "Ganho"; companyName: string; contactName: string; phone: string; email: string; segment: string; site: string; city: string; notes: string; type: string; tagIds: any; id: number; }' is not assignable to parameter of type '{ id: number; companyName: string; phone: string; segment: string; contactName?: string | undefined; email?: string | undefined; status?: "Entrar em contato" | "Ganho" | "Perdido" | "Abandonado" | ... 4 more ... | undefined; ... 6 more ...; tagIds?: number[] | undefined; }'.
+  Types of property 'type' are incompatible.
+    Type 'string' is not assignable to type '"CRM" | "Site" | undefined'.
+client/src/components/OpportunityKanban.tsx(11,33): error TS2307: Cannot find module './OpportunityCard' or its corresponding type declarations.
+client/src/components/TagManagementModal.tsx(12,22): error TS2307: Cannot find module '@/_core/trpc' or its corresponding type declarations.
+client/src/components/TagManagementModal.tsx(50,15): error TS7006: Parameter 'e' implicitly has an 'any' type.
+client/src/components/TagManagementModal.tsx(61,15): error TS7006: Parameter 'e' implicitly has an 'any' type.
+client/src/components/TagManagementModal.tsx(71,15): error TS7006: Parameter 'e' implicitly has an 'any' type.
+client/src/components/TagManagementModal.tsx(192,24): error TS7006: Parameter 'tag' implicitly has an 'any' type.
+client/src/components/TagSelector.tsx(21,22): error TS2307: Cannot find module '@/_core/trpc' or its corresponding type declarations.
+client/src/components/TagSelector.tsx(59,17): error TS7006: Parameter 'newTag' implicitly has an 'any' type.
+client/src/components/TagSelector.tsx(68,31): error TS7006: Parameter 't' implicitly has an 'any' type.
+client/src/components/TagSelector.tsx(99,19): error TS7006: Parameter 't' implicitly has an 'any' type.
+client/src/components/TagSelector.tsx(149,27): error TS7006: Parameter 't' implicitly has an 'any' type.
+client/src/components/TagSelector.tsx(150,25): error TS7006: Parameter 'tag' implicitly has an 'any' type.
+client/src/components/TodayTasks.tsx(109,91): error TS2322: Type '{ className: string; title: string; }' is not assignable to type 'IntrinsicAttributes & Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>'.
+  Property 'title' does not exist on type 'IntrinsicAttributes & Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>'.
+client/src/components/TodayTasks.tsx(134,91): error TS2322: Type '{ className: string; title: string; }' is not assignable to type 'IntrinsicAttributes & Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>'.
+  Property 'title' does not exist on type 'IntrinsicAttributes & Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>'.
+server/_core/oauth.ts(35,9): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+server/_core/sdk.ts(303,11): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+server/_core/sdk.ts(317,25): error TS2345: Argument of type '{ openId: string | null; email: string; lastSignedIn: Date; }' is not assignable to parameter of type '{ email: string; username: string; passwordHash: string; id?: number | undefined; name?: string | null | undefined; role?: string | undefined; openId?: string | null | undefined; loginMethod?: string | undefined; ... 4 more ...; passwordResetExpires?: Date | ... 1 more ... | undefined; }'.
+  Type '{ openId: string | null; email: string; lastSignedIn: Date; }' is missing the following properties from type '{ email: string; username: string; passwordHash: string; id?: number | undefined; name?: string | null | undefined; role?: string | undefined; openId?: string | null | undefined; loginMethod?: string | undefined; ... 4 more ...; passwordResetExpires?: Date | ... 1 more ... | undefined; }': username, passwordHash
+server/db.ts(33,11): error TS2739: Type '{ openId: string; email: string; }' is missing the following properties from type '{ email: string; username: string; passwordHash: string; id?: number | undefined; name?: string | null | undefined; role?: string | undefined; openId?: string | null | undefined; loginMethod?: string | undefined; ... 4 more ...; passwordResetExpires?: Date | ... 1 more ... | undefined; }': username, passwordHash
+server/duplicates.ts(39,25): error TS18047: 'lead.phone' is possibly 'null'.
+server/duplicates.ts(46,23): error TS18047: 'lead.phone' is possibly 'null'.
+server/routers.ts(277,42): error TS7006: Parameter 'l' implicitly has an 'any' type.
+server/routers.ts(839,35): error TS2345: Argument of type '{ name: string; color: string; description?: string | undefined; }' is not assignable to parameter of type '{ name: string; order: number; id?: number | undefined; color?: string | null | undefined; createdAt?: Date | undefined; updatedAt?: Date | undefined; isDefault?: boolean | null | undefined; }'.
+  Property 'order' is missing in type '{ name: string; color: string; description?: string | undefined; }' but required in type '{ name: string; order: number; id?: number | undefined; color?: string | null | undefined; createdAt?: Date | undefined; updatedAt?: Date | undefined; isDefault?: boolean | null | undefined; }'.

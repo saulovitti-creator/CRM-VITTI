@@ -22,6 +22,8 @@ import { Plus, Calendar } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { LEAD_CATEGORIES, LEAD_STATUSES, type Lead } from "@shared/types";
 import { toast } from "sonner";
+import { TagSelector } from "./TagSelector";
+import { DynamicFieldRenderer } from "./DynamicFieldRenderer";
 
 interface LeadFormDialogProps {
   lead?: Lead;
@@ -43,11 +45,36 @@ export function LeadFormDialog({ lead, onSuccess, type }: LeadFormDialogProps) {
     notes: lead?.notes || "",
     type: lead?.type || type || "CRM",
     dataCriacao: lead?.dataCriacao ? new Date(lead.dataCriacao).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    tagIds: (lead as any)?.tags?.map((t: any) => t.id) || [],
   });
 
   const createMutation = trpc.leads.create.useMutation();
   const updateMutation = trpc.leads.update.useMutation();
+  const saveCustomValuesMutation = trpc.customFields.setValues.useMutation();
   const utils = trpc.useUtils();
+
+  // Custom Fields State
+  const [customValues, setCustomValues] = useState<Record<number, string | null>>({});
+
+  const { data: customFields } = trpc.customFields.listDefinitions.useQuery(
+    { model: "lead" },
+    { enabled: open }
+  );
+
+  const { data: existingValues } = trpc.customFields.getValues.useQuery(
+    { entityId: lead?.id as number, entityType: "lead" },
+    { enabled: open && !!lead?.id }
+  );
+
+  useEffect(() => {
+    if (existingValues) {
+      const vals: Record<number, string | null> = {};
+      existingValues.forEach(v => vals[v.definitionId] = v.value);
+      setCustomValues(vals);
+    } else if (!lead) {
+      setCustomValues({});
+    }
+  }, [existingValues, lead, open]);
 
   // Resetar formData quando modal abrir ou type mudar
   useEffect(() => {
@@ -64,6 +91,7 @@ export function LeadFormDialog({ lead, onSuccess, type }: LeadFormDialogProps) {
         notes: "",
         type: type || "CRM",
         dataCriacao: new Date().toISOString().split('T')[0],
+        tagIds: [],
       });
     }
   }, [open, type, lead]);
@@ -77,6 +105,8 @@ export function LeadFormDialog({ lead, onSuccess, type }: LeadFormDialogProps) {
         dataCriacao: new Date(formData.dataCriacao),
       };
 
+      let finalLeadId = lead?.id;
+
       if (lead?.id) {
         await updateMutation.mutateAsync({
           id: lead.id,
@@ -84,8 +114,34 @@ export function LeadFormDialog({ lead, onSuccess, type }: LeadFormDialogProps) {
         });
         toast.success("Prospecto atualizado com sucesso!");
       } else {
-        await createMutation.mutateAsync(dataToSend);
+        const result = await createMutation.mutateAsync(dataToSend);
+        finalLeadId = (result as any)?.id;
         toast.success("Prospecto criado com sucesso!");
+      }
+
+      // Salvar campos personalizados se houver
+      if (finalLeadId && customFields && customFields.length > 0) {
+        const valuesArray = Object.entries(customValues).map(([defId, val]) => ({
+          definitionId: parseInt(defId),
+          value: val,
+        }));
+        
+        // Verifica se há campos obrigatórios vazios
+        const missingRequired = customFields.find(f => 
+          f.isRequired && (!customValues[f.id] || customValues[f.id] === "")
+        );
+
+        if (missingRequired) {
+          toast.warning(`Atenção: O campo "${missingRequired.name}" é obrigatório, mas o lead foi salvo. Por favor, preencha-o.`);
+        }
+
+        if (valuesArray.length > 0) {
+          await saveCustomValuesMutation.mutateAsync({
+            entityId: finalLeadId,
+            entityType: "lead",
+            values: valuesArray,
+          });
+        }
       }
 
       await utils.leads.list.invalidate();
@@ -184,6 +240,15 @@ export function LeadFormDialog({ lead, onSuccess, type }: LeadFormDialogProps) {
           </div>
 
           <div>
+            <Label>Tags</Label>
+            <TagSelector 
+              selectedTagIds={formData.tagIds} 
+              onChange={(tagIds) => setFormData({ ...formData, tagIds })} 
+              className="mt-1"
+            />
+          </div>
+
+          <div>
             <Label htmlFor="status">Status</Label>
             <Select
               value={formData.status}
@@ -239,6 +304,39 @@ export function LeadFormDialog({ lead, onSuccess, type }: LeadFormDialogProps) {
               rows={3}
             />
           </div>
+
+          {/* Custom Fields (Renderizados Dinamicamente) */}
+          {customFields && customFields.length > 0 && (
+            <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50 space-y-4 my-4">
+              <h4 className="text-sm font-semibold text-cyan-400 border-b border-slate-700 pb-2">Informações Adicionais</h4>
+              
+              {/* Agrupamento por GroupName */}
+              {(() => {
+                const groups: Record<string, typeof customFields> = {};
+                customFields.forEach(field => {
+                  const g = field.groupName || "Gerais";
+                  if (!groups[g]) groups[g] = [];
+                  groups[g].push(field);
+                });
+
+                return Object.entries(groups).map(([groupName, fields]) => (
+                  <div key={groupName} className="space-y-3">
+                    {groupName !== "Gerais" && (
+                      <h5 className="text-xs font-medium text-slate-400 mt-4 uppercase">{groupName}</h5>
+                    )}
+                    {fields.map(field => (
+                      <DynamicFieldRenderer
+                        key={field.id}
+                        definition={field}
+                        value={customValues[field.id] || null}
+                        onChange={(val) => setCustomValues(prev => ({ ...prev, [field.id]: val }))}
+                      />
+                    ))}
+                  </div>
+                ));
+              })()}
+            </div>
+          )}
 
           <div>
             <Label htmlFor="dataCriacao" className="flex items-center gap-2">

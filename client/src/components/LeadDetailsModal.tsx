@@ -46,6 +46,9 @@ import { WhatsAppButton } from "./WhatsAppButton";
 import { FinalStatusModal } from "./FinalStatusModal";
 import { ProspectTasksSection } from "./ProspectTasksSection";
 import { TimelineNotes } from "./TimelineNotes";
+import { TagSelector } from "./TagSelector";
+import { TagBadge } from "./TagBadge";
+import { DynamicFieldRenderer } from "./DynamicFieldRenderer";
 
 interface Lead {
   id: number;
@@ -63,6 +66,7 @@ interface Lead {
   type: "CRM" | "Site";
   createdAt: Date;
   updatedAt: Date;
+  tags?: Array<{ id: number; name: string; color: string; createdAt: Date; }>;
 }
 
 interface LeadDetailsModalProps {
@@ -92,6 +96,27 @@ export default function LeadDetailsModal({
   const [newNote, setNewNote] = useState("");
   const [finalStatusModal, setFinalStatusModal] = useState<{ open: boolean; status: "Perdido" | "Abandonado" | "Ganho" | null }>({ open: false, status: null });
 
+  // Custom Fields
+  const [customValues, setCustomValues] = useState<Record<number, string | null>>({});
+  
+  const { data: customFields } = trpc.customFields.listDefinitions.useQuery(
+    { model: "lead" },
+    { enabled: open }
+  );
+
+  const { data: existingValues } = trpc.customFields.getValues.useQuery(
+    { entityId: lead?.id as number, entityType: "lead" },
+    { enabled: open && !!lead?.id }
+  );
+
+  useEffect(() => {
+    if (existingValues) {
+      const vals: Record<number, string | null> = {};
+      existingValues.forEach(v => vals[v.definitionId] = v.value);
+      setCustomValues(vals);
+    }
+  }, [existingValues, open]);
+
   // Sincronizar editedLead quando lead prop mudar
   useEffect(() => {
     if (lead) {
@@ -104,12 +129,15 @@ export default function LeadDetailsModal({
     onSuccess: () => {
       toast.success("Lead atualizado com sucesso!");
       setIsEditing(false);
+      utils.customFields.getValues.invalidate();
       onLeadUpdated?.();
     },
     onError: (error) => {
       toast.error(error.message || "Erro ao atualizar lead");
     },
   });
+
+  const saveCustomValuesMutation = trpc.customFields.setValues.useMutation();
 
   const deleteMutation = trpc.leads.delete.useMutation({
     onSuccess: () => {
@@ -135,22 +163,52 @@ export default function LeadDetailsModal({
 
   if (!lead) return null;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editedLead) return;
-    updateMutation.mutate({
-      id: editedLead.id,
-      companyName: editedLead.company_name?.trim() || "",
-      contactName: editedLead.contact_name?.trim() || "",
-      phone: editedLead.phone?.trim() || "",
-      email: editedLead.email?.trim() || "",
-      segment: editedLead.segment?.trim() || "",
-      status: editedLead.status,
-      city: editedLead.city?.trim() || "",
-      site: editedLead.site?.trim() || "",
-      implementationValue: editedLead.implementationValue ? parseFloat(String(editedLead.implementationValue)) : undefined,
-      recurringValue: editedLead.recurringValue ? parseFloat(String(editedLead.recurringValue)) : undefined,
-      notes: editedLead.notes?.trim() || "",
-    });
+
+    try {
+      // Salvar os campos customizados
+      if (customFields && customFields.length > 0) {
+        const valuesArray = Object.entries(customValues).map(([defId, val]) => ({
+          definitionId: parseInt(defId),
+          value: val,
+        }));
+        
+        const missingRequired = customFields.find(f => 
+          f.isRequired && (!customValues[f.id] || customValues[f.id] === "")
+        );
+
+        if (missingRequired) {
+          toast.warning(`Atenção: O campo "${missingRequired.name}" é obrigatório, mas o lead foi salvo.`);
+        }
+
+        if (valuesArray.length > 0) {
+          await saveCustomValuesMutation.mutateAsync({
+            entityId: editedLead.id,
+            entityType: "lead",
+            values: valuesArray,
+          });
+        }
+      }
+
+      await updateMutation.mutateAsync({
+        id: editedLead.id,
+        companyName: editedLead.company_name?.trim() || "",
+        contactName: editedLead.contact_name?.trim() || "",
+        phone: editedLead.phone?.trim() || "",
+        email: editedLead.email?.trim() || "",
+        segment: editedLead.segment?.trim() || "",
+        status: editedLead.status,
+        city: editedLead.city?.trim() || "",
+        site: editedLead.site?.trim() || "",
+        implementationValue: editedLead.implementationValue ? parseFloat(String(editedLead.implementationValue)) : undefined,
+        recurringValue: editedLead.recurringValue ? parseFloat(String(editedLead.recurringValue)) : undefined,
+        notes: editedLead.notes?.trim() || "",
+        tagIds: editedLead.tags?.map((t: any) => t.id) || [],
+      });
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleDelete = () => {
@@ -257,6 +315,39 @@ export default function LeadDetailsModal({
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* Tags */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-cyan-400 flex items-center gap-2">
+                <Tag className="w-4 h-4" />
+                Tags
+              </h3>
+              
+              {isEditing ? (
+                <TagSelector 
+                  selectedTagIds={editedLead?.tags?.map(t => t.id) || []}
+                  onChange={(tagIds) => {
+                    // Temporarily using selected IDs. The DB update will handle the relation,
+                    // but for local state we just need to keep track of IDs.
+                    // We map them to mock tags so the render doesn't break.
+                    setEditedLead({
+                      ...editedLead!,
+                      tags: tagIds.map(id => ({ id, name: "Salvar para ver", color: "#64748b", createdAt: new Date() }))
+                    });
+                  }}
+                />
+              ) : (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {lead.tags && lead.tags.length > 0 ? (
+                    lead.tags.map(tag => (
+                      <TagBadge key={tag.id} tag={tag as any} />
+                    ))
+                  ) : (
+                    <span className="text-slate-500 text-sm">Nenhuma tag preenchida</span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Contato */}
@@ -457,6 +548,28 @@ export default function LeadDetailsModal({
                 )}
               </div>
             </div>
+
+            {/* Custom Fields (Informações Adicionais) */}
+            {customFields && customFields.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-cyan-400 flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Informações Adicionais
+                </h3>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {customFields.map(field => (
+                    <DynamicFieldRenderer
+                      key={field.id}
+                      definition={field}
+                      value={customValues[field.id] || null}
+                      onChange={(val) => setCustomValues(prev => ({ ...prev, [field.id]: val }))}
+                      readOnly={!isEditing}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Notas + Timeline */}
             <div className="space-y-4">

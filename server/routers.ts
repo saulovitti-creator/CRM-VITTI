@@ -41,12 +41,58 @@ import {
   getFollowUpAlerts,
   getDashboardStats,
   deleteLeadsByIds,
+  getAllTags,
+  createTag,
+  updateTag,
+  deleteTag,
+  assignTagToLead,
+  removeTagFromLead,
+  getTagsByLeadId,
+  getCustomFieldDefinitions,
+  getCustomFieldDefinitionById,
+  createCustomFieldDefinition,
+  updateCustomFieldDefinition,
+  deleteCustomFieldDefinition,
+  reorderCustomFieldDefinitions,
+  getCustomFieldValues,
+  setCustomFieldValues,
+  deleteCustomFieldValuesForEntity,
+  getContacts,
+  getContactById,
+  createContact,
+  updateContact,
+  deleteContact,
+  getUniqueContactCities,
+  getUniqueContactSegments,
+  getAllPipelines,
+  getPipelineById,
+  createPipeline,
+  updatePipeline,
+  deletePipeline,
+  createPipelineStage,
+  updatePipelineStage,
+  deletePipelineStage,
+  reorderPipelineStages,
+  getOpportunities,
+  getOpportunityById,
+  createOpportunity,
+  updateOpportunity,
+  deleteOpportunity,
+  moveOpportunityToStage,
+  getOpportunityNotes,
+  createOpportunityNote,
+  deleteOpportunityNote,
+  getOpportunityTasks,
+  createOpportunityTask,
+  completeOpportunityTask,
+  deleteOpportunityTask,
+  getOpportunityStats,
 } from "./db";
 import { hashPassword, verifyPassword } from "./auth-utils";
 import { groupDuplicates, mergeLeads, calculateDuplicateStats } from "./duplicates";
-import { leads } from "../drizzle/schema";
+import { leads, tags, leadTags } from "../drizzle/schema";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 export const appRouter = router({
   system: systemRouter,
@@ -217,9 +263,45 @@ export const appRouter = router({
           dataInicial: z.date().optional(),
           dataFinal: z.date().optional(),
           siteStatus: z.enum(['all', 'with_site', 'without_site']).optional(),
+          tagIds: z.array(z.number()).optional(),
         })
       )
-      .query(({ input }) => getLeads(input)),
+      .query(async ({ input }) => {
+        const fetchedLeads = await getLeads(input);
+        
+        if (fetchedLeads.length === 0) return fetchedLeads;
+        
+        const db = await getDb();
+        if (!db) return fetchedLeads;
+
+        const leadIds = fetchedLeads.map(l => l.id);
+        const tagsData = await db.select({
+          leadId: leadTags.leadId,
+          id: tags.id,
+          name: tags.name,
+          color: tags.color,
+          createdAt: tags.createdAt
+        })
+        .from(leadTags)
+        .innerJoin(tags, eq(leadTags.tagId, tags.id))
+        .where(inArray(leadTags.leadId, leadIds));
+
+        const tagsByLeadId: Record<number, any[]> = {};
+        tagsData.forEach(row => {
+          if (!tagsByLeadId[row.leadId]) tagsByLeadId[row.leadId] = [];
+          tagsByLeadId[row.leadId].push({
+            id: row.id,
+            name: row.name,
+            color: row.color,
+            createdAt: row.createdAt
+          });
+        });
+
+        return fetchedLeads.map((lead: any) => ({
+          ...lead,
+          tags: tagsByLeadId[lead.id] || []
+        }));
+      }),
 
     getById: protectedProcedure
       .input(z.object({ id: z.number() }))
@@ -228,7 +310,13 @@ export const appRouter = router({
         if (!lead) {
           throw new TRPCError({ code: "NOT_FOUND" });
         }
-        return lead;
+        
+        const leadTags = await getTagsByLeadId(input.id);
+        
+        return {
+          ...lead,
+          tags: leadTags
+        };
       }),
 
     create: protectedProcedure
@@ -259,17 +347,37 @@ export const appRouter = router({
           implementationValue: z.string().or(z.number()).optional(),
           recurringValue: z.string().or(z.number()).optional(),
           notes: z.string().optional(),
+          tagIds: z.array(z.number()).optional(),
         })
       )
       .mutation(async ({ input }) => {
-        const processedInput: any = { ...input };
+        const { tagIds, ...data } = input;
+        const processedInput: any = { ...data };
         if (processedInput.implementationValue !== undefined && typeof processedInput.implementationValue === 'string') {
           processedInput.implementationValue = parseFloat(processedInput.implementationValue) || null;
         }
         if (processedInput.recurringValue !== undefined && typeof processedInput.recurringValue === 'string') {
           processedInput.recurringValue = parseFloat(processedInput.recurringValue) || null;
         }
-        return createLead(processedInput);
+        
+        const result = await createLead(processedInput);
+        let leadId: number | null = null;
+        
+        if (result && typeof result === 'object') {
+          if ('id' in result && typeof result.id === 'number') {
+            leadId = result.id;
+          } else if ('insertId' in result) {
+            leadId = (result as any).insertId;
+          }
+        }
+        
+        if (leadId && tagIds && tagIds.length > 0) {
+          for (const tagId of tagIds) {
+            await assignTagToLead(leadId, tagId);
+          }
+        }
+        
+        return result;
       }),
 
     update: protectedProcedure
@@ -300,10 +408,11 @@ export const appRouter = router({
           implementationValue: z.string().or(z.number()).optional(),
           recurringValue: z.string().or(z.number()).optional(),
           notes: z.string().optional(),
+          tagIds: z.array(z.number()).optional(),
         })
       )
       .mutation(async ({ input }) => {
-        const { id, ...updates } = input;
+        const { id, tagIds, ...updates } = input;
         const processedUpdates: any = { ...updates };
         if (processedUpdates.implementationValue !== undefined && typeof processedUpdates.implementationValue === 'string') {
           processedUpdates.implementationValue = parseFloat(processedUpdates.implementationValue) || null;
@@ -311,8 +420,26 @@ export const appRouter = router({
         if (processedUpdates.recurringValue !== undefined && typeof processedUpdates.recurringValue === 'string') {
           processedUpdates.recurringValue = parseFloat(processedUpdates.recurringValue) || null;
         }
-        await updateLead(id, processedUpdates);
-        return getLeadById(id);
+        
+        const result = await updateLead(id, processedUpdates);
+        
+        if (tagIds !== undefined) {
+          const currentTags = await getTagsByLeadId(id);
+          const currentTagIds = currentTags.map((t: any) => t.id);
+          
+          const tagsToRemove = currentTagIds.filter((tagId: number) => !tagIds.includes(tagId));
+          const tagsToAdd = tagIds.filter((tagId: number) => !currentTagIds.includes(tagId));
+          
+          for (const tagId of tagsToRemove) {
+            await removeTagFromLead(id, tagId);
+          }
+          
+          for (const tagId of tagsToAdd) {
+            await assignTagToLead(id, tagId);
+          }
+        }
+        
+        return result;
       }),
 
     delete: protectedProcedure
@@ -786,6 +913,345 @@ export const appRouter = router({
     followUpAlerts: protectedProcedure
       .input(z.object({ days: z.number().optional() }))
       .query(({ input }) => getFollowUpAlerts(input.days)),
+  }),
+  tags: router({
+    list: protectedProcedure.query(() => getAllTags()),
+    
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1).max(100),
+        color: z.string().max(7).optional().default("#3b82f6")
+      }))
+      .mutation(({ input }) => createTag(input)),
+      
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().min(1).max(100).optional(),
+        color: z.string().max(7).optional()
+      }))
+      .mutation(({ input }) => updateTag(input.id, { name: input.name, color: input.color })),
+      
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ input }) => deleteTag(input.id)),
+      
+    assignToLead: protectedProcedure
+      .input(z.object({
+        leadId: z.number(),
+        tagId: z.number()
+      }))
+      .mutation(({ input }) => assignTagToLead(input.leadId, input.tagId)),
+      
+    removeFromLead: protectedProcedure
+      .input(z.object({
+        leadId: z.number(),
+        tagId: z.number()
+      }))
+      .mutation(({ input }) => removeTagFromLead(input.leadId, input.tagId)),
+      
+    getByLead: protectedProcedure
+      .input(z.object({ leadId: z.number() }))
+      .query(({ input }) => getTagsByLeadId(input.leadId)),
+  }),
+
+  // ===================== CUSTOM FIELDS =====================
+  customFields: router({
+    // --- Definitions CRUD ---
+    listDefinitions: protectedProcedure
+      .input(z.object({ model: z.string().optional() }).optional())
+      .query(({ input }) => getCustomFieldDefinitions(input?.model)),
+
+    createDefinition: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1).max(255),
+        fieldType: z.enum(["text", "textarea", "number", "currency", "date", "dropdown", "checkbox", "url", "email", "phone"]),
+        model: z.string().default("lead"),
+        groupName: z.string().max(100).optional(),
+        placeholder: z.string().max(255).optional(),
+        options: z.string().optional(), // JSON array as string
+        isRequired: z.boolean().optional().default(false),
+        displayOrder: z.number().optional(),
+      }))
+      .mutation(({ input }) => createCustomFieldDefinition(input)),
+
+    updateDefinition: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().min(1).max(255).optional(),
+        fieldType: z.enum(["text", "textarea", "number", "currency", "date", "dropdown", "checkbox", "url", "email", "phone"]).optional(),
+        groupName: z.string().max(100).nullable().optional(),
+        placeholder: z.string().max(255).nullable().optional(),
+        options: z.string().nullable().optional(),
+        isRequired: z.boolean().optional(),
+      }))
+      .mutation(({ input }) => {
+        const { id, ...updates } = input;
+        return updateCustomFieldDefinition(id, updates);
+      }),
+
+    deleteDefinition: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ input }) => deleteCustomFieldDefinition(input.id)),
+
+    reorderDefinitions: protectedProcedure
+      .input(z.object({ orderedIds: z.array(z.number()) }))
+      .mutation(({ input }) => reorderCustomFieldDefinitions(input.orderedIds)),
+
+    // --- Values ---
+    getValues: protectedProcedure
+      .input(z.object({
+        entityId: z.number(),
+        entityType: z.string().default("lead"),
+      }))
+      .query(({ input }) => getCustomFieldValues(input.entityId, input.entityType)),
+
+    setValues: protectedProcedure
+      .input(z.object({
+        entityId: z.number(),
+        entityType: z.string().default("lead"),
+        values: z.array(z.object({
+          definitionId: z.number(),
+          value: z.string().nullable(),
+        })),
+      }))
+      .mutation(({ input }) => setCustomFieldValues(input.entityId, input.entityType, input.values)),
+  }),
+
+  // ===================== SPRINT 3: CONTACTS =====================
+  contacts: router({
+    list: protectedProcedure
+      .input(z.object({
+        search: z.string().optional(),
+        city: z.string().optional(),
+        segment: z.string().optional(),
+        tagIds: z.array(z.number()).optional(),
+      }).optional())
+      .query(({ input }) => getContacts(input)),
+
+    getById: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(({ input }) => getContactById(input.id)),
+
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        company: z.string().optional(),
+        phone: z.string().optional(),
+        email: z.string().optional(),
+        city: z.string().optional(),
+        site: z.string().optional(),
+        segment: z.string().optional(),
+        source: z.string().optional(),
+        notes: z.string().optional(),
+        tagIds: z.array(z.number()).optional(),
+      }))
+      .mutation(({ input }) => createContact(input)),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        company: z.string().optional(),
+        phone: z.string().optional(),
+        email: z.string().optional(),
+        city: z.string().optional(),
+        site: z.string().optional(),
+        segment: z.string().optional(),
+        source: z.string().optional(),
+        notes: z.string().optional(),
+        tagIds: z.array(z.number()).optional(),
+      }))
+      .mutation(({ input }) => {
+        const { id, ...data } = input;
+        return updateContact(id, data);
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ input }) => deleteContact(input.id)),
+
+    getCities: protectedProcedure
+      .query(() => getUniqueContactCities()),
+
+    getSegments: protectedProcedure
+      .query(() => getUniqueContactSegments()),
+  }),
+
+  // ===================== SPRINT 3: PIPELINES =====================
+  pipelines: router({
+    list: protectedProcedure
+      .query(() => getAllPipelines()),
+
+    getById: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(({ input }) => getPipelineById(input.id)),
+
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        stages: z.array(z.object({
+          name: z.string().min(1),
+          color: z.string().optional(),
+          isFinal: z.boolean().optional(),
+          finalType: z.string().nullable().optional(),
+        })),
+      }))
+      .mutation(({ input }) => createPipeline(input)),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+      }))
+      .mutation(({ input }) => {
+        const { id, ...data } = input;
+        return updatePipeline(id, data);
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ input }) => deletePipeline(input.id)),
+
+    // --- Stages ---
+    createStage: protectedProcedure
+      .input(z.object({
+        pipelineId: z.number(),
+        name: z.string().min(1),
+        color: z.string().optional(),
+        displayOrder: z.number().optional(),
+        isFinal: z.boolean().optional(),
+        finalType: z.string().nullable().optional(),
+      }))
+      .mutation(({ input }) => createPipelineStage(input)),
+
+    updateStage: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        color: z.string().optional(),
+        displayOrder: z.number().optional(),
+        isFinal: z.boolean().optional(),
+        finalType: z.string().nullable().optional(),
+      }))
+      .mutation(({ input }) => {
+        const { id, ...data } = input;
+        return updatePipelineStage(id, data);
+      }),
+
+    deleteStage: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ input }) => deletePipelineStage(input.id)),
+
+    reorderStages: protectedProcedure
+      .input(z.object({
+        pipelineId: z.number(),
+        stageIds: z.array(z.number()),
+      }))
+      .mutation(({ input }) => reorderPipelineStages(input.pipelineId, input.stageIds)),
+  }),
+
+  // ===================== SPRINT 3: OPPORTUNITIES =====================
+  opportunities: router({
+    list: protectedProcedure
+      .input(z.object({
+        pipelineId: z.number().optional(),
+        stageId: z.number().optional(),
+        contactId: z.number().optional(),
+        status: z.string().optional(),
+        search: z.string().optional(),
+      }).optional())
+      .query(({ input }) => getOpportunities(input)),
+
+    getById: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(({ input }) => getOpportunityById(input.id)),
+
+    create: protectedProcedure
+      .input(z.object({
+        contactId: z.number(),
+        pipelineId: z.number(),
+        stageId: z.number(),
+        title: z.string().min(1),
+        monetaryValue: z.string().optional(),
+        segment: z.string().optional(),
+        source: z.string().optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(({ input }) => createOpportunity(input)),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        contactId: z.number().optional(),
+        pipelineId: z.number().optional(),
+        stageId: z.number().optional(),
+        title: z.string().optional(),
+        monetaryValue: z.string().nullable().optional(),
+        status: z.string().optional(),
+        segment: z.string().optional(),
+        source: z.string().optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(({ input }) => {
+        const { id, ...data } = input;
+        return updateOpportunity(id, data);
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ input }) => deleteOpportunity(input.id)),
+
+    moveToStage: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        stageId: z.number(),
+      }))
+      .mutation(({ input }) => moveOpportunityToStage(input.id, input.stageId)),
+
+    stats: protectedProcedure
+      .input(z.object({ pipelineId: z.number().optional() }).optional())
+      .query(({ input }) => getOpportunityStats(input?.pipelineId)),
+
+    // --- Notes ---
+    getNotes: protectedProcedure
+      .input(z.object({ opportunityId: z.number() }))
+      .query(({ input }) => getOpportunityNotes(input.opportunityId)),
+
+    addNote: protectedProcedure
+      .input(z.object({
+        opportunityId: z.number(),
+        content: z.string().min(1),
+        noteType: z.string().optional(),
+      }))
+      .mutation(({ input }) => createOpportunityNote(input)),
+
+    deleteNote: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ input }) => deleteOpportunityNote(input.id)),
+
+    // --- Tasks ---
+    getTasks: protectedProcedure
+      .input(z.object({ opportunityId: z.number() }))
+      .query(({ input }) => getOpportunityTasks(input.opportunityId)),
+
+    createTask: protectedProcedure
+      .input(z.object({
+        opportunityId: z.number(),
+        title: z.string().min(1),
+        description: z.string().optional(),
+        dueDate: z.date(),
+        priority: z.string().optional(),
+      }))
+      .mutation(({ input }) => createOpportunityTask(input)),
+
+    completeTask: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ input }) => completeOpportunityTask(input.id)),
+
+    deleteTask: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ input }) => deleteOpportunityTask(input.id)),
   }),
 });
 

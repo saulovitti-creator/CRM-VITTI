@@ -15,6 +15,13 @@
       "when": 1774373764588,
       "tag": "0001_mixed_lake",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1776955049793,
+      "tag": "0002_swift_chronomancer",
+      "breakpoints": true
     }
   ]
 }
