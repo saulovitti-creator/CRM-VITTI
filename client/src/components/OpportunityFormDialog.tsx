@@ -119,9 +119,9 @@ export function OpportunityFormDialog({
       }
       setOpen(false);
       onSuccess?.();
-      // Invalidar cache em background
-      utils.opportunities.list.invalidate();
-      utils.opportunities.stats.invalidate();
+      // Invalidar cache e aguardar o refetch
+      await utils.opportunities.list.invalidate();
+      await utils.opportunities.stats.invalidate();
     } catch (error: any) {
       toast.error(`Erro ao salvar oportunidade: ${error.message || error}`);
     }
