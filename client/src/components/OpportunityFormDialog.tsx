@@ -49,28 +49,41 @@ export function OpportunityFormDialog({
   const utils = trpc.useUtils();
 
   useEffect(() => {
-    if (open && !opportunity) {
-      // Auto-select first pipeline and its first stage if not provided
-      let initialPipelineId = defaultPipelineId?.toString() || "";
-      let initialStageId = defaultStageId?.toString() || "";
+    if (open) {
+      if (opportunity) {
+        setFormData({
+          title: opportunity.title || "",
+          contactId: opportunity.contactId?.toString() || defaultContactId?.toString() || "",
+          pipelineId: opportunity.pipelineId?.toString() || defaultPipelineId?.toString() || "",
+          stageId: opportunity.stageId?.toString() || defaultStageId?.toString() || "",
+          monetaryValue: opportunity.monetaryValue || "",
+          segment: opportunity.segment || "",
+          source: opportunity.source || "",
+          notes: opportunity.notes || "",
+        });
+      } else {
+        // Auto-select first pipeline and its first stage if not provided
+        let initialPipelineId = defaultPipelineId?.toString() || "";
+        let initialStageId = defaultStageId?.toString() || "";
 
-      if (!initialPipelineId && pipelines && pipelines.length > 0) {
-        initialPipelineId = pipelines[0].id.toString();
-        if (pipelines[0].stages && pipelines[0].stages.length > 0) {
-          initialStageId = pipelines[0].stages[0].id.toString();
+        if (!initialPipelineId && pipelines && pipelines.length > 0) {
+          initialPipelineId = pipelines[0].id.toString();
+          if (pipelines[0].stages && pipelines[0].stages.length > 0) {
+            initialStageId = pipelines[0].stages[0].id.toString();
+          }
         }
-      }
 
-      setFormData({
-        title: "", 
-        contactId: defaultContactId?.toString() || "", 
-        pipelineId: initialPipelineId, 
-        stageId: initialStageId, 
-        monetaryValue: "", 
-        segment: "", 
-        source: "", 
-        notes: "",
-      });
+        setFormData({
+          title: "", 
+          contactId: defaultContactId?.toString() || "", 
+          pipelineId: initialPipelineId, 
+          stageId: initialStageId, 
+          monetaryValue: "", 
+          segment: "", 
+          source: "", 
+          notes: "",
+        });
+      }
     }
   }, [open, opportunity, pipelines, defaultContactId, defaultPipelineId, defaultStageId]);
 

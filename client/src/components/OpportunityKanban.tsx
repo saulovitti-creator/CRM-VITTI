@@ -21,9 +21,9 @@ function SimpleOppCard({ opp }: { opp: any }) {
         <Building className="w-3 h-3 mr-1" />
         {opp.contactName} {opp.contactCompany ? `(${opp.contactCompany})` : ""}
       </div>
-      {opp.monetaryValue && opp.monetaryValue > 0 && (
+      {opp.monetaryValue !== null && opp.monetaryValue !== undefined && opp.monetaryValue !== "" && (
         <div className="text-xs font-semibold text-emerald-400">
-          R$ {Number(opp.monetaryValue).toLocaleString('pt-BR')}
+          R$ {Number(opp.monetaryValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
         </div>
       )}
       <div className="mt-2 text-right">
