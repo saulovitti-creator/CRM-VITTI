@@ -1481,8 +1481,9 @@ export async function createOpportunity(data: InsertOpportunity) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const [result] = await db.insert(opportunities).values(data).$returningId();
-  return { id: result.id };
+  const result = await db.insert(opportunities).values(data);
+  const insertedId = (result as any)[0]?.insertId ?? (result as any).insertId;
+  return { id: insertedId };
 }
 
 export async function updateOpportunity(id: number, data: Partial<InsertOpportunity>) {

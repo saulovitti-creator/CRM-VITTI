@@ -1178,7 +1178,24 @@ export const appRouter = router({
         source: z.string().optional(),
         notes: z.string().optional(),
       }))
-      .mutation(({ input }) => createOpportunity(input)),
+      .mutation(({ input }) => {
+        const sanitized: any = {
+          contactId: input.contactId,
+          pipelineId: input.pipelineId,
+          stageId: input.stageId,
+          title: input.title,
+        };
+        // monetaryValue: string vazia → undefined (campo DECIMAL não aceita "")
+        if (input.monetaryValue && input.monetaryValue.trim() !== "") {
+          sanitized.monetaryValue = input.monetaryValue;
+        }
+        // Campos opcionais: string vazia → undefined
+        if (input.segment && input.segment.trim() !== "") sanitized.segment = input.segment;
+        if (input.source && input.source.trim() !== "") sanitized.source = input.source;
+        if (input.notes && input.notes.trim() !== "") sanitized.notes = input.notes;
+
+        return createOpportunity(sanitized);
+      }),
 
     update: protectedProcedure
       .input(z.object({
@@ -1195,6 +1212,10 @@ export const appRouter = router({
       }))
       .mutation(({ input }) => {
         const { id, ...data } = input;
+        // Sanitizar monetaryValue: string vazia → null
+        if (data.monetaryValue !== undefined && data.monetaryValue !== null && data.monetaryValue.trim() === "") {
+          data.monetaryValue = null;
+        }
         return updateOpportunity(id, data);
       }),
 

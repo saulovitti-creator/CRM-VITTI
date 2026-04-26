@@ -86,12 +86,16 @@ export function OpportunityFormDialog({
     }
 
     try {
-      const payload = {
+      const payload: any = {
         ...formData,
         contactId: parseInt(formData.contactId),
         pipelineId: parseInt(formData.pipelineId),
         stageId: parseInt(formData.stageId),
       };
+
+      if (payload.monetaryValue === "") {
+        payload.monetaryValue = null;
+      }
 
       if (opportunity?.id) {
         await updateMutation.mutateAsync({ id: opportunity.id, ...payload });
@@ -100,12 +104,13 @@ export function OpportunityFormDialog({
         await createMutation.mutateAsync(payload);
         toast.success("Oportunidade criada!");
       }
-      await utils.opportunities.list.invalidate();
-      await utils.opportunities.stats.invalidate();
       setOpen(false);
       onSuccess?.();
-    } catch {
-      toast.error("Erro ao salvar oportunidade");
+      // Invalidar cache em background
+      utils.opportunities.list.invalidate();
+      utils.opportunities.stats.invalidate();
+    } catch (error: any) {
+      toast.error(`Erro ao salvar oportunidade: ${error.message || error}`);
     }
   };
 

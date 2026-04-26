@@ -55,11 +55,12 @@ export function ContactFormDialog({ contact, onSuccess, trigger }: ContactFormDi
         await createMutation.mutateAsync(formData);
         toast.success("Contato criado!");
       }
-      await utils.contacts.list.invalidate();
       setOpen(false);
       onSuccess?.();
-    } catch {
-      toast.error("Erro ao salvar contato");
+      // Invalidar cache em background (não bloqueia fechamento do modal)
+      utils.contacts.list.invalidate();
+    } catch (error: any) {
+      toast.error(`Erro ao salvar contato: ${error.message || error}`);
     }
   };
 
