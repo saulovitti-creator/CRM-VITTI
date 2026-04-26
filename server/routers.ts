@@ -1173,7 +1173,7 @@ export const appRouter = router({
         pipelineId: z.number(),
         stageId: z.number(),
         title: z.string().min(1),
-        monetaryValue: z.string().optional(),
+        monetaryValue: z.string().nullable().optional(),
         segment: z.string().optional(),
         source: z.string().optional(),
         notes: z.string().optional(),
