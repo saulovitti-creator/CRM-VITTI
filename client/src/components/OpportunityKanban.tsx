@@ -10,23 +10,65 @@ import {
 import { SortableContext, arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 // we will inline a simple card or create it
 
+import { Trash2 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+
 // Inlined Opportunity Card for simplicity in this file
 function SimpleOppCard({ opp }: { opp: any }) {
+  const deleteMutation = trpc.opportunities.delete.useMutation();
+  const utils = trpc.useUtils();
+
   return (
-    <div className="bg-slate-800 p-3 rounded border border-slate-700 shadow-sm cursor-grab active:cursor-grabbing hover:border-slate-600 mb-2">
+    <div className="bg-slate-800 p-3 rounded border border-slate-700 shadow-sm hover:border-slate-600 mb-2 group relative">
       <div className="flex justify-between items-start mb-1">
-        <h4 className="font-medium text-slate-200 text-sm">{opp.title}</h4>
+        <h4 className="font-medium text-slate-200 text-sm cursor-grab active:cursor-grabbing">{opp.title}</h4>
+        
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <button className="text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="bg-slate-900 border-slate-700">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-slate-100">Excluir oportunidade?</AlertDialogTitle>
+              <AlertDialogDescription className="text-slate-400">
+                Esta ação não pode ser desfeita. Isto excluirá permanentemente a oportunidade e os dados associados.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white">Cancelar</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={async () => {
+                  try {
+                    await deleteMutation.mutateAsync({ id: opp.id });
+                    utils.opportunities.list.invalidate();
+                    toast.success("Oportunidade excluída com sucesso");
+                  } catch (error: any) {
+                    toast.error("Erro ao excluir: " + error.message);
+                  }
+                }}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {deleteMutation.isPending ? "Excluindo..." : "Sim, Excluir"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
-      <div className="flex items-center text-xs text-slate-400 mb-2">
+      <div className="flex items-center text-xs text-slate-400 mb-2 cursor-grab active:cursor-grabbing">
         <Building className="w-3 h-3 mr-1" />
         {opp.contactName} {opp.contactCompany ? `(${opp.contactCompany})` : ""}
       </div>
       {opp.monetaryValue !== null && opp.monetaryValue !== undefined && opp.monetaryValue !== "" && (
-        <div className="text-xs font-semibold text-emerald-400">
+        <div className="text-xs font-semibold text-emerald-400 cursor-grab active:cursor-grabbing">
           R$ {Number(opp.monetaryValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
         </div>
       )}
-      <div className="mt-2 text-right">
+      <div className="mt-2 flex justify-end">
         <OpportunityFormDialog 
           opportunity={opp} 
           trigger={<span className="text-xs text-cyan-500 hover:underline cursor-pointer">Editar</span>} 

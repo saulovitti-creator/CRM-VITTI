@@ -3,6 +3,9 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,6 +49,7 @@ export function OpportunityFormDialog({
   
   const createMutation = trpc.opportunities.create.useMutation();
   const updateMutation = trpc.opportunities.update.useMutation();
+  const deleteMutation = trpc.opportunities.delete.useMutation();
   const utils = trpc.useUtils();
 
   useEffect(() => {
@@ -274,15 +278,55 @@ export function OpportunityFormDialog({
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}
-              className="border-slate-600 text-slate-300">
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isLoading}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white">
-              {isLoading ? "Salvando..." : opportunity ? "Atualizar" : "Criar Oportunidade"}
-            </Button>
+          <div className="flex justify-between items-center pt-2">
+            <div>
+              {opportunity && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button type="button" variant="destructive" className="bg-red-600 hover:bg-red-700 text-white">
+                      Excluir
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="bg-slate-900 border-slate-700">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-slate-100">Excluir oportunidade?</AlertDialogTitle>
+                      <AlertDialogDescription className="text-slate-400">
+                        Esta ação não pode ser desfeita. Isto excluirá permanentemente a oportunidade e os dados associados.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white">Cancelar</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={async () => {
+                          try {
+                            await deleteMutation.mutateAsync({ id: opportunity.id });
+                            utils.opportunities.list.invalidate();
+                            toast.success("Oportunidade excluída com sucesso");
+                            setOpen(false);
+                            if (onSuccess) onSuccess();
+                          } catch (error: any) {
+                            toast.error("Erro ao excluir: " + error.message);
+                          }
+                        }}
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        {deleteMutation.isPending ? "Excluindo..." : "Sim, Excluir"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}
+                className="border-slate-600 text-slate-300">
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isLoading}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                {isLoading ? "Salvando..." : opportunity ? "Atualizar" : "Criar Oportunidade"}
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>

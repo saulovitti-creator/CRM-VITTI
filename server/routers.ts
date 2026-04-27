@@ -90,9 +90,9 @@ import {
 } from "./db";
 import { hashPassword, verifyPassword } from "./auth-utils";
 import { groupDuplicates, mergeLeads, calculateDuplicateStats } from "./duplicates";
-import { leads, tags, leadTags } from "../drizzle/schema";
+import { leads, tags, leadTags, contacts } from "../drizzle/schema";
 import { TRPCError } from "@trpc/server";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, or } from "drizzle-orm";
 
 export const appRouter = router({
   system: systemRouter,
@@ -1046,7 +1046,29 @@ export const appRouter = router({
         notes: z.string().optional(),
         tagIds: z.array(z.number()).optional(),
       }))
-      .mutation(({ input }) => createContact(input)),
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (db) {
+          const conditions = [];
+          if (input.email && input.email.trim() !== "") {
+            conditions.push(eq(contacts.email, input.email));
+          }
+          if (input.phone && input.phone.trim() !== "") {
+            conditions.push(eq(contacts.phone, input.phone));
+          }
+          
+          if (conditions.length > 0) {
+            const duplicates = await db.select().from(contacts).where(or(...conditions)).limit(1);
+            if (duplicates.length > 0) {
+              throw new TRPCError({
+                code: "CONFLICT",
+                message: "Um contato com este e-mail ou telefone já existe na base.",
+              });
+            }
+          }
+        }
+        return createContact(input);
+      }),
 
     update: protectedProcedure
       .input(z.object({
