@@ -4,6 +4,8 @@ import { OpportunityFormDialog } from "./OpportunityFormDialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, Kanban as KanbanIcon, Plus, Building, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { OpportunityListView } from "./OpportunityListView";
+import { LayoutGrid, List } from "lucide-react";
 import {
   DndContext, DragOverlay, closestCorners, KeyboardSensor, PointerSensor, useSensor, useSensors, DragStartEvent, DragEndEvent
 } from "@dnd-kit/core";
@@ -89,6 +91,7 @@ function SimpleOppCard({ opp }: { opp: any }) {
 export function OpportunityKanban() {
   const { data: pipelines, isLoading: loadingPipes } = trpc.pipelines.list.useQuery();
   const [activePipelineId, setActivePipelineId] = useState<string>("");
+  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
 
   // Select the first pipeline automatically if none is selected
   useEffect(() => {
@@ -164,11 +167,11 @@ export function OpportunityKanban() {
   return (
     <div className="flex flex-col h-[calc(100vh-220px)]">
       {/* Header controls */}
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
         <div className="flex items-center gap-3">
-          <KanbanIcon className="w-4 h-4 text-muted-foreground" />
+          <KanbanIcon className="w-4 h-4 text-muted-foreground hidden sm:block" />
           <Select value={activePipelineId} onValueChange={setActivePipelineId}>
-            <SelectTrigger className="w-[220px]">
+            <SelectTrigger className="w-[220px] bg-card">
               <SelectValue placeholder="Selecione um Funil..." />
             </SelectTrigger>
             <SelectContent>
@@ -177,14 +180,48 @@ export function OpportunityKanban() {
               ))}
             </SelectContent>
           </Select>
+
+          {/* View Toggle */}
+          <div className="flex bg-muted/50 p-1 rounded-md border border-border">
+            <button
+              onClick={() => setViewMode("kanban")}
+              className={`p-1.5 rounded-sm transition-colors ${
+                viewMode === "kanban" 
+                  ? "bg-card text-foreground shadow-sm" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+              title="Visualização em Kanban"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={`p-1.5 rounded-sm transition-colors ${
+                viewMode === "list" 
+                  ? "bg-card text-foreground shadow-sm" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+              title="Visualização em Lista"
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <OpportunityFormDialog defaultPipelineId={parseInt(activePipelineId)} />
       </div>
 
-      {/* Kanban Board */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden kanban-container">
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      {/* Main Content Area */}
+      {viewMode === "list" ? (
+        <div className="flex-1 overflow-y-auto pr-1">
+          <OpportunityListView 
+            opportunities={opportunities || []} 
+            stages={stages} 
+          />
+        </div>
+      ) : (
+        <div className="flex-1 overflow-x-auto overflow-y-hidden kanban-container">
+          <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="flex h-full gap-3 pb-4 items-start">
             {stages.map(stage => {
               const stageOpps = opportunities?.filter(o => o.stageId === stage.id) || [];
@@ -244,7 +281,8 @@ export function OpportunityKanban() {
             ) : null}
           </DragOverlay>
         </DndContext>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
