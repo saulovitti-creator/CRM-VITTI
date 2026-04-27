@@ -20,7 +20,9 @@ export default function Home() {
         {/* Top Header / Actions */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-page-title">CRM Vitti</h1>
+            <h1 className="text-page-title">
+              CRM Vitti <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full ml-2">Live V2</span>
+            </h1>
             <p className="text-sm text-muted-foreground mt-1">Gerencie seus contatos e funil de vendas</p>
           </div>
 
