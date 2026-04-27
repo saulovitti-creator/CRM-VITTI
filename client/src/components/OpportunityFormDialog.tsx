@@ -98,7 +98,7 @@ export function OpportunityFormDialog({
     e.preventDefault();
     
     if (!formData.contactId || !formData.pipelineId || !formData.stageId) {
-      toast.error("Por favor, selecione Contato, Pipeline e EstÃ¡gio.");
+      toast.error("Por favor, selecione Contato, Pipeline e Estágio.");
       return;
     }
 
@@ -166,14 +166,14 @@ export function OpportunityFormDialog({
             {opportunity ? "Editar Oportunidade" : "Nova Oportunidade"}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            {opportunity ? "Atualize os dados do negÃ³cio" : "Cadastre uma nova oportunidade de venda"}
+            {opportunity ? "Atualize os dados do negócio" : "Cadastre uma nova oportunidade de venda"}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 max-h-[65vh] overflow-y-auto pr-2">
           
           <div>
-            <Label className="text-foreground">TÃ­tulo / Nome do NegÃ³cio *</Label>
+            <Label className="text-foreground">Título / Nome do Negócio *</Label>
             <Input
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -209,7 +209,7 @@ export function OpportunityFormDialog({
               <Select 
                 value={formData.pipelineId} 
                 onValueChange={(val) => {
-                  setFormData({ ...formData, pipelineId: val, stageId: "" }); // Reseta estÃ¡gio ao trocar funil
+                  setFormData({ ...formData, pipelineId: val, stageId: "" }); // Reseta estágio ao trocar funil
                 }}
               >
                 <SelectTrigger className=" mt-1">
@@ -225,7 +225,7 @@ export function OpportunityFormDialog({
               </Select>
             </div>
             <div>
-              <Label className="text-foreground">EstÃ¡gio *</Label>
+              <Label className="text-foreground">Estágio *</Label>
               <Select 
                 value={formData.stageId} 
                 onValueChange={(val) => setFormData({ ...formData, stageId: val })}
@@ -269,12 +269,12 @@ export function OpportunityFormDialog({
           </div>
 
           <div>
-            <Label className="text-foreground">ObservaÃ§Ãµes da Oportunidade</Label>
+            <Label className="text-foreground">Observações da Oportunidade</Label>
             <Textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               className=" mt-1 h-20 resize-y"
-              placeholder="Detalhes sobre este negÃ³cio..."
+              placeholder="Detalhes sobre este negócio..."
             />
           </div>
 
@@ -291,7 +291,7 @@ export function OpportunityFormDialog({
                     <AlertDialogHeader>
                       <AlertDialogTitle className="text-foreground">Excluir oportunidade?</AlertDialogTitle>
                       <AlertDialogDescription className="text-muted-foreground">
-                        Esta aÃ§Ã£o nÃ£o pode ser desfeita. Isto excluirÃ¡ permanentemente a oportunidade e os dados associados.
+                        Esta ação não pode ser desfeita. Isto excluirá permanentemente a oportunidade e os dados associados.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -301,7 +301,7 @@ export function OpportunityFormDialog({
                           try {
                             await deleteMutation.mutateAsync({ id: opportunity.id });
                             utils.opportunities.list.invalidate();
-                            toast.success("Oportunidade excluÃ­da com sucesso");
+                            toast.success("Oportunidade excluída com sucesso");
                             setOpen(false);
                             if (onSuccess) onSuccess();
                           } catch (error: any) {
