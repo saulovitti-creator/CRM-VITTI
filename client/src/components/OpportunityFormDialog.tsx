@@ -114,7 +114,7 @@ export function OpportunityFormDialog({
 
       if (opportunity?.id) {
         // Optimistic update
-        utils.opportunities.list.setQueryData(queryKeyArgs, (old: any) => {
+        utils.opportunities.list.setData(queryKeyArgs, (old: any) => {
           if (!old) return old;
           return old.map((o: any) => o.id === opportunity.id ? { ...o, ...payload } : o);
         });

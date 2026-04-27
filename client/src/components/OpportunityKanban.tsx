@@ -85,7 +85,7 @@ export function OpportunityKanban() {
       if (opp && opp.stageId !== newStageId) {
         // Optimistic UI update
         const queryKeyArgs = activePipelineId ? { pipelineId: parseInt(activePipelineId) } : undefined;
-        utils.opportunities.list.setQueryData(queryKeyArgs, (old: any) => {
+        utils.opportunities.list.setData(queryKeyArgs, (old: any) => {
           if (!old) return old;
           return old.map((o: any) => o.id === oppId ? { ...o, stageId: newStageId } : o);
         });
