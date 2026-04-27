@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -105,10 +105,10 @@ export function LeadNotesDialog({ leadId, companyName }: LeadNotesDialogProps) {
                 notes.map((note) => (
                   <div
                     key={note.id}
-                    className="bg-slate-50 p-3 rounded-lg border border-slate-200"
+                    className="bg-muted/50 p-3 rounded-lg border border-border"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm text-slate-700 flex-1">{note.content}</p>
+                      <p className="text-sm text-foreground flex-1">{note.content}</p>
                       <Button
                         variant="ghost"
                         size="sm"

@@ -1,4 +1,4 @@
-﻿import { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -225,7 +225,7 @@ export function ImportXLSXDialog({ leadType }: ImportXLSXDialogProps) {
           )}
 
           {/* Upload Area */}
-          <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-slate-400 transition">
+          <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition">
             <input
               ref={fileInputRef}
               type="file"
@@ -240,7 +240,7 @@ export function ImportXLSXDialog({ leadType }: ImportXLSXDialogProps) {
               className="cursor-pointer flex flex-col items-center gap-2"
             >
               <Upload className="w-8 h-8 text-muted-foreground" />
-              <span className="text-sm font-medium text-slate-700">
+              <span className="text-sm font-medium text-foreground">
                 {importing ? `Importando para ${leadType}...` : "Clique para selecionar arquivo"}
               </span>
               <span className="text-xs text-muted-foreground">ou arraste um arquivo XLSX</span>
@@ -266,9 +266,9 @@ export function ImportXLSXDialog({ leadType }: ImportXLSXDialogProps) {
 
           {/* Import Results */}
           {importResults.length > 0 && (
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2">
+            <div className="bg-muted/30 border border-border rounded-lg p-3 space-y-2">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm font-medium text-slate-800">
+                <span className="text-sm font-medium text-foreground">
                   Resultado da Importação ({importResults.length} linha(s))
                 </span>
               </div>

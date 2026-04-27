@@ -26,6 +26,7 @@ import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
+import { ThemeToggle } from "./ThemeToggle";
 
 const menuItems = [
   { icon: Briefcase, label: "CRM (Contatos & Funil)", path: "/" },
@@ -259,6 +260,7 @@ function DashboardLayoutContent({
               </span>
             </div>
             <div className="flex items-center gap-3">
+              <ThemeToggle />
               <span className="text-sm text-muted-foreground">{user?.name || ""}</span>
               <Avatar className="h-7 w-7">
                 <AvatarFallback className="text-[10px] font-medium bg-primary/10 text-primary">
@@ -277,6 +279,9 @@ function DashboardLayoutContent({
               <span className="text-sm font-medium text-foreground truncate">
                 {activeMenuItem?.label ?? "Menu"}
               </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
             </div>
           </div>
         )}
