@@ -83,11 +83,21 @@ export function OpportunityKanban() {
       const opp = opportunities?.find(o => o.id === oppId);
       
       if (opp && opp.stageId !== newStageId) {
-        // Optimistic UI update could go here
+        // Optimistic UI update
+        const queryKeyArgs = activePipelineId ? { pipelineId: parseInt(activePipelineId) } : undefined;
+        utils.opportunities.list.setQueryData(queryKeyArgs, (old: any) => {
+          if (!old) return old;
+          return old.map((o: any) => o.id === oppId ? { ...o, stageId: newStageId } : o);
+        });
+
         try {
-          await moveMutation.mutateAsync({ id: oppId, stageId: newStageId });
-          await utils.opportunities.list.invalidate();
-          await utils.opportunities.stats.invalidate();
+          moveMutation.mutateAsync({ id: oppId, stageId: newStageId }).then(() => {
+            utils.opportunities.list.invalidate();
+            utils.opportunities.stats.invalidate();
+          }).catch((e) => {
+            console.error("Failed to move", e);
+            utils.opportunities.list.invalidate(); // rollback optimistic update
+          });
         } catch (e) {
           console.error("Failed to move", e);
         }

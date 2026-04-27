@@ -110,20 +110,37 @@ export function OpportunityFormDialog({
         payload.monetaryValue = null;
       }
 
+      const queryKeyArgs = { pipelineId: payload.pipelineId };
+
       if (opportunity?.id) {
-        await updateMutation.mutateAsync({ id: opportunity.id, ...payload });
-        toast.success("Oportunidade atualizada!");
+        // Optimistic update
+        utils.opportunities.list.setQueryData(queryKeyArgs, (old: any) => {
+          if (!old) return old;
+          return old.map((o: any) => o.id === opportunity.id ? { ...o, ...payload } : o);
+        });
+
+        updateMutation.mutateAsync({ id: opportunity.id, ...payload }).then(() => {
+          toast.success("Oportunidade atualizada!");
+          utils.opportunities.list.invalidate();
+          utils.opportunities.stats.invalidate();
+        }).catch((error: any) => {
+          toast.error(`Erro ao salvar oportunidade: ${error.message || error}`);
+          utils.opportunities.list.invalidate();
+        });
       } else {
-        await createMutation.mutateAsync(payload);
-        toast.success("Oportunidade criada!");
+        createMutation.mutateAsync(payload).then(() => {
+          toast.success("Oportunidade criada!");
+          utils.opportunities.list.invalidate();
+          utils.opportunities.stats.invalidate();
+        }).catch((error: any) => {
+          toast.error(`Erro ao salvar oportunidade: ${error.message || error}`);
+        });
       }
+      
       setOpen(false);
       onSuccess?.();
-      // Invalidar cache e aguardar o refetch
-      await utils.opportunities.list.invalidate();
-      await utils.opportunities.stats.invalidate();
     } catch (error: any) {
-      toast.error(`Erro ao salvar oportunidade: ${error.message || error}`);
+      toast.error(`Erro inesperado: ${error.message || error}`);
     }
   };
 
