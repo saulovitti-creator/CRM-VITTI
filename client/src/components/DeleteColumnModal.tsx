@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -89,13 +89,13 @@ export default function DeleteColumnModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
-      <DialogContent className="max-w-lg bg-slate-950 border-slate-800">
+      <DialogContent className="max-w-lg bg-background border-border">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-bold text-red-500">
             <AlertTriangle className="w-6 h-6" />
             {leadCount === 0 ? 'Deletar Coluna' : 'Atenção: Coluna Contém Leads!'}
           </DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-muted-foreground">
             {leadCount === 0
               ? `Tem certeza que deseja deletar a coluna "${columnName}"?`
               : `A coluna "${columnName}" possui ${leadCount} lead${leadCount !== 1 ? 's' : ''} e não pode ser excluída diretamente.`}
@@ -123,23 +123,23 @@ export default function DeleteColumnModal({
           {leadCount > 0 && (
             <>
               {/* Leads List */}
-              <div className="bg-slate-900 border border-slate-700 rounded-lg p-4 space-y-3">
+              <div className="bg-card border border-border rounded-lg p-4 space-y-3">
                 <div className="flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-slate-400" />
-                  <p className="text-sm font-medium text-slate-300">
+                  <BarChart3 className="w-4 h-4 text-muted-foreground" />
+                  <p className="text-sm font-medium text-foreground">
                     Leads nesta coluna ({leadCount}):
                   </p>
                 </div>
 
                 <div className="max-h-48 overflow-y-auto space-y-2">
                   {leadsInColumn.slice(0, 5).map((lead: any) => (
-                    <div key={lead.id} className="flex items-center gap-2 text-sm text-slate-400 pl-6">
+                    <div key={lead.id} className="flex items-center gap-2 text-sm text-muted-foreground pl-6">
                       <span>•</span>
                       <span className="truncate">{lead.company_name || lead.contact_name || 'Sem nome'}</span>
                     </div>
                   ))}
                   {leadsInColumn.length > 5 && (
-                    <div className="text-xs text-slate-500 pl-6">
+                    <div className="text-xs text-muted-foreground pl-6">
                       ... e mais {leadsInColumn.length - 5} lead{leadsInColumn.length - 5 !== 1 ? 's' : ''}
                     </div>
                   )}
@@ -147,15 +147,15 @@ export default function DeleteColumnModal({
               </div>
 
               {/* Destination Selection */}
-              <div className="bg-slate-900 border border-slate-700 rounded-lg p-4 space-y-3">
-                <label className="block text-sm font-medium text-slate-300">
+              <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+                <label className="block text-sm font-medium text-foreground">
                   Mover todos os leads para: <span className="text-red-400">*</span>
                 </label>
                 <Select value={selectedDestinationId} onValueChange={setSelectedDestinationId}>
-                  <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                  <SelectTrigger className="bg-muted border-border text-white">
                     <SelectValue placeholder="Selecione uma coluna..." />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectContent className="bg-muted border-border">
                     {destinationOptions.length > 0 ? (
                       destinationOptions.map((col) => (
                         <SelectItem key={col.id} value={col.id.toString()}>
@@ -163,7 +163,7 @@ export default function DeleteColumnModal({
                         </SelectItem>
                       ))
                     ) : (
-                      <div className="p-2 text-sm text-slate-400">
+                      <div className="p-2 text-sm text-muted-foreground">
                         Nenhuma coluna disponível
                       </div>
                     )}
@@ -172,7 +172,7 @@ export default function DeleteColumnModal({
               </div>
 
               {/* Confirmation Checkbox */}
-              <div className="flex items-start gap-3 bg-slate-900 border border-slate-700 rounded-lg p-4">
+              <div className="flex items-start gap-3 bg-card border border-border rounded-lg p-4">
                 <Checkbox
                   id="confirm-delete"
                   checked={confirmChecked}
@@ -181,7 +181,7 @@ export default function DeleteColumnModal({
                 />
                 <label
                   htmlFor="confirm-delete"
-                  className="text-sm text-slate-300 cursor-pointer flex-1"
+                  className="text-sm text-foreground cursor-pointer flex-1"
                 >
                   ☑️ Confirmo que desejo mover <strong>{leadCount}</strong> lead
                   {leadCount !== 1 ? 's' : ''} e excluir esta coluna
@@ -196,7 +196,7 @@ export default function DeleteColumnModal({
           <Button
             onClick={onCancel}
             variant="outline"
-            className="flex-1 border-slate-700 text-slate-300 hover:bg-slate-900"
+            className="flex-1 border-border text-foreground hover:bg-card"
             disabled={isLoading}
           >
             Cancelar

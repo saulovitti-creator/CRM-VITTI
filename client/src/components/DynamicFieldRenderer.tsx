@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -33,7 +33,7 @@ export function DynamicFieldRenderer({
   className,
 }: DynamicFieldRendererProps) {
   const fieldId = `custom-field-${definition.id}`;
-  const commonInputClass = "bg-slate-800 border-slate-600 text-slate-100 mt-1 focus:border-cyan-500 focus:ring-cyan-500/30";
+  const commonInputClass = "bg-muted border-border text-foreground mt-1 focus:border-primary focus:ring-primary/30";
 
   // Parse dropdown options from JSON string
   const getOptions = (): string[] => {
@@ -57,8 +57,8 @@ export function DynamicFieldRenderer({
   if (readOnly) {
     return (
       <div className={cn("space-y-1", className)}>
-        <Label className="text-xs text-slate-400">{definition.name}</Label>
-        <p className="text-slate-100 text-sm font-medium min-h-[1.5rem]">
+        <Label className="text-xs text-muted-foreground">{definition.name}</Label>
+        <p className="text-foreground text-sm font-medium min-h-[1.5rem]">
           {definition.fieldType === "checkbox"
             ? value === "true" ? "✅ Sim" : "❌ Não"
             : definition.fieldType === "currency"
@@ -69,7 +69,7 @@ export function DynamicFieldRenderer({
                       href={value.startsWith("http") ? value : `https://${value}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-cyan-400 hover:text-cyan-300 underline"
+                      className="text-primary hover:text-primary underline"
                     >
                       {value}
                     </a>
@@ -87,7 +87,7 @@ export function DynamicFieldRenderer({
     case "url":
       return (
         <div className={cn("space-y-1", className)}>
-          <Label htmlFor={fieldId} className="text-xs text-slate-400">
+          <Label htmlFor={fieldId} className="text-xs text-muted-foreground">
             {definition.name}
             {definition.isRequired && <span className="text-red-400 ml-1">*</span>}
           </Label>
@@ -106,7 +106,7 @@ export function DynamicFieldRenderer({
     case "textarea":
       return (
         <div className={cn("space-y-1", className)}>
-          <Label htmlFor={fieldId} className="text-xs text-slate-400">
+          <Label htmlFor={fieldId} className="text-xs text-muted-foreground">
             {definition.name}
             {definition.isRequired && <span className="text-red-400 ml-1">*</span>}
           </Label>
@@ -125,7 +125,7 @@ export function DynamicFieldRenderer({
     case "number":
       return (
         <div className={cn("space-y-1", className)}>
-          <Label htmlFor={fieldId} className="text-xs text-slate-400">
+          <Label htmlFor={fieldId} className="text-xs text-muted-foreground">
             {definition.name}
             {definition.isRequired && <span className="text-red-400 ml-1">*</span>}
           </Label>
@@ -144,12 +144,12 @@ export function DynamicFieldRenderer({
     case "currency":
       return (
         <div className={cn("space-y-1", className)}>
-          <Label htmlFor={fieldId} className="text-xs text-slate-400">
+          <Label htmlFor={fieldId} className="text-xs text-muted-foreground">
             {definition.name}
             {definition.isRequired && <span className="text-red-400 ml-1">*</span>}
           </Label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm mt-0.5">R$</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm mt-0.5">R$</span>
             <Input
               id={fieldId}
               type="number"
@@ -168,7 +168,7 @@ export function DynamicFieldRenderer({
     case "date":
       return (
         <div className={cn("space-y-1", className)}>
-          <Label htmlFor={fieldId} className="text-xs text-slate-400">
+          <Label htmlFor={fieldId} className="text-xs text-muted-foreground">
             {definition.name}
             {definition.isRequired && <span className="text-red-400 ml-1">*</span>}
           </Label>
@@ -187,7 +187,7 @@ export function DynamicFieldRenderer({
       const options = getOptions();
       return (
         <div className={cn("space-y-1", className)}>
-          <Label className="text-xs text-slate-400">
+          <Label className="text-xs text-muted-foreground">
             {definition.name}
             {definition.isRequired && <span className="text-red-400 ml-1">*</span>}
           </Label>
@@ -198,12 +198,12 @@ export function DynamicFieldRenderer({
             <SelectTrigger className={cn(commonInputClass, "mt-1")}>
               <SelectValue placeholder={definition.placeholder || "Selecione..."} />
             </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-600">
-              <SelectItem value="__none__" className="text-slate-400">
+            <SelectContent className="bg-muted border-border">
+              <SelectItem value="__none__" className="text-muted-foreground">
                 {definition.placeholder || "Selecione..."}
               </SelectItem>
               {options.map((opt) => (
-                <SelectItem key={opt} value={opt} className="text-slate-100">
+                <SelectItem key={opt} value={opt} className="text-foreground">
                   {opt}
                 </SelectItem>
               ))}
@@ -220,9 +220,9 @@ export function DynamicFieldRenderer({
             id={fieldId}
             checked={value === "true"}
             onCheckedChange={(checked) => onChange(checked ? "true" : "false")}
-            className="border-slate-500 data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500"
+            className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
           />
-          <Label htmlFor={fieldId} className="text-sm text-slate-300 cursor-pointer">
+          <Label htmlFor={fieldId} className="text-sm text-foreground cursor-pointer">
             {definition.name}
             {definition.isRequired && <span className="text-red-400 ml-1">*</span>}
           </Label>
@@ -232,7 +232,7 @@ export function DynamicFieldRenderer({
     default:
       return (
         <div className={cn("space-y-1", className)}>
-          <Label htmlFor={fieldId} className="text-xs text-slate-400">
+          <Label htmlFor={fieldId} className="text-xs text-muted-foreground">
             {definition.name} (tipo não suportado: {definition.fieldType})
           </Label>
           <Input

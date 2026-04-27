@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,31 +50,31 @@ export default function ForgotPasswordModal({ open, onOpenChange }: ForgotPasswo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-900 border-cyan-500/30">
+      <DialogContent className="bg-card border-border">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-white">Recuperar Senha</DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-muted-foreground">
             Digite seu email para receber um link de recuperação
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-300">Email</label>
+            <label className="text-sm font-medium text-foreground">Email</label>
             <Input
               type="email"
               placeholder="seu@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={isLoading}
-              className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20"
+              className="bg-muted border-border text-white placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20"
             />
           </div>
 
           <Button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
           >
             {isLoading ? (
               <div className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full" />

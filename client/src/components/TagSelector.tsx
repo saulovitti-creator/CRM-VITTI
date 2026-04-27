@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+﻿import React, { useState, useMemo } from "react";
 import { Check, ChevronsUpDown, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -107,7 +107,7 @@ export function TagSelector({
             role="combobox"
             aria-expanded={open}
             className={cn(
-              "justify-between border-cyan-500/30 bg-slate-800/50 hover:bg-slate-700/50 h-auto min-h-10 px-3 py-2",
+              "justify-between border-border bg-muted/50 hover:bg-muted/50 h-auto min-h-10 px-3 py-2",
               !selectedTagIds.length && "text-muted-foreground",
               className
             )}
@@ -127,20 +127,20 @@ export function TagSelector({
                 <span className="truncate">{placeholder}</span>
               )}
             </div>
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-cyan-400" />
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-primary" />
           </Button>
         </PopoverTrigger>
         
-        <PopoverContent className="w-[300px] p-0 border-cyan-500/30 bg-slate-800 shadow-xl shadow-cyan-900/20" align="start">
+        <PopoverContent className="w-[300px] p-0 border-border bg-muted shadow-[var(--shadow-lg)]" align="start">
           <Command className="bg-transparent" shouldFilter={false}>
             <CommandInput 
               placeholder="Buscar ou criar tag..." 
               value={search}
               onValueChange={setSearch}
-              className="text-cyan-50"
+              className="text-foreground"
             />
             <CommandList className="max-h-[220px] overflow-y-auto custom-scrollbar">
-              <CommandEmpty className="py-2 text-center text-sm text-slate-400">
+              <CommandEmpty className="py-2 text-center text-sm text-muted-foreground">
                 {isLoading ? "Carregando tags..." : "Busque ou crie uma tag."}
               </CommandEmpty>
               
@@ -158,7 +158,7 @@ export function TagSelector({
                         onSelect={() => toggleTag(tag.id)}
                         disabled={disabled}
                         className={cn(
-                          "flex items-center justify-between cursor-pointer text-cyan-50 data-[selected=true]:bg-slate-700/50",
+                          "flex items-center justify-between cursor-pointer text-foreground data-[selected=true]:bg-muted/50",
                           disabled && "opacity-50 cursor-not-allowed"
                         )}
                       >
@@ -169,7 +169,7 @@ export function TagSelector({
                           />
                           <span className="truncate" title={tag.name}>{tag.name}</span>
                         </div>
-                        {isSelected && <Check className="h-4 w-4 text-cyan-400 shrink-0" />}
+                        {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
                       </CommandItem>
                     );
                 })}
@@ -177,11 +177,11 @@ export function TagSelector({
               
               {showCreateOption && (
                 <>
-                  <CommandSeparator className="bg-slate-700" />
+                  <CommandSeparator className="bg-muted" />
                   <CommandGroup>
                     <CommandItem
                       onSelect={handleCreateNewTag}
-                      className="cursor-pointer font-medium text-cyan-400 data-[selected=true]:bg-slate-700/50 data-[selected=true]:text-cyan-300 flex items-center justify-between"
+                      className="cursor-pointer font-medium text-primary data-[selected=true]:bg-muted/50 data-[selected=true]:text-primary flex items-center justify-between"
                       disabled={createTagMutation.isPending}
                     >
                       <div className="flex items-center gap-2 truncate">
@@ -200,7 +200,7 @@ export function TagSelector({
         </PopoverContent>
       </Popover>
       {maxTags && (
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-muted-foreground">
           Você pode selecionar até {maxTags} tags. ({selectedTagIds.length}/{maxTags} selecionadas)
         </p>
       )}

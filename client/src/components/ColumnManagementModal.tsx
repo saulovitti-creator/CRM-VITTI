@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -74,9 +74,9 @@ export default function ColumnManagementModal({ isOpen, onClose }: ColumnManagem
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-slate-950 border-slate-800">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-background border-border">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-cyan-400">
+          <DialogTitle className="text-2xl font-bold text-primary">
             Gerenciar Colunas do Kanban
           </DialogTitle>
         </DialogHeader>
@@ -88,11 +88,11 @@ export default function ColumnManagementModal({ isOpen, onClose }: ColumnManagem
               placeholder="Buscar colunas..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-slate-900 border-slate-700 text-white placeholder-slate-500"
+              className="bg-card border-border text-white placeholder-slate-500"
             />
             <Button
               onClick={() => setShowCreateForm(true)}
-              className="bg-cyan-600 hover:bg-cyan-700 text-white gap-2 whitespace-nowrap"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
               Nova Coluna
@@ -101,13 +101,13 @@ export default function ColumnManagementModal({ isOpen, onClose }: ColumnManagem
 
           {/* Columns List */}
           {isLoading ? (
-            <div className="text-center py-8 text-slate-400">Carregando colunas...</div>
+            <div className="text-center py-8 text-muted-foreground">Carregando colunas...</div>
           ) : filteredColumns && filteredColumns.length > 0 ? (
             <div className="space-y-3">
               {filteredColumns.map((column, index) => (
                 <div
                   key={column.id}
-                  className="bg-slate-900 border border-slate-700 rounded-lg p-4 hover:border-slate-600 transition-all group"
+                  className="bg-card border border-border rounded-lg p-4 hover:border-border transition-all group"
                 >
                   {/* Main Row */}
                   <div className="flex items-start justify-between gap-4">
@@ -115,7 +115,7 @@ export default function ColumnManagementModal({ isOpen, onClose }: ColumnManagem
                     <div className="flex items-start gap-3 flex-1 min-w-0">
                       {/* Color Badge */}
                       <div
-                        className="w-4 h-4 rounded-full flex-shrink-0 mt-1 border border-slate-600"
+                        className="w-4 h-4 rounded-full flex-shrink-0 mt-1 border border-border"
                         style={{ backgroundColor: column.color || '#3b82f6' }}
                         title={column.color || '#3b82f6'}
                       />
@@ -125,7 +125,7 @@ export default function ColumnManagementModal({ isOpen, onClose }: ColumnManagem
                         <h3 className="font-semibold text-white text-base leading-tight">
                           {column.name}
                         </h3>
-                        <div className="flex items-center gap-2 mt-1 text-slate-400 text-sm">
+                        <div className="flex items-center gap-2 mt-1 text-muted-foreground text-sm">
                           <BarChart3 className="w-4 h-4 flex-shrink-0" />
                           <span>
                             {column.leadCount === 0
@@ -143,18 +143,18 @@ export default function ColumnManagementModal({ isOpen, onClose }: ColumnManagem
                         <button
                           onClick={() => handleMoveUp(index)}
                           disabled={index === 0}
-                          className="p-1.5 hover:bg-slate-700 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          className="p-1.5 hover:bg-muted rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                           title="Mover para cima"
                         >
-                          <ChevronUp className="w-4 h-4 text-slate-400 group-hover:text-cyan-400" />
+                          <ChevronUp className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
                         </button>
                         <button
                           onClick={() => handleMoveDown(index)}
                           disabled={index === (filteredColumns?.length ?? 0) - 1}
-                          className="p-1.5 hover:bg-slate-700 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          className="p-1.5 hover:bg-muted rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                           title="Mover para baixo"
                         >
-                          <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-cyan-400" />
+                          <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
                         </button>
                       </div>
 
@@ -163,7 +163,7 @@ export default function ColumnManagementModal({ isOpen, onClose }: ColumnManagem
                         onClick={() => setEditingId(column.id)}
                         variant="ghost"
                         size="sm"
-                        className="text-blue-400 hover:text-blue-300 hover:bg-slate-800"
+                        className="text-blue-400 hover:text-blue-300 hover:bg-muted"
                         title="Editar coluna"
                       >
                         <Edit2 className="w-5 h-5" />
@@ -185,18 +185,18 @@ export default function ColumnManagementModal({ isOpen, onClose }: ColumnManagem
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-slate-400">
+            <div className="text-center py-8 text-muted-foreground">
               {searchTerm ? 'Nenhuma coluna encontrada' : 'Nenhuma coluna criada ainda'}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 pt-4 border-t border-slate-800">
+        <div className="flex justify-end gap-2 pt-4 border-t border-border">
           <Button
             onClick={onClose}
             variant="outline"
-            className="border-slate-700 text-slate-300 hover:bg-slate-900"
+            className="border-border text-foreground hover:bg-card"
           >
             Fechar
           </Button>

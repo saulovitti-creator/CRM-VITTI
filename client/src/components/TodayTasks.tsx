@@ -36,18 +36,18 @@ export function TodayTasks() {
   if (totalItems === 0) return null;
 
   return (
-    <Card className="mb-8 bg-slate-800/50 border-cyan-500/30 backdrop-blur-sm shadow-xl shadow-cyan-500/5">
+    <Card className="mb-8 bg-muted/50 border-border backdrop-blur-sm shadow-[var(--shadow-md)]">
       <CardHeader className="pb-3">
-        <CardTitle className="text-cyan-400 flex items-center gap-2 text-lg">
+        <CardTitle className="text-primary flex items-center gap-2 text-lg">
           <CheckSquare className="w-5 h-5" />
           Minhas Tarefas
-          <Badge variant="outline" className="ml-2 bg-slate-900 border-cyan-500/50 text-cyan-300">
+          <Badge variant="outline" className="ml-2 bg-card border-primary/30 text-primary">
             {totalItems} PENDÊNCIAS
           </Badge>
           {/* Botão minimizar */}
           <button
             onClick={toggleCollapse}
-            className="ml-auto flex items-center gap-1 text-xs text-slate-400 hover:text-cyan-300 transition-colors px-2 py-1 rounded-md hover:bg-slate-700/50"
+            className="ml-auto flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-md hover:bg-muted/50"
             title={isCollapsed ? "Expandir tarefas" : "Minimizar tarefas"}
           >
             {isCollapsed ? (
@@ -120,21 +120,21 @@ export function TodayTasks() {
             ))}
             
             {todayTasks.map(task => (
-              <div key={task.id} className="group flex items-center justify-between p-3 rounded-lg bg-slate-700/50 border border-slate-600 hover:border-cyan-500/50 hover:bg-slate-700 transition-colors">
+              <div key={task.id} className="group flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border hover:border-primary/40 hover:bg-muted transition-colors">
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => completeTask(task.id)}
                     title="Concluir Tarefa"
-                    className="w-5 h-5 rounded border border-slate-400 hover:bg-cyan-500 hover:border-cyan-500 hover:text-white transition-colors flex items-center justify-center text-transparent"
+                    className="w-5 h-5 rounded border border-border hover:bg-primary hover:border-primary hover:text-white transition-colors flex items-center justify-center text-transparent"
                   >
                     <Check className="w-3 h-3" />
                   </button>
                   <div>
-                    <p className="text-slate-200 font-medium text-sm group-hover:text-white transition-colors flex items-center gap-1">
+                    <p className="text-foreground font-medium text-sm group-hover:text-white transition-colors flex items-center gap-1">
                       {task.source === 'auto' && <Zap className="w-3 h-3 text-yellow-400" />}
                       {task.title}
                     </p>
-                    <div className="flex items-center gap-1 text-xs text-slate-400 mt-1">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
                       <Clock className="w-3 h-3" />
                       Hoje
                       {task.source === 'auto' && <span className="ml-1 text-yellow-400/70">• Automática</span>}

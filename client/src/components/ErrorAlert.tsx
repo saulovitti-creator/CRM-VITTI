@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { AlertCircle, X, HelpCircle } from 'lucide-react';
 import {
   Tooltip,
@@ -76,11 +76,11 @@ export function ErrorAlert({ error, onDismiss }: ErrorAlertProps) {
             )}
 
             {/* Suggestion */}
-            <div className="bg-slate-900/50 rounded p-3 mb-2 border border-slate-700/50">
+            <div className="bg-muted/50 rounded p-3 mb-2 border border-border/50">
               <div className="flex items-start gap-2">
-                <HelpCircle className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
+                <HelpCircle className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-xs font-semibold text-cyan-300 mb-1">Como resolver:</p>
+                  <p className="text-xs font-semibold text-primary mb-1">Como resolver:</p>
                   <p className="text-xs text-gray-300 leading-relaxed">{error.suggestion}</p>
                 </div>
               </div>
@@ -96,7 +96,7 @@ export function ErrorAlert({ error, onDismiss }: ErrorAlertProps) {
                   {isExpanded ? '▼ Ocultar' : '▶ Mostrar'} detalhes técnicos
                 </button>
                 {isExpanded && (
-                  <div className="bg-slate-950/80 rounded p-2 mb-2 border border-slate-700/30 font-mono text-xs text-gray-400 overflow-auto max-h-32">
+                  <div className="bg-background/80 rounded p-2 mb-2 border border-border/30 font-mono text-xs text-gray-400 overflow-auto max-h-32">
                     {error.details}
                   </div>
                 )}

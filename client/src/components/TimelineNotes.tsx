@@ -1,4 +1,4 @@
-import { trpc } from "@/lib/trpc";
+﻿import { trpc } from "@/lib/trpc";
 import { MessageCircle, Bot, Loader2, Trash2 } from "lucide-react";
 
 interface TimelineNotesProps {
@@ -15,13 +15,13 @@ export function TimelineNotes({ leadId }: TimelineNotesProps) {
   if (notesQuery.isLoading) {
     return (
       <div className="flex justify-center py-4">
-        <Loader2 className="w-5 h-5 animate-spin text-cyan-400" />
+        <Loader2 className="w-5 h-5 animate-spin text-primary" />
       </div>
     );
   }
 
   if (notes.length === 0) {
-    return <p className="text-slate-500 text-xs text-center py-3">Nenhuma interação registrada ainda.</p>;
+    return <p className="text-muted-foreground text-xs text-center py-3">Nenhuma interação registrada ainda.</p>;
   }
 
   return (
@@ -39,9 +39,9 @@ export function TimelineNotes({ leadId }: TimelineNotesProps) {
               <div className={`w-3 h-3 rounded-full mt-1.5 flex-shrink-0 ${
                 isSystem
                   ? "bg-amber-500/60 border-2 border-amber-400/40"
-                  : "bg-cyan-500/60 border-2 border-cyan-400/40"
+                  : "bg-primary/60 border-2 border-primary/40"
               }`} />
-              <div className="w-px flex-1 bg-slate-700/50 min-h-[16px]" />
+              <div className="w-px flex-1 bg-muted/50 min-h-[16px]" />
             </div>
 
             {/* Content */}
@@ -50,14 +50,14 @@ export function TimelineNotes({ leadId }: TimelineNotesProps) {
                 {isSystem ? (
                   <Bot className="w-3 h-3 text-amber-400" />
                 ) : (
-                  <MessageCircle className="w-3 h-3 text-cyan-400" />
+                  <MessageCircle className="w-3 h-3 text-primary" />
                 )}
                 <span className={`text-[10px] font-semibold uppercase tracking-wider ${
-                  isSystem ? "text-amber-400" : "text-cyan-400"
+                  isSystem ? "text-amber-400" : "text-primary"
                 }`}>
                   {isSystem ? "Sistema" : "Usuário"}
                 </span>
-                <span className="text-[10px] text-slate-500">{formattedDate} às {formattedTime}</span>
+                <span className="text-[10px] text-muted-foreground">{formattedDate} às {formattedTime}</span>
                 {/* Delete button */}
                 {!isSystem && (
                   <button
@@ -70,7 +70,7 @@ export function TimelineNotes({ leadId }: TimelineNotesProps) {
                 )}
               </div>
               <p className={`text-sm leading-relaxed ${
-                isSystem ? "text-amber-200/80 italic" : "text-slate-200"
+                isSystem ? "text-amber-200/80 italic" : "text-foreground"
               }`}>
                 {note.content}
               </p>

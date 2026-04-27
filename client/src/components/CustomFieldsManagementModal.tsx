@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -162,10 +162,10 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
       if (!val) resetForm();
       onOpenChange(val);
     }}>
-      <DialogContent className="bg-slate-900 border-cyan-500/30 text-slate-200 max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="bg-card border-border text-foreground max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle className="text-cyan-400">Campos Personalizados (Custom Fields)</DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogTitle className="text-primary">Campos Personalizados (Custom Fields)</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             Adicione campos extras para capturar informações específicas do seu negócio.
           </DialogDescription>
         </DialogHeader>
@@ -174,8 +174,8 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
           
           {/* Create/Edit Form */}
           {(isCreating || editingId) ? (
-            <div className="bg-slate-800/80 p-5 rounded-lg border border-cyan-500/50 space-y-4 shadow-lg shadow-cyan-900/20">
-              <h3 className="font-semibold text-slate-100 border-b border-slate-700 pb-2">
+            <div className="bg-muted/80 p-5 rounded-lg border border-primary/30 space-y-4 shadow-[var(--shadow-md)]">
+              <h3 className="font-semibold text-foreground border-b border-border pb-2">
                 {editingId ? "Editar Campo" : "Novo Campo Personalizado"}
               </h3>
               
@@ -185,7 +185,7 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
                   <Input 
                     value={name} 
                     onChange={(e) => setName(e.target.value)}
-                    className="bg-slate-900 border-slate-600 focus:border-cyan-500"
+                    className="bg-card border-border focus:border-primary"
                     placeholder="Ex: CNPJ, Porte da Empresa..."
                   />
                 </div>
@@ -193,16 +193,16 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
                 <div className="space-y-1">
                   <Label>Tipo de Campo <span className="text-red-400">*</span></Label>
                   <Select value={fieldType} onValueChange={setFieldType} disabled={!!editingId}>
-                    <SelectTrigger className="bg-slate-900 border-slate-600 focus:border-cyan-500">
+                    <SelectTrigger className="bg-card border-border focus:border-primary">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600 text-slate-100">
+                    <SelectContent className="bg-muted border-border text-foreground">
                       {FIELD_TYPES.map(type => (
                         <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {!!editingId && <p className="text-[10px] text-slate-400 mt-1">Não é possível mudar o tipo de um campo existente.</p>}
+                  {!!editingId && <p className="text-[10px] text-muted-foreground mt-1">Não é possível mudar o tipo de um campo existente.</p>}
                 </div>
 
                 <div className="space-y-1">
@@ -210,10 +210,10 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
                   <Input 
                     value={groupName} 
                     onChange={(e) => setGroupName(e.target.value)}
-                    className="bg-slate-900 border-slate-600"
+                    className="bg-card border-border"
                     placeholder="Ex: Dados Fiscais, Qualificação"
                   />
-                  <p className="text-[10px] text-slate-400">Agrupa os campos visualmente no formulário.</p>
+                  <p className="text-[10px] text-muted-foreground">Agrupa os campos visualmente no formulário.</p>
                 </div>
 
                 <div className="space-y-1">
@@ -221,7 +221,7 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
                   <Input 
                     value={placeholder} 
                     onChange={(e) => setPlaceholder(e.target.value)}
-                    className="bg-slate-900 border-slate-600"
+                    className="bg-card border-border"
                     placeholder="Texto de dica dentro do campo"
                     disabled={fieldType === "checkbox" || fieldType === "date"}
                   />
@@ -229,27 +229,27 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
               </div>
 
               {fieldType === "dropdown" && (
-                <div className="space-y-1 pt-2 border-t border-slate-700/50">
+                <div className="space-y-1 pt-2 border-t border-border/50">
                   <Label>Opções da Lista Suspensa <span className="text-red-400">*</span></Label>
                   <Textarea 
                     value={optionsStr} 
                     onChange={(e) => setOptionsStr(e.target.value)}
-                    className="bg-slate-900 border-slate-600"
+                    className="bg-card border-border"
                     placeholder="Opção 1, Opção 2, Opção 3..."
                     rows={2}
                   />
-                  <p className="text-[10px] text-slate-400">Separe as opções por vírgula.</p>
+                  <p className="text-[10px] text-muted-foreground">Separe as opções por vírgula.</p>
                 </div>
               )}
 
-              <div className="flex items-center gap-2 pt-2 border-t border-slate-700/50">
+              <div className="flex items-center gap-2 pt-2 border-t border-border/50">
                 <Checkbox 
                   id="isRequired" 
                   checked={isRequired} 
                   onCheckedChange={(c) => setIsRequired(!!c)} 
-                  className="border-slate-500 data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500"
+                  className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                 />
-                <Label htmlFor="isRequired" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-300">
+                <Label htmlFor="isRequired" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-foreground">
                   Tornar este campo obrigatório ao salvar o lead
                 </Label>
               </div>
@@ -258,7 +258,7 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
                 <Button variant="ghost" onClick={resetForm}>Cancelar</Button>
                 <Button 
                   onClick={handleSave} 
-                  className="bg-cyan-600 hover:bg-cyan-500 text-white"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
                   disabled={createMutation.isPending || updateMutation.isPending}
                 >
                   {(createMutation.isPending || updateMutation.isPending) ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar Campo"}
@@ -268,7 +268,7 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
           ) : (
             <Button 
               variant="outline" 
-              className="w-full border-dashed border-cyan-500/50 hover:border-cyan-400 hover:bg-cyan-900/20 text-cyan-400 h-12"
+              className="w-full border-dashed border-primary/30 hover:border-primary hover:bg-primary/10 text-primary h-12"
               onClick={() => setIsCreating(true)}
             >
               <Plus className="h-5 w-5 mr-2" />
@@ -278,42 +278,42 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
 
           {/* Fields List */}
           <div className="space-y-3 mt-6">
-            <h4 className="text-sm font-medium text-slate-400 uppercase tracking-wider mb-3">Campos Configurados</h4>
+            <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">Campos Configurados</h4>
             {isLoading ? (
-              <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-cyan-400" /></div>
+              <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : fields.length === 0 ? (
-              <p className="text-center text-slate-500 text-sm py-8 bg-slate-800/30 rounded-lg border border-slate-800 border-dashed">
+              <p className="text-center text-muted-foreground text-sm py-8 bg-muted/30 rounded-lg border border-border border-dashed">
                 Nenhum campo personalizado cadastrado.
               </p>
             ) : (
               <div className="space-y-2">
                 {fields.map((field) => (
-                  <div key={field.id} className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/50 flex items-center justify-between group hover:border-slate-600 transition-colors">
+                  <div key={field.id} className="bg-muted/60 p-3 rounded-lg border border-border/50 flex items-center justify-between group hover:border-border transition-colors">
                     <div className="flex items-center gap-3">
-                      <div className="text-slate-500 cursor-grab active:cursor-grabbing hover:text-slate-300">
+                      <div className="text-muted-foreground cursor-grab active:cursor-grabbing hover:text-foreground">
                         <GripVertical className="h-4 w-4" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-slate-200">{field.name}</span>
+                          <span className="font-medium text-foreground">{field.name}</span>
                           {field.isRequired && <span className="text-[10px] bg-red-900/30 text-red-400 px-1.5 py-0.5 rounded font-medium">Obrigatório</span>}
                         </div>
-                        <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-400">
-                          <span className="bg-slate-900 px-1.5 py-0.5 rounded text-slate-300 border border-slate-700">
+                        <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+                          <span className="bg-card px-1.5 py-0.5 rounded text-foreground border border-border">
                             {FIELD_TYPES.find(t => t.value === field.fieldType)?.label || field.fieldType}
                           </span>
                           {field.groupName && (
-                            <span className="text-cyan-500/70">Grupo: {field.groupName}</span>
+                            <span className="text-primary/70">Grupo: {field.groupName}</span>
                           )}
                         </div>
                       </div>
                     </div>
                     
                     <div className="flex items-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-cyan-400 hover:bg-slate-700" onClick={() => startEdit(field as any)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-muted" onClick={() => startEdit(field as any)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-400 hover:bg-slate-700" onClick={() => handleDelete(field.id)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-400 hover:bg-muted" onClick={() => handleDelete(field.id)}>
                         {deleteMutation.isPending && deleteMutation.variables?.id === field.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (

@@ -1,4 +1,4 @@
-import { DndContext, DragOverlay, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+﻿import { DndContext, DragOverlay, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { useState, useCallback } from 'react';
 import { KanbanColumn } from './KanbanColumn';
 import { KanbanCard } from './KanbanCard';
@@ -41,7 +41,7 @@ export function KanbanBoard({ leads, stats }: KanbanBoardProps) {
     { id: 'Contatado', label: 'Contatado', color: 'bg-orange-500' },
     { id: 'Não Respondeu', label: 'Não Respondeu', color: 'bg-slate-500' },
     { id: 'Interessado', label: 'Interessado', color: 'bg-green-500' },
-    { id: 'Não possui Interesse', label: 'Não possui Interesse', color: 'bg-slate-600' }
+    { id: 'Não possui Interesse', label: 'Não possui Interesse', color: 'bg-muted' }
   ];
 
   // Filtrar leads por status

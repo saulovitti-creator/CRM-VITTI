@@ -1,4 +1,4 @@
-import { useDroppable } from '@dnd-kit/core';
+﻿import { useDroppable } from '@dnd-kit/core';
 import { KanbanCard } from './KanbanCard';
 import { useTasks } from '@/hooks/useTasks';
 import { CheckSquare } from 'lucide-react';
@@ -20,8 +20,8 @@ export function KanbanColumn({ id, label, color, count, leads }: KanbanColumnPro
   return (
     <div 
       ref={setNodeRef}
-      className={`flex flex-col min-w-[320px] max-w-[320px] bg-slate-800/50 rounded-lg p-4 transition-all ${
-        isOver ? 'ring-2 ring-cyan-400 bg-slate-700/70' : ''
+      className={`flex flex-col min-w-[320px] max-w-[320px] bg-muted/50 rounded-lg p-4 transition-all ${
+        isOver ? 'ring-2 ring-primary bg-muted/70' : ''
       }`}
     >
       {/* Header da coluna */}
@@ -37,7 +37,7 @@ export function KanbanColumn({ id, label, color, count, leads }: KanbanColumnPro
               {columnPendingTasks}
             </span>
           )}
-          <span className="text-sm text-slate-400 bg-slate-700 px-2 py-1 rounded">
+          <span className="text-sm text-muted-foreground bg-muted px-2 py-1 rounded">
             {count}
           </span>
         </div>
@@ -52,7 +52,7 @@ export function KanbanColumn({ id, label, color, count, leads }: KanbanColumnPro
 
       {/* Placeholder quando vazio */}
       {leads.length === 0 && (
-        <div className="flex items-center justify-center h-32 border-2 border-dashed border-slate-700 rounded-lg text-slate-500">
+        <div className="flex items-center justify-center h-32 border-2 border-dashed border-border rounded-lg text-muted-foreground">
           Nenhum lead
         </div>
       )}

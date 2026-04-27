@@ -71,16 +71,16 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center px-4">
-      <Card className="w-full max-w-md bg-slate-900 border-cyan-500/30">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-card flex items-center justify-center px-4">
+      <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center space-y-2">
           <div className="flex flex-col items-center gap-2">
             <img src="/logo.jpg" alt="Logo" className="h-[72px] w-auto object-contain mb-2 rounded-lg" />
-            <CardTitle className="text-4xl font-black bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+            <CardTitle className="text-2xl font-bold text-foreground">
               CRM Vitti Soluções
             </CardTitle>
           </div>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-muted-foreground">
             Redefinir Senha
           </CardDescription>
         </CardHeader>
@@ -88,7 +88,7 @@ export default function ResetPassword() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">
+              <label className="text-sm font-medium text-foreground">
                 Nova Senha
               </label>
               <div className="relative">
@@ -98,12 +98,12 @@ export default function ResetPassword() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   disabled={isLoading}
-                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 pr-10"
+                  className="bg-muted border-border text-white placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -111,7 +111,7 @@ export default function ResetPassword() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">
+              <label className="text-sm font-medium text-foreground">
                 Confirmar Senha
               </label>
               <div className="relative">
@@ -121,12 +121,12 @@ export default function ResetPassword() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={isLoading}
-                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20 pr-10"
+                  className="bg-muted border-border text-white placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -137,7 +137,7 @@ export default function ResetPassword() {
               type="submit"
               size="lg"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
             >
               {isLoading ? (
                 <div className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full" />

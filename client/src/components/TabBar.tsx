@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Settings, Globe } from "lucide-react";
 
 export type LeadType = "CRM" | "Site";
@@ -24,7 +24,7 @@ export default function TabBar({
   ];
 
   return (
-    <div className="flex gap-3 mb-8 pb-6 border-b border-cyan-500/20">
+    <div className="flex gap-3 mb-8 pb-6 border-b border-border">
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         const isHovered = hoveredTab === tab.id;
@@ -41,10 +41,10 @@ export default function TabBar({
             <div
               className={`absolute inset-0 rounded-xl transition-all duration-200 ${
                 isActive
-                  ? "bg-gradient-to-r from-cyan-500/40 to-blue-500/40 opacity-100"
+                  ? "bg-primary/20 opacity-100"
                   : isHovered
-                    ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/20 opacity-75"
-                    : "bg-gradient-to-r from-cyan-500/10 to-blue-500/10 opacity-0"
+                    ? "bg-primary/10 opacity-75"
+                    : "bg-primary/5 opacity-0"
               }`}
             ></div>
 
@@ -52,14 +52,14 @@ export default function TabBar({
             <div
               className={`relative flex items-center gap-3 px-6 py-3 h-12 rounded-xl font-medium text-sm transition-all duration-300 border backdrop-blur-sm ${
                 isActive
-                  ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white border-cyan-400/60 shadow-lg shadow-cyan-500/50"
-                  : "bg-slate-700/40 text-slate-300 border-cyan-500/20 hover:border-cyan-400/40 hover:bg-slate-600/50"
+                  ? "bg-primary text-primary-foreground border-primary/60"
+                  : "bg-muted/40 text-foreground border-border hover:border-primary/40 hover:bg-muted/50"
               }`}
             >
               {/* Icon with animation */}
               <span
                 className={`transition-all duration-300 ${
-                  isActive ? "scale-110 text-white" : "scale-100 text-slate-300"
+                  isActive ? "scale-110 text-white" : "scale-100 text-foreground"
                 }`}
               >
                 {tab.icon}
@@ -73,7 +73,7 @@ export default function TabBar({
                 className={`ml-1 text-xs font-bold px-2.5 py-1 rounded-full transition-all duration-300 ${
                   isActive
                     ? "bg-white/20 text-white"
-                    : "bg-slate-600/50 text-slate-200"
+                    : "bg-muted/50 text-foreground"
                 }`}
               >
                 {tab.count}
@@ -81,7 +81,7 @@ export default function TabBar({
 
               {/* Active underline animation */}
               {isActive && (
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-300 to-blue-300 rounded-full animate-pulse"></div>
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary/60 rounded-full animate-pulse"></div>
               )}
             </div>
 

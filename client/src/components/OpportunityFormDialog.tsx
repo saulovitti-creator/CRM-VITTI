@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
@@ -98,7 +98,7 @@ export function OpportunityFormDialog({
     e.preventDefault();
     
     if (!formData.contactId || !formData.pipelineId || !formData.stageId) {
-      toast.error("Por favor, selecione Contato, Pipeline e Estágio.");
+      toast.error("Por favor, selecione Contato, Pipeline e EstÃ¡gio.");
       return;
     }
 
@@ -154,46 +154,46 @@ export function OpportunityFormDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
+          <Button size="sm" className="">
             <Briefcase className="w-4 h-4 mr-2" />
             {opportunity ? "Editar" : "Nova Oportunidade"}
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-lg bg-slate-900 border-slate-700">
+      <DialogContent className="max-w-lg ">
         <DialogHeader>
-          <DialogTitle className="text-slate-100">
+          <DialogTitle className="text-foreground">
             {opportunity ? "Editar Oportunidade" : "Nova Oportunidade"}
           </DialogTitle>
-          <DialogDescription className="text-slate-400">
-            {opportunity ? "Atualize os dados do negócio" : "Cadastre uma nova oportunidade de venda"}
+          <DialogDescription className="text-muted-foreground">
+            {opportunity ? "Atualize os dados do negÃ³cio" : "Cadastre uma nova oportunidade de venda"}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 max-h-[65vh] overflow-y-auto pr-2">
           
           <div>
-            <Label className="text-slate-300">Título / Nome do Negócio *</Label>
+            <Label className="text-foreground">TÃ­tulo / Nome do NegÃ³cio *</Label>
             <Input
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               required
-              className="bg-slate-800 border-slate-600 text-slate-100 mt-1"
+              className=" mt-1"
               placeholder="Ex: Consultoria XYZ"
             />
           </div>
 
           <div>
-            <Label className="text-slate-300">Contato Vinculado *</Label>
+            <Label className="text-foreground">Contato Vinculado *</Label>
             <Select 
               value={formData.contactId} 
               onValueChange={(val) => setFormData({ ...formData, contactId: val })}
               disabled={!!defaultContactId} // Se veio preenchido, trava
             >
-              <SelectTrigger className="bg-slate-800 border-slate-600 text-slate-100 mt-1">
+              <SelectTrigger className=" mt-1">
                 <SelectValue placeholder="Selecione o contato..." />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-600 text-slate-100">
+              <SelectContent className="">
                 {contacts?.map(contact => (
                   <SelectItem key={contact.id} value={contact.id.toString()}>
                     {contact.name} {contact.company ? `(${contact.company})` : ""}
@@ -205,17 +205,17 @@ export function OpportunityFormDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-slate-300">Funil (Pipeline) *</Label>
+              <Label className="text-foreground">Funil (Pipeline) *</Label>
               <Select 
                 value={formData.pipelineId} 
                 onValueChange={(val) => {
-                  setFormData({ ...formData, pipelineId: val, stageId: "" }); // Reseta estágio ao trocar funil
+                  setFormData({ ...formData, pipelineId: val, stageId: "" }); // Reseta estÃ¡gio ao trocar funil
                 }}
               >
-                <SelectTrigger className="bg-slate-800 border-slate-600 text-slate-100 mt-1">
+                <SelectTrigger className=" mt-1">
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-600 text-slate-100">
+                <SelectContent className="">
                   {pipelines?.map(pipeline => (
                     <SelectItem key={pipeline.id} value={pipeline.id.toString()}>
                       {pipeline.name}
@@ -225,16 +225,16 @@ export function OpportunityFormDialog({
               </Select>
             </div>
             <div>
-              <Label className="text-slate-300">Estágio *</Label>
+              <Label className="text-foreground">EstÃ¡gio *</Label>
               <Select 
                 value={formData.stageId} 
                 onValueChange={(val) => setFormData({ ...formData, stageId: val })}
                 disabled={!formData.pipelineId}
               >
-                <SelectTrigger className="bg-slate-800 border-slate-600 text-slate-100 mt-1">
+                <SelectTrigger className=" mt-1">
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-600 text-slate-100">
+                <SelectContent className="">
                   {selectedPipeline?.stages?.map((stage: any) => (
                     <SelectItem key={stage.id} value={stage.id.toString()}>
                       {stage.name}
@@ -247,34 +247,34 @@ export function OpportunityFormDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-slate-300">Valor Esperado (R$)</Label>
+              <Label className="text-foreground">Valor Esperado (R$)</Label>
               <Input
                 type="number"
                 step="0.01"
                 value={formData.monetaryValue}
                 onChange={(e) => setFormData({ ...formData, monetaryValue: e.target.value })}
-                className="bg-slate-800 border-slate-600 text-slate-100 mt-1"
+                className=" mt-1"
                 placeholder="0.00"
               />
             </div>
             <div>
-              <Label className="text-slate-300">Origem</Label>
+              <Label className="text-foreground">Origem</Label>
               <Input
                 value={formData.source}
                 onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                className="bg-slate-800 border-slate-600 text-slate-100 mt-1"
+                className=" mt-1"
                 placeholder="Google, Evento, etc"
               />
             </div>
           </div>
 
           <div>
-            <Label className="text-slate-300">Observações da Oportunidade</Label>
+            <Label className="text-foreground">ObservaÃ§Ãµes da Oportunidade</Label>
             <Textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="bg-slate-800 border-slate-600 text-slate-100 mt-1 h-20 resize-y"
-              placeholder="Detalhes sobre este negócio..."
+              className=" mt-1 h-20 resize-y"
+              placeholder="Detalhes sobre este negÃ³cio..."
             />
           </div>
 
@@ -287,21 +287,21 @@ export function OpportunityFormDialog({
                       Excluir
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent className="bg-slate-900 border-slate-700">
+                  <AlertDialogContent className="">
                     <AlertDialogHeader>
-                      <AlertDialogTitle className="text-slate-100">Excluir oportunidade?</AlertDialogTitle>
-                      <AlertDialogDescription className="text-slate-400">
-                        Esta ação não pode ser desfeita. Isto excluirá permanentemente a oportunidade e os dados associados.
+                      <AlertDialogTitle className="text-foreground">Excluir oportunidade?</AlertDialogTitle>
+                      <AlertDialogDescription className="text-muted-foreground">
+                        Esta aÃ§Ã£o nÃ£o pode ser desfeita. Isto excluirÃ¡ permanentemente a oportunidade e os dados associados.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel className="bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white">Cancelar</AlertDialogCancel>
+                      <AlertDialogCancel className="bg-muted border-border text-foreground hover:bg-muted hover:text-white">Cancelar</AlertDialogCancel>
                       <AlertDialogAction 
                         onClick={async () => {
                           try {
                             await deleteMutation.mutateAsync({ id: opportunity.id });
                             utils.opportunities.list.invalidate();
-                            toast.success("Oportunidade excluída com sucesso");
+                            toast.success("Oportunidade excluÃ­da com sucesso");
                             setOpen(false);
                             if (onSuccess) onSuccess();
                           } catch (error: any) {
@@ -319,11 +319,11 @@ export function OpportunityFormDialog({
             </div>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}
-                className="border-slate-600 text-slate-300">
+                className="border-border text-foreground">
                 Cancelar
               </Button>
               <Button type="submit" disabled={isLoading}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                className=" text-white">
                 {isLoading ? "Salvando..." : opportunity ? "Atualizar" : "Criar Oportunidade"}
               </Button>
             </div>

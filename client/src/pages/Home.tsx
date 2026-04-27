@@ -15,21 +15,19 @@ export default function Home() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-full space-y-6">
+      <div className="flex flex-col h-full space-y-5">
         
         {/* Top Header / Actions */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-100 tracking-tight">CRM Vitti</h1>
-            <p className="text-sm text-slate-400">Gerencie seus contatos e funil de vendas</p>
+            <h1 className="text-page-title">CRM Vitti</h1>
+            <p className="text-sm text-muted-foreground mt-1">Gerencie seus contatos e funil de vendas</p>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* System Settings Buttons */}
             <Button 
               variant="outline" 
               size="sm" 
-              className="border-slate-700 text-slate-300 hover:bg-slate-800"
               onClick={() => setTagManagementOpen(true)}
             >
               <Tags className="w-4 h-4 mr-2" />
@@ -39,7 +37,6 @@ export default function Home() {
             <Button 
               variant="outline" 
               size="sm" 
-              className="border-slate-700 text-slate-300 hover:bg-slate-800"
               onClick={() => setCustomFieldsModalOpen(true)}
             >
               <Settings2 className="w-4 h-4 mr-2" />
@@ -48,29 +45,35 @@ export default function Home() {
           </div>
         </div>
 
-        {/* View Toggle (Tabs) */}
-        <div className="flex p-1 bg-slate-900 rounded-lg w-max border border-slate-800">
+        {/* View Toggle (Tabs) — Linear-style underline tabs */}
+        <div className="flex border-b border-border">
           <button
             onClick={() => setActiveTab("contacts")}
-            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeTab === "contacts" 
-                ? "bg-slate-800 text-slate-100 shadow-sm" 
-                : "text-slate-400 hover:text-slate-200"
-            }`}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors relative
+              ${activeTab === "contacts" 
+                ? "text-foreground" 
+                : "text-muted-foreground hover:text-foreground"
+              }`}
           >
-            <Users className="w-4 h-4 mr-2" />
+            <Users className="w-4 h-4" />
             Contatos
+            {activeTab === "contacts" && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
+            )}
           </button>
           <button
             onClick={() => setActiveTab("opportunities")}
-            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeTab === "opportunities" 
-                ? "bg-slate-800 text-slate-100 shadow-sm" 
-                : "text-slate-400 hover:text-slate-200"
-            }`}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors relative
+              ${activeTab === "opportunities" 
+                ? "text-foreground" 
+                : "text-muted-foreground hover:text-foreground"
+              }`}
           >
-            <Briefcase className="w-4 h-4 mr-2" />
+            <Briefcase className="w-4 h-4" />
             Negócios (Funil)
+            {activeTab === "opportunities" && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
+            )}
           </button>
         </div>
 

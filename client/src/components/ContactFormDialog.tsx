@@ -70,18 +70,18 @@ export function ContactFormDialog({ contact, onSuccess, trigger }: ContactFormDi
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button size="sm" className="bg-cyan-600 hover:bg-cyan-700">
+          <Button size="sm">
             <UserPlus className="w-4 h-4 mr-2" />
             {contact ? "Editar" : "Novo Contato"}
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-lg bg-slate-900 border-slate-700">
+      <DialogContent className="max-w-lg bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="text-slate-100">
+          <DialogTitle className="text-foreground">
             {contact ? "Editar Contato" : "Novo Contato"}
           </DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-muted-foreground">
             {contact ? "Atualize os dados do contato" : "Cadastre uma nova pessoa ou empresa"}
           </DialogDescription>
         </DialogHeader>
@@ -89,21 +89,21 @@ export function ContactFormDialog({ contact, onSuccess, trigger }: ContactFormDi
         <form onSubmit={handleSubmit} className="space-y-4 max-h-[65vh] overflow-y-auto pr-2">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-slate-300">Nome *</Label>
+              <Label className="text-foreground">Nome *</Label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
-                className="bg-slate-800 border-slate-600 text-slate-100 mt-1"
+                className="bg-muted border-border text-foreground mt-1"
                 placeholder="Nome do contato"
               />
             </div>
             <div>
-              <Label className="text-slate-300">Empresa</Label>
+              <Label className="text-foreground">Empresa</Label>
               <Input
                 value={formData.company}
                 onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                className="bg-slate-800 border-slate-600 text-slate-100 mt-1"
+                className="bg-muted border-border text-foreground mt-1"
                 placeholder="Nome da empresa"
               />
             </div>
@@ -111,21 +111,21 @@ export function ContactFormDialog({ contact, onSuccess, trigger }: ContactFormDi
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-slate-300">Telefone</Label>
+              <Label className="text-foreground">Telefone</Label>
               <Input
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="bg-slate-800 border-slate-600 text-slate-100 mt-1"
+                className="bg-muted border-border text-foreground mt-1"
                 placeholder="(11) 99999-9999"
               />
             </div>
             <div>
-              <Label className="text-slate-300">E-mail</Label>
+              <Label className="text-foreground">E-mail</Label>
               <Input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="bg-slate-800 border-slate-600 text-slate-100 mt-1"
+                className="bg-muted border-border text-foreground mt-1"
                 placeholder="email@empresa.com"
               />
             </div>
@@ -133,19 +133,19 @@ export function ContactFormDialog({ contact, onSuccess, trigger }: ContactFormDi
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-slate-300">Cidade</Label>
+              <Label className="text-foreground">Cidade</Label>
               <Input
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                className="bg-slate-800 border-slate-600 text-slate-100 mt-1"
+                className="bg-muted border-border text-foreground mt-1"
               />
             </div>
             <div>
-              <Label className="text-slate-300">Segmento</Label>
+              <Label className="text-foreground">Segmento</Label>
               <Input
                 value={formData.segment}
                 onChange={(e) => setFormData({ ...formData, segment: e.target.value })}
-                className="bg-slate-800 border-slate-600 text-slate-100 mt-1"
+                className="bg-muted border-border text-foreground mt-1"
                 placeholder="Ex: Clínica, Restaurante"
               />
             </div>
@@ -153,27 +153,27 @@ export function ContactFormDialog({ contact, onSuccess, trigger }: ContactFormDi
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-slate-300">Site</Label>
+              <Label className="text-foreground">Site</Label>
               <Input
                 value={formData.site}
                 onChange={(e) => setFormData({ ...formData, site: e.target.value })}
-                className="bg-slate-800 border-slate-600 text-slate-100 mt-1"
+                className="bg-muted border-border text-foreground mt-1"
                 placeholder="https://..."
               />
             </div>
             <div>
-              <Label className="text-slate-300">Origem</Label>
+              <Label className="text-foreground">Origem</Label>
               <Input
                 value={formData.source}
                 onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                className="bg-slate-800 border-slate-600 text-slate-100 mt-1"
+                className="bg-muted border-border text-foreground mt-1"
                 placeholder="Google, Indicação..."
               />
             </div>
           </div>
 
           <div>
-            <Label className="text-slate-300 mb-2 block">Tags</Label>
+            <Label className="text-foreground mb-2 block">Tags</Label>
             <TagSelector
               selectedTagIds={formData.tagIds}
               onChange={(ids) => setFormData({ ...formData, tagIds: ids })}
@@ -181,22 +181,22 @@ export function ContactFormDialog({ contact, onSuccess, trigger }: ContactFormDi
           </div>
 
           <div>
-            <Label className="text-slate-300">Observações</Label>
+            <Label className="text-foreground">Observações</Label>
             <Textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="bg-slate-800 border-slate-600 text-slate-100 mt-1 h-20 resize-y"
+              className="bg-muted border-border text-foreground mt-1 h-20 resize-y"
               placeholder="Informações gerais sobre este contato..."
             />
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}
-              className="border-slate-600 text-slate-300">
+              className="border-border text-foreground">
               Cancelar
             </Button>
             <Button type="submit" disabled={isLoading}
-              className="bg-cyan-600 hover:bg-cyan-700 text-white">
+>
               {isLoading ? "Salvando..." : contact ? "Atualizar" : "Criar Contato"}
             </Button>
           </div>

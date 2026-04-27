@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -119,24 +119,24 @@ export function TagManagementModal({ open, onOpenChange }: TagManagementModalPro
           {selected === color && <Check className="h-3 w-3 text-white drop-shadow-md" />}
         </button>
       ))}
-      <div className="relative overflow-hidden w-6 h-6 rounded-full border-2 border-dashed border-slate-500 flex items-center justify-center cursor-pointer">
+      <div className="relative overflow-hidden w-6 h-6 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer">
         <input 
           type="color" 
           value={selected}
           onChange={(e) => onChange(e.target.value)}
           className="absolute inset-[-10px] w-12 h-12 cursor-pointer opacity-0"
         />
-        <Plus className="h-3 w-3 text-slate-400" />
+        <Plus className="h-3 w-3 text-muted-foreground" />
       </div>
     </div>
   );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-900 border-cyan-500/30 text-slate-200 max-w-md max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="bg-card border-border text-foreground max-w-md max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle className="text-cyan-400">Gerenciar Tags</DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogTitle className="text-primary">Gerenciar Tags</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             Crie, edite ou remova tags do sistema. Removê-las afetará todos os leads.
           </DialogDescription>
         </DialogHeader>
@@ -146,20 +146,20 @@ export function TagManagementModal({ open, onOpenChange }: TagManagementModalPro
           {!isCreating ? (
             <Button 
               variant="outline" 
-              className="w-full border-dashed border-cyan-500/50 hover:border-cyan-400 hover:bg-cyan-900/20 text-cyan-400"
+              className="w-full border-dashed border-primary/30 hover:border-primary hover:bg-primary/10 text-primary"
               onClick={() => { setIsCreating(true); setEditingId(null); }}
             >
               <Plus className="h-4 w-4 mr-2" />
               Nova Tag
             </Button>
           ) : (
-            <div className="bg-slate-800/80 p-4 rounded-lg border border-cyan-500/30 space-y-3">
+            <div className="bg-muted/80 p-4 rounded-lg border border-border space-y-3">
               <div>
                 <Label>Nome da Tag</Label>
                 <Input 
                   value={newName} 
                   onChange={(e) => setNewName(e.target.value)}
-                  className="bg-slate-900 border-slate-700 mt-1"
+                  className="bg-card border-border mt-1"
                   placeholder="Ex: VIP, Google Ads..."
                   autoFocus
                 />
@@ -169,7 +169,7 @@ export function TagManagementModal({ open, onOpenChange }: TagManagementModalPro
                 <ColorPicker selected={newColor} onChange={setNewColor} />
               </div>
               <div className="pt-2">
-                <Label className="text-xs text-slate-400 mb-1 block">Preview</Label>
+                <Label className="text-xs text-muted-foreground mb-1 block">Preview</Label>
                 <TagBadge tag={{ id: 0, name: newName || "Preview", color: newColor, createdAt: new Date() } as Tag} />
               </div>
               <div className="flex justify-end gap-2 pt-2">
@@ -183,20 +183,20 @@ export function TagManagementModal({ open, onOpenChange }: TagManagementModalPro
 
           {/* List Section */}
           <div className="space-y-2 mt-6">
-            <h4 className="text-sm font-medium text-slate-400 uppercase tracking-wider mb-3">Tags Existentes</h4>
+            <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">Tags Existentes</h4>
             {isLoading ? (
-              <div className="flex justify-center p-4"><Loader2 className="h-6 w-6 animate-spin text-cyan-400" /></div>
+              <div className="flex justify-center p-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
             ) : tags.length === 0 ? (
-              <p className="text-center text-slate-500 text-sm py-4">Nenhuma tag cadastrada.</p>
+              <p className="text-center text-muted-foreground text-sm py-4">Nenhuma tag cadastrada.</p>
             ) : (
               tags.map(tag => (
-                <div key={tag.id} className="bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
+                <div key={tag.id} className="bg-muted/50 p-3 rounded-lg border border-border/50">
                   {editingId === tag.id ? (
                     <div className="space-y-3">
                       <Input 
                         value={editName} 
                         onChange={(e) => setEditName(e.target.value)}
-                        className="bg-slate-900 border-slate-700"
+                        className="bg-card border-border"
                       />
                       <ColorPicker selected={editColor} onChange={setEditColor} />
                       <div className="flex justify-end gap-2 pt-2">
@@ -210,10 +210,10 @@ export function TagManagementModal({ open, onOpenChange }: TagManagementModalPro
                     <div className="flex items-center justify-between">
                       <TagBadge tag={tag} />
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-cyan-400 hover:bg-slate-800" onClick={() => startEdit(tag)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-muted" onClick={() => startEdit(tag)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-400 hover:bg-slate-800" onClick={() => handleDelete(tag.id)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-400 hover:bg-muted" onClick={() => handleDelete(tag.id)}>
                           {deleteMutation.isPending && deleteMutation.variables?.id === tag.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (

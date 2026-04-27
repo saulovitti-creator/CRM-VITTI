@@ -1,4 +1,4 @@
-import { List, LayoutGrid } from "lucide-react";
+﻿import { List, LayoutGrid } from "lucide-react";
 import { ViewMode } from "@/hooks/useViewMode";
 
 interface ViewToggleProps {
@@ -23,8 +23,8 @@ export function ViewToggle({ viewMode, onViewModeChange }: ViewToggleProps) {
             onClick={() => onViewModeChange(mode.id)}
             className={`flex items-center gap-2 px-5 py-2.5 h-10 rounded-lg font-medium text-sm transition-all duration-300 border ${
               isActive
-                ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white border-cyan-400/60 shadow-lg shadow-cyan-500/50"
-                : "bg-slate-700/40 text-slate-300 border-cyan-500/20 hover:border-cyan-400/40 hover:bg-slate-600/50"
+                ? "bg-primary text-primary-foreground border-primary/60"
+                : "bg-muted/40 text-foreground border-border hover:border-primary/40 hover:bg-muted/50"
             }`}
           >
             <span className={`transition-all duration-300 ${isActive ? "scale-110" : "scale-100"}`}>

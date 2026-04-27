@@ -1,4 +1,4 @@
-import { Phone, User, Calendar, MapPin, Mail, Globe, DollarSign } from "lucide-react";
+﻿import { Phone, User, Calendar, MapPin, Mail, Globe, DollarSign } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import type { Lead } from "../../../drizzle/schema";
@@ -45,14 +45,14 @@ export function DuplicateGroupCard({ group, onKeepNewest, onMerge, onIgnore }: P
   };
 
   return (
-    <div className="border border-cyan-500/30 rounded-lg p-4 bg-slate-800/50 backdrop-blur-sm shadow-lg">
+    <div className="border border-border rounded-lg p-4 bg-muted/50 backdrop-blur-sm shadow-lg">
       {/* Header do grupo */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           {group.type === "phone" ? (
-            <Phone className="w-5 h-5 text-cyan-400" />
+            <Phone className="w-5 h-5 text-primary" />
           ) : (
-            <User className="w-5 h-5 text-cyan-400" />
+            <User className="w-5 h-5 text-primary" />
           )}
           <h3 className="text-lg font-semibold text-white">
             {group.type === "phone" ? "Telefone" : "Nome"}: {group.value}
@@ -71,7 +71,7 @@ export function DuplicateGroupCard({ group, onKeepNewest, onMerge, onIgnore }: P
             className={`p-3 rounded transition-all ${
               index === 0
                 ? "bg-green-900/20 border-2 border-green-500/50"
-                : "bg-slate-700/30 border border-slate-600/30"
+                : "bg-muted/30 border border-border/30"
             }`}
           >
             <div className="flex items-start justify-between">
@@ -83,9 +83,9 @@ export function DuplicateGroupCard({ group, onKeepNewest, onMerge, onIgnore }: P
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 text-sm text-slate-300">
+                <div className="grid grid-cols-2 gap-2 text-sm text-foreground">
                   <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4 text-slate-400" />
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
                     <span>Criado: {formatDate(lead.dataCriacao)}</span>
                   </div>
                   <div className="flex items-center gap-1">
@@ -93,31 +93,31 @@ export function DuplicateGroupCard({ group, onKeepNewest, onMerge, onIgnore }: P
                   </div>
                   {lead.contactName && (
                     <div className="flex items-center gap-1">
-                      <User className="w-4 h-4 text-slate-400" />
+                      <User className="w-4 h-4 text-muted-foreground" />
                       <span>{lead.contactName}</span>
                     </div>
                   )}
                   {lead.email && (
                     <div className="flex items-center gap-1">
-                      <Mail className="w-4 h-4 text-slate-400" />
+                      <Mail className="w-4 h-4 text-muted-foreground" />
                       <span className="truncate">{lead.email}</span>
                     </div>
                   )}
                   {lead.city && (
                     <div className="flex items-center gap-1">
-                      <MapPin className="w-4 h-4 text-slate-400" />
+                      <MapPin className="w-4 h-4 text-muted-foreground" />
                       <span>{lead.city}</span>
                     </div>
                   )}
                   {lead.site && (
                     <div className="flex items-center gap-1">
-                      <Globe className="w-4 h-4 text-slate-400" />
+                      <Globe className="w-4 h-4 text-muted-foreground" />
                       <span className="truncate">{lead.site}</span>
                     </div>
                   )}
                   {(lead.implementationValue || lead.recurringValue) && (
                     <div className="flex items-center gap-1">
-                      <DollarSign className="w-4 h-4 text-slate-400" />
+                      <DollarSign className="w-4 h-4 text-muted-foreground" />
                       <span>
                         {formatCurrency(lead.implementationValue)} +{" "}
                         {formatCurrency(lead.recurringValue)}
@@ -149,7 +149,7 @@ export function DuplicateGroupCard({ group, onKeepNewest, onMerge, onIgnore }: P
           size="sm"
           variant="outline"
           onClick={() => onMerge(group)}
-          className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+          className="border-border text-primary hover:bg-primary/10"
         >
           Mesclar Todos
         </Button>
@@ -157,7 +157,7 @@ export function DuplicateGroupCard({ group, onKeepNewest, onMerge, onIgnore }: P
           size="sm"
           variant="ghost"
           onClick={() => onIgnore(group.key)}
-          className="text-slate-400 hover:text-white hover:bg-slate-700/50"
+          className="text-muted-foreground hover:text-white hover:bg-muted/50"
         >
           Ignorar
         </Button>

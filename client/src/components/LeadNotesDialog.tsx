@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -98,9 +98,9 @@ export function LeadNotesDialog({ leadId, companyName }: LeadNotesDialogProps) {
             <label className="text-sm font-medium">Notas Anteriores</label>
             <div className="max-h-64 overflow-y-auto space-y-2">
               {notesQuery.isLoading ? (
-                <p className="text-sm text-slate-500">Carregando notas...</p>
+                <p className="text-sm text-muted-foreground">Carregando notas...</p>
               ) : notes.length === 0 ? (
-                <p className="text-sm text-slate-500">Nenhuma nota adicionada</p>
+                <p className="text-sm text-muted-foreground">Nenhuma nota adicionada</p>
               ) : (
                 notes.map((note) => (
                   <div
@@ -119,7 +119,7 @@ export function LeadNotesDialog({ leadId, companyName }: LeadNotesDialogProps) {
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       {new Date(note.createdAt).toLocaleDateString("pt-BR")}
                     </p>
                   </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -308,8 +308,8 @@ export function LeadFormDialog({ lead, onSuccess, type }: LeadFormDialogProps) {
 
           {/* Custom Fields (Renderizados Dinamicamente) */}
           {customFields && customFields.length > 0 && (
-            <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50 space-y-4 my-4">
-              <h4 className="text-sm font-semibold text-cyan-400 border-b border-slate-700 pb-2">Informações Adicionais</h4>
+            <div className="bg-muted/50 p-4 rounded-lg border border-border/50 space-y-4 my-4">
+              <h4 className="text-sm font-semibold text-primary border-b border-border pb-2">Informações Adicionais</h4>
               
               {/* Agrupamento por GroupName */}
               {(() => {
@@ -323,7 +323,7 @@ export function LeadFormDialog({ lead, onSuccess, type }: LeadFormDialogProps) {
                 return Object.entries(groups).map(([groupName, fields]) => (
                   <div key={groupName} className="space-y-3">
                     {groupName !== "Gerais" && (
-                      <h5 className="text-xs font-medium text-slate-400 mt-4 uppercase">{groupName}</h5>
+                      <h5 className="text-xs font-medium text-muted-foreground mt-4 uppercase">{groupName}</h5>
                     )}
                     {fields.map(field => (
                       <DynamicFieldRenderer
@@ -351,14 +351,14 @@ export function LeadFormDialog({ lead, onSuccess, type }: LeadFormDialogProps) {
               onChange={(e) =>
                 setFormData({ ...formData, dataCriacao: e.target.value })
               }
-              className="bg-slate-700/50 border-cyan-500/30 text-slate-100"
+              className="bg-muted/50 border-border text-foreground"
             />
-            <p className="text-xs text-slate-400 mt-1">Data padrão: hoje</p>
+            <p className="text-xs text-muted-foreground mt-1">Data padrão: hoje</p>
           </div>
 
           {/* Botões de Status Final */}
           {lead?.id && !["Perdido", "Abandonado", "Ganho"].includes(formData.status) && (
-            <div className="border-t border-slate-700 pt-4 space-y-2">
+            <div className="border-t border-border pt-4 space-y-2">
               <p className="text-sm font-semibold text-black">Mover para Status Final:</p>
               <div className="flex gap-2">
                 <Button
@@ -407,7 +407,7 @@ export function LeadFormDialog({ lead, onSuccess, type }: LeadFormDialogProps) {
                       toast.error("Erro ao mover lead");
                     }
                   }}
-                  className="bg-slate-600 hover:bg-slate-700 text-white"
+                  className="bg-muted hover:bg-muted text-white"
                 >
                   Abandonado
                 </Button>

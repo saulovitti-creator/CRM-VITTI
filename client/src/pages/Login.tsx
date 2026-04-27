@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogIn, UserPlus, AlertCircle } from "lucide-react";
+import { LogIn, UserPlus, AlertCircle, Briefcase } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import ForgotPasswordModal from "@/components/ForgotPasswordModal";
@@ -79,24 +79,26 @@ export default function Login() {
   const isLoading = loginMutation.isPending || registerMutation.isPending;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center px-4">
-      <Card className="w-full max-w-md bg-slate-900 border-cyan-500/30">
-        <CardHeader className="text-center space-y-2">
-          <div className="flex flex-col items-center gap-2">
-            <img src="/logo.jpg" alt="Logo" className="h-[72px] w-auto object-contain mb-2 rounded-lg" />
-            <CardTitle className="text-4xl font-black bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <Card className="w-full max-w-sm shadow-[var(--shadow-lg)]">
+        <CardHeader className="text-center space-y-3 pb-2">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Briefcase className="w-6 h-6 text-primary" />
+            </div>
+            <CardTitle className="text-xl font-bold text-foreground">
               CRM Vitti Soluções
             </CardTitle>
           </div>
-          <CardDescription className="text-slate-400">
-            Gerenciamento de Prospectos Premium
+          <CardDescription>
+            {isRegister ? "Crie sua conta para acessar o sistema" : "Faça login para continuar"}
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-5">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">
+            <div className="space-y-1.5">
+              <label className="text-label">
                 Nome de Usuário
               </label>
               <Input
@@ -105,13 +107,12 @@ export default function Login() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 disabled={isLoading}
-                className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20"
               />
             </div>
 
             {isRegister && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">
+              <div className="space-y-1.5">
+                <label className="text-label">
                   Email
                 </label>
                 <Input
@@ -120,13 +121,12 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
-                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20"
                 />
               </div>
             )}
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">
+            <div className="space-y-1.5">
+              <label className="text-label">
                 Senha
               </label>
               <Input
@@ -135,13 +135,12 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
-                className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20"
               />
             </div>
 
             {isRegister && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">
+              <div className="space-y-1.5">
+                <label className="text-label">
                   Confirmar Senha
                 </label>
                 <Input
@@ -150,7 +149,6 @@ export default function Login() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={isLoading}
-                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-cyan-500/20"
                 />
               </div>
             )}
@@ -159,7 +157,7 @@ export default function Login() {
               type="submit"
               size="lg"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold"
+              className="w-full"
             >
               {isLoading ? (
                 <div className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
@@ -174,10 +172,10 @@ export default function Login() {
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-700" />
+              <div className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-slate-900 text-slate-400">ou</span>
+              <span className="px-2 bg-card text-muted-foreground">ou</span>
             </div>
           </div>
 
@@ -187,7 +185,7 @@ export default function Login() {
               variant="ghost"
               size="sm"
               onClick={() => setForgotPasswordOpen(true)}
-              className="w-full text-cyan-400 hover:text-cyan-300 hover:bg-slate-800/50"
+              className="w-full text-primary"
             >
               Esqueci minha senha
             </Button>
@@ -205,14 +203,14 @@ export default function Login() {
               setEmail("");
             }}
             disabled={isLoading}
-            className="w-full border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-slate-200"
+            className="w-full"
           >
             {isRegister ? "Já tenho uma conta" : "Criar nova conta"}
           </Button>
 
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 flex gap-2">
-            <AlertCircle className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-slate-400">
+          <div className="bg-muted rounded-lg p-3 flex gap-2.5">
+            <AlertCircle className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-muted-foreground">
               {isRegister
                 ? "Crie uma conta com seu nome de usuário e senha para acessar o CRM."
                 : "Faça login com suas credenciais para acessar seu painel de controle."}

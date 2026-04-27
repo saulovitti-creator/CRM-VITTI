@@ -1,4 +1,4 @@
-import { useDraggable } from '@dnd-kit/core';
+﻿import { useDraggable } from '@dnd-kit/core';
 import { Badge } from "@/components/ui/badge";
 import { Calendar, CheckSquare } from "lucide-react";
 import { getSegmentIcon, getSegmentColor } from "@shared/segment-icons";
@@ -82,7 +82,7 @@ export function KanbanCard({ lead, isDragging = false }: KanbanCardProps) {
 
   const baseBorderClass = isCold 
     ? "border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.2)] hover:border-red-400 hover:shadow-[0_0_15px_rgba(239,68,68,0.3)]"
-    : "border-slate-600 hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10";
+    : "border-border hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10";
 
   return (
     <>
@@ -92,10 +92,10 @@ export function KanbanCard({ lead, isDragging = false }: KanbanCardProps) {
         {...attributes}
         {...listeners}
         className={`
-          bg-slate-700 rounded-lg p-4 cursor-grab active:cursor-grabbing border
+          bg-muted rounded-lg p-4 cursor-grab active:cursor-grabbing border
           transition-colors duration-200
           ${baseBorderClass}
-          ${isDraggingState ? 'shadow-2xl shadow-cyan-500/30 scale-105 rotate-2' : ''}
+          ${isDraggingState ? 'shadow-[var(--kanban-drag-shadow)] scale-[1.02] rotate-[1.5deg]' : ''}
         `}
         onClick={() => setDetailsOpen(true)}
       >
@@ -106,19 +106,19 @@ export function KanbanCard({ lead, isDragging = false }: KanbanCardProps) {
             const segmentColor = getSegmentColor(lead.segment);
             return <SegmentIcon className={`w-5 h-5 flex-shrink-0 ${segmentColor}`} />;
           })()}
-          <h3 className="font-semibold text-slate-100 truncate flex-1">{lead.companyName}</h3>
+          <h3 className="font-semibold text-foreground truncate flex-1">{lead.companyName}</h3>
         </div>
 
         {/* Contact and Phone */}
         <div className="space-y-1 mb-3 text-sm">
           {lead.contactName && (
-            <p className="text-slate-400 truncate">
-              <span className="text-slate-500">Contato:</span> {lead.contactName}
+            <p className="text-muted-foreground truncate">
+              <span className="text-muted-foreground">Contato:</span> {lead.contactName}
             </p>
           )}
           {lead.phone && (
-            <p className="text-slate-400 truncate">
-              <span className="text-slate-500">Tel:</span> {lead.phone}
+            <p className="text-muted-foreground truncate">
+              <span className="text-muted-foreground">Tel:</span> {lead.phone}
             </p>
           )}
         </div>
@@ -130,7 +130,7 @@ export function KanbanCard({ lead, isDragging = false }: KanbanCardProps) {
               <TagBadge key={tag.id} tag={tag} className="text-[10px] px-1.5 py-0" />
             ))}
             {lead.tags.length > 3 && (
-              <span className="text-[10px] text-slate-400 self-center">+{lead.tags.length - 3}</span>
+              <span className="text-[10px] text-muted-foreground self-center">+{lead.tags.length - 3}</span>
             )}
           </div>
         )}
@@ -140,7 +140,7 @@ export function KanbanCard({ lead, isDragging = false }: KanbanCardProps) {
           {lead.dataCriacao && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex items-center gap-1 px-2 py-1 rounded bg-slate-600/50 text-slate-300 text-xs">
+                <div className="flex items-center gap-1 px-2 py-1 rounded bg-muted/50 text-foreground text-xs">
                   <Calendar className="w-3 h-3" />
                   <span>
                     {(() => {
@@ -185,7 +185,7 @@ export function KanbanCard({ lead, isDragging = false }: KanbanCardProps) {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-2 mt-3 pt-3 border-t border-slate-600/50">
+        <div className="flex gap-2 mt-3 pt-3 border-t border-border/50">
           <LeadFormDialog lead={lead} />
           <DeleteLeadDialog leadId={lead.id} companyName={lead.companyName} />
           <WhatsAppButton phone={lead.phone} leadId={lead.id} />

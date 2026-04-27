@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { AlertTriangle, ChevronDown, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
@@ -184,14 +184,14 @@ export function DuplicatesResolverModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-slate-900/95 backdrop-blur-xl border-cyan-500/30">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-card/95 backdrop-blur-xl border-border">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
             <AlertTriangle className="w-6 h-6 text-yellow-400" />
             Duplicados Encontrados na Base
           </DialogTitle>
-          <p className="text-slate-300">
-            Foram encontrados <span className="font-bold text-cyan-400">{totalGroups}</span>{" "}
+          <p className="text-foreground">
+            Foram encontrados <span className="font-bold text-primary">{totalGroups}</span>{" "}
             grupos com <span className="font-bold text-yellow-400">{totalDuplicates}</span>{" "}
             leads duplicados. Você pode remover até{" "}
             <span className="font-bold text-red-400">{toRemove}</span> leads.
@@ -205,7 +205,7 @@ export function DuplicatesResolverModal({
               <DropdownMenuTrigger asChild>
                 <Button
                   disabled={isResolving}
-                  className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
                 >
                   {isResolving ? (
                     <>
@@ -219,29 +219,29 @@ export function DuplicatesResolverModal({
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-slate-800 border-cyan-500/30">
+              <DropdownMenuContent className="bg-muted border-border">
                 <DropdownMenuItem
                   onClick={() => handleResolveAll("newest")}
-                  className="text-white hover:bg-slate-700"
+                  className="text-white hover:bg-muted"
                 >
                   Manter sempre o mais recente
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => handleResolveAll("oldest")}
-                  className="text-white hover:bg-slate-700"
+                  className="text-white hover:bg-muted"
                 >
                   Manter sempre o mais antigo
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => handleResolveAll("merge")}
-                  className="text-white hover:bg-slate-700"
+                  className="text-white hover:bg-muted"
                 >
                   Mesclar todos automaticamente
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
                   onClick={() => handleResolveAll("ignore")}
-                  className="text-white hover:bg-slate-700"
+                  className="text-white hover:bg-muted"
                 >
                   Ignorar todos (não fazer nada)
                 </DropdownMenuItem>
@@ -252,14 +252,14 @@ export function DuplicatesResolverModal({
 
         {/* Lista de grupos */}
         {groups.length === 0 ? (
-          <div className="text-center py-8 text-slate-400">
+          <div className="text-center py-8 text-muted-foreground">
             <p className="text-lg">✅ Todos os duplicados foram resolvidos!</p>
           </div>
         ) : (
           <div className="space-y-4">
             {groups.map((group, index) => (
               <div key={group.key}>
-                <div className="text-sm text-slate-400 mb-2">
+                <div className="text-sm text-muted-foreground mb-2">
                   Grupo {index + 1} de {totalGroups}
                 </div>
                 <DuplicateGroupCard

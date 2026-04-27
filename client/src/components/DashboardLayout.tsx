@@ -21,21 +21,21 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users, BarChart3 } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, BarChart3, Briefcase, ChevronRight } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "CRM (Contatos & Funil)", path: "/" },
+  { icon: Briefcase, label: "CRM (Contatos & Funil)", path: "/" },
   { icon: BarChart3, label: "Dashboard", path: "/dashboard" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
-const DEFAULT_WIDTH = 280;
+const DEFAULT_WIDTH = 260;
 const MIN_WIDTH = 200;
-const MAX_WIDTH = 480;
+const MAX_WIDTH = 420;
 
 export default function DashboardLayout({
   children,
@@ -58,14 +58,14 @@ export default function DashboardLayout({
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full">
-          <div className="flex flex-col items-center gap-6">
-            <h1 className="text-2xl font-semibold tracking-tight text-center">
-              Sign in to continue
+          <div className="flex flex-col items-center gap-4">
+            <h1 className="text-2xl font-semibold tracking-tight text-center text-foreground">
+              Faça login para continuar
             </h1>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
-              Access to this dashboard requires authentication. Continue to launch the login flow.
+              Acesse o CRM Vitti Soluções para gerenciar seus contatos e funil de vendas.
             </p>
           </div>
           <Button
@@ -73,9 +73,9 @@ export default function DashboardLayout({
               window.location.href = getLoginUrl();
             }}
             size="lg"
-            className="w-full shadow-lg hover:shadow-xl transition-all"
+            className="w-full"
           >
-            Sign in
+            Entrar
           </Button>
         </div>
       </div>
@@ -156,30 +156,30 @@ function DashboardLayoutContent({
       <div className="relative" ref={sidebarRef}>
         <Sidebar
           collapsible="icon"
-          className="border-r-0"
+          className="border-r border-sidebar-border"
           disableTransition={isResizing}
         >
-          <SidebarHeader className="h-16 justify-center">
-            <div className="flex items-center gap-3 px-2 transition-all w-full">
+          {/* Sidebar Header — App name + collapse toggle */}
+          <SidebarHeader className="h-14 justify-center border-b border-sidebar-border">
+            <div className="flex items-center gap-3 px-3 transition-all w-full">
               <button
                 onClick={toggleSidebar}
-                className="h-8 w-8 flex items-center justify-center hover:bg-accent rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
-                aria-label="Toggle navigation"
+                className="h-7 w-7 flex items-center justify-center hover:bg-sidebar-accent rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
+                aria-label="Recolher navegação"
               >
                 <PanelLeft className="h-4 w-4 text-muted-foreground" />
               </button>
               {!isCollapsed ? (
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-semibold tracking-tight truncate">
-                    Navigation
-                  </span>
-                </div>
+                <span className="font-semibold text-sm tracking-tight text-sidebar-foreground truncate">
+                  CRM Vitti Soluções
+                </span>
               ) : null}
             </div>
           </SidebarHeader>
 
-          <SidebarContent className="gap-0">
-            <SidebarMenu className="px-2 py-1">
+          {/* Navigation items */}
+          <SidebarContent className="gap-0 px-2 py-3">
+            <SidebarMenu>
               {menuItems.map(item => {
                 const isActive = location === item.path;
                 return (
@@ -188,10 +188,14 @@ function DashboardLayoutContent({
                       isActive={isActive}
                       onClick={() => setLocation(item.path)}
                       tooltip={item.label}
-                      className={`h-10 transition-all font-normal`}
+                      className={`h-9 rounded-md transition-all text-[13px] font-normal
+                        ${isActive 
+                          ? "bg-sidebar-accent text-sidebar-primary font-medium" 
+                          : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                        }`}
                     >
                       <item.icon
-                        className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
+                        className={`h-4 w-4 shrink-0 ${isActive ? "text-sidebar-primary" : "text-muted-foreground"}`}
                       />
                       <span>{item.label}</span>
                     </SidebarMenuButton>
@@ -201,20 +205,21 @@ function DashboardLayoutContent({
             </SidebarMenu>
           </SidebarContent>
 
-          <SidebarFooter className="p-3">
+          {/* Sidebar Footer — User info + logout */}
+          <SidebarFooter className="p-2 border-t border-sidebar-border">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <Avatar className="h-9 w-9 border shrink-0">
-                    <AvatarFallback className="text-xs font-medium">
+                <button className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-sidebar-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <Avatar className="h-8 w-8 shrink-0">
+                    <AvatarFallback className="text-xs font-medium bg-primary/10 text-primary">
                       {user?.name?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
-                    <p className="text-sm font-medium truncate leading-none">
+                    <p className="text-sm font-medium truncate leading-none text-sidebar-foreground">
                       {user?.name || "-"}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate mt-1.5">
+                    <p className="text-xs text-muted-foreground truncate mt-1">
                       {user?.email || "-"}
                     </p>
                   </div>
@@ -226,12 +231,14 @@ function DashboardLayoutContent({
                   className="cursor-pointer text-destructive focus:text-destructive"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Sign out</span>
+                  <span>Sair</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarFooter>
         </Sidebar>
+
+        {/* Resize handle */}
         <div
           className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors ${isCollapsed ? "hidden" : ""}`}
           onMouseDown={() => {
@@ -243,21 +250,38 @@ function DashboardLayoutContent({
       </div>
 
       <SidebarInset>
-        {isMobile && (
-          <div className="flex border-b h-14 items-center justify-between bg-background/95 px-2 backdrop-blur supports-[backdrop-filter]:backdrop-blur sticky top-0 z-40">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="h-9 w-9 rounded-lg bg-background" />
-              <div className="flex items-center gap-3">
-                <div className="flex flex-col gap-1">
-                  <span className="tracking-tight text-foreground">
-                    {activeMenuItem?.label ?? "Menu"}
-                  </span>
-                </div>
-              </div>
+        {/* Desktop Topbar */}
+        {!isMobile && (
+          <div className="flex h-14 items-center justify-between border-b border-border bg-background px-6 sticky top-0 z-40">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">
+                {activeMenuItem?.label ?? "Menu"}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">{user?.name || ""}</span>
+              <Avatar className="h-7 w-7">
+                <AvatarFallback className="text-[10px] font-medium bg-primary/10 text-primary">
+                  {user?.name?.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
             </div>
           </div>
         )}
-        <main className="flex-1 p-4">{children}</main>
+
+        {/* Mobile Topbar */}
+        {isMobile && (
+          <div className="flex border-b border-border h-14 items-center justify-between bg-background px-3 sticky top-0 z-40">
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="h-9 w-9 rounded-lg" />
+              <span className="text-sm font-medium text-foreground truncate">
+                {activeMenuItem?.label ?? "Menu"}
+              </span>
+            </div>
+          </div>
+        )}
+
+        <main className="flex-1 p-6">{children}</main>
       </SidebarInset>
     </>
   );

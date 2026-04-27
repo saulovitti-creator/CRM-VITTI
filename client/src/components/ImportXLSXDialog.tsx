@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+﻿import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -239,11 +239,11 @@ export function ImportXLSXDialog({ leadType }: ImportXLSXDialogProps) {
               htmlFor="xlsx-input"
               className="cursor-pointer flex flex-col items-center gap-2"
             >
-              <Upload className="w-8 h-8 text-slate-400" />
+              <Upload className="w-8 h-8 text-muted-foreground" />
               <span className="text-sm font-medium text-slate-700">
                 {importing ? `Importando para ${leadType}...` : "Clique para selecionar arquivo"}
               </span>
-              <span className="text-xs text-slate-500">ou arraste um arquivo XLSX</span>
+              <span className="text-xs text-muted-foreground">ou arraste um arquivo XLSX</span>
             </label>
           </div>
 

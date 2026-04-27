@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -133,23 +133,23 @@ export function DateFilterDropdown({ onFilterChange, initialFilter }: DateFilter
             variant="outline"
             size="sm"
             onClick={() => setIsOpen(!isOpen)}
-            className="border-cyan-500/50 hover:bg-cyan-500/20 hover:text-cyan-400 transition-all duration-300 gap-2"
+            className="border-primary/30 hover:bg-primary/20 hover:text-primary transition-all duration-300 gap-2"
           >
             <Calendar className="w-4 h-4" />
             Filtro de Data
           </Button>
 
           {isOpen && (
-            <Card className="absolute top-full left-0 mt-2 w-80 bg-slate-800/95 border-cyan-500/30 p-4 z-50 shadow-2xl">
+            <Card className="absolute top-full left-0 mt-2 w-80 bg-muted/95 border-border p-4 z-50 shadow-2xl">
               <div className="space-y-4">
                 {/* Abas */}
-                <div className="flex gap-2 border-b border-slate-700">
+                <div className="flex gap-2 border-b border-border">
                   <button
                     onClick={() => setFilterType("atalho")}
                     className={`px-3 py-2 text-sm font-medium transition-colors ${
                       filterType === "atalho"
-                        ? "text-cyan-400 border-b-2 border-cyan-400"
-                        : "text-slate-400 hover:text-slate-300"
+                        ? "text-primary border-b-2 border-primary"
+                        : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     Atalhos
@@ -158,8 +158,8 @@ export function DateFilterDropdown({ onFilterChange, initialFilter }: DateFilter
                     onClick={() => setFilterType("personalizado")}
                     className={`px-3 py-2 text-sm font-medium transition-colors ${
                       filterType === "personalizado"
-                        ? "text-cyan-400 border-b-2 border-cyan-400"
-                        : "text-slate-400 hover:text-slate-300"
+                        ? "text-primary border-b-2 border-primary"
+                        : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     Período
@@ -168,8 +168,8 @@ export function DateFilterDropdown({ onFilterChange, initialFilter }: DateFilter
                     onClick={() => setFilterType("especifico")}
                     className={`px-3 py-2 text-sm font-medium transition-colors ${
                       filterType === "especifico"
-                        ? "text-cyan-400 border-b-2 border-cyan-400"
-                        : "text-slate-400 hover:text-slate-300"
+                        ? "text-primary border-b-2 border-primary"
+                        : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     Data
@@ -181,37 +181,37 @@ export function DateFilterDropdown({ onFilterChange, initialFilter }: DateFilter
                   <div className="space-y-2">
                     <button
                       onClick={() => handleAtalhoRapido("hoje")}
-                      className="w-full text-left px-3 py-2 rounded hover:bg-slate-700/50 text-slate-300 hover:text-cyan-400 transition-colors text-sm"
+                      className="w-full text-left px-3 py-2 rounded hover:bg-muted/50 text-foreground hover:text-primary transition-colors text-sm"
                     >
                       Hoje
                     </button>
                     <button
                       onClick={() => handleAtalhoRapido("7dias")}
-                      className="w-full text-left px-3 py-2 rounded hover:bg-slate-700/50 text-slate-300 hover:text-cyan-400 transition-colors text-sm"
+                      className="w-full text-left px-3 py-2 rounded hover:bg-muted/50 text-foreground hover:text-primary transition-colors text-sm"
                     >
                       Últimos 7 dias
                     </button>
                     <button
                       onClick={() => handleAtalhoRapido("30dias")}
-                      className="w-full text-left px-3 py-2 rounded hover:bg-slate-700/50 text-slate-300 hover:text-cyan-400 transition-colors text-sm"
+                      className="w-full text-left px-3 py-2 rounded hover:bg-muted/50 text-foreground hover:text-primary transition-colors text-sm"
                     >
                       Últimos 30 dias
                     </button>
                     <button
                       onClick={() => handleAtalhoRapido("mes")}
-                      className="w-full text-left px-3 py-2 rounded hover:bg-slate-700/50 text-slate-300 hover:text-cyan-400 transition-colors text-sm"
+                      className="w-full text-left px-3 py-2 rounded hover:bg-muted/50 text-foreground hover:text-primary transition-colors text-sm"
                     >
                       Este mês
                     </button>
                     <button
                       onClick={() => handleAtalhoRapido("mespassado")}
-                      className="w-full text-left px-3 py-2 rounded hover:bg-slate-700/50 text-slate-300 hover:text-cyan-400 transition-colors text-sm"
+                      className="w-full text-left px-3 py-2 rounded hover:bg-muted/50 text-foreground hover:text-primary transition-colors text-sm"
                     >
                       Mês passado
                     </button>
                     <button
                       onClick={() => handleAtalhoRapido("ano")}
-                      className="w-full text-left px-3 py-2 rounded hover:bg-slate-700/50 text-slate-300 hover:text-cyan-400 transition-colors text-sm"
+                      className="w-full text-left px-3 py-2 rounded hover:bg-muted/50 text-foreground hover:text-primary transition-colors text-sm"
                     >
                       Este ano
                     </button>
@@ -222,27 +222,27 @@ export function DateFilterDropdown({ onFilterChange, initialFilter }: DateFilter
                 {filterType === "personalizado" && (
                   <div className="space-y-3">
                     <div>
-                      <label className="text-xs text-slate-400 block mb-1">Data Inicial</label>
+                      <label className="text-xs text-muted-foreground block mb-1">Data Inicial</label>
                       <Input
                         type="date"
                         value={dataInicial}
                         onChange={(e) => setDataInicial(e.target.value)}
-                        className="bg-slate-700/50 border-slate-600 text-slate-100"
+                        className="bg-muted/50 border-border text-foreground"
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-slate-400 block mb-1">Data Final</label>
+                      <label className="text-xs text-muted-foreground block mb-1">Data Final</label>
                       <Input
                         type="date"
                         value={dataFinal}
                         onChange={(e) => setDataFinal(e.target.value)}
-                        className="bg-slate-700/50 border-slate-600 text-slate-100"
+                        className="bg-muted/50 border-border text-foreground"
                       />
                     </div>
                     <Button
                       onClick={handlePeriodoPersonalizado}
                       size="sm"
-                      className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
+                      className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                     >
                       Aplicar
                     </Button>
@@ -253,18 +253,18 @@ export function DateFilterDropdown({ onFilterChange, initialFilter }: DateFilter
                 {filterType === "especifico" && (
                   <div className="space-y-3">
                     <div>
-                      <label className="text-xs text-slate-400 block mb-1">Selecione a Data</label>
+                      <label className="text-xs text-muted-foreground block mb-1">Selecione a Data</label>
                       <Input
                         type="date"
                         value={dataEspecifica}
                         onChange={(e) => setDataEspecifica(e.target.value)}
-                        className="bg-slate-700/50 border-slate-600 text-slate-100"
+                        className="bg-muted/50 border-border text-foreground"
                       />
                     </div>
                     <Button
                       onClick={handleDataEspecifica}
                       size="sm"
-                      className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
+                      className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                     >
                       Aplicar
                     </Button>
@@ -277,13 +277,13 @@ export function DateFilterDropdown({ onFilterChange, initialFilter }: DateFilter
 
         {/* Badge de Filtro Ativo */}
         {activeFilter.isActive && (
-          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-500/50 text-cyan-400 text-sm">
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-sm">
             <span>
               {formatDate(activeFilter.dataInicial)} - {formatDate(activeFilter.dataFinal)}
             </span>
             <button
               onClick={handleLimpar}
-              className="hover:text-cyan-300 transition-colors"
+              className="hover:text-primary transition-colors"
             >
               <X className="w-4 h-4" />
             </button>

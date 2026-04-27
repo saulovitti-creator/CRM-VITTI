@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -119,7 +119,7 @@ export function ProspectTasksSection({ prospectId }: ProspectTasksSectionProps) 
   };
 
   const priorityColors = {
-    baixa: "text-slate-400",
+    baixa: "text-muted-foreground",
     media: "text-blue-400",
     alta: "text-red-400"
   };
@@ -129,10 +129,10 @@ export function ProspectTasksSection({ prospectId }: ProspectTasksSectionProps) 
     const isOverdue = task.status === "atrasada";
     
     // Calcula badge style
-    let badgeStyle = "bg-slate-700 text-slate-300";
+    let badgeStyle = "bg-muted text-foreground";
     let badgeText = "Pendente";
     if (isCompleted) {
-      badgeStyle = "bg-slate-800 text-slate-500 border-slate-700";
+      badgeStyle = "bg-muted text-muted-foreground border-border";
       badgeText = "Concluída";
     } else if (isOverdue) {
       badgeStyle = "bg-red-500/20 text-red-400 border-red-500/30";
@@ -144,18 +144,18 @@ export function ProspectTasksSection({ prospectId }: ProspectTasksSectionProps) 
         badgeStyle = "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
         badgeText = "Hoje";
       } else {
-        badgeStyle = "bg-cyan-500/20 text-cyan-400 border-cyan-500/30";
+        badgeStyle = "bg-primary/20 text-primary border-border";
         badgeText = "Pendente";
       }
     }
 
     return (
-      <div key={task.id} className={`group flex items-start gap-3 p-3 rounded-md border transition-all ${isCompleted ? 'bg-slate-800/50 border-slate-800 opacity-60' : isOverdue ? 'bg-red-950/20 border-red-900/30' : 'bg-slate-800 border-slate-700'}`}>
+      <div key={task.id} className={`group flex items-start gap-3 p-3 rounded-md border transition-all ${isCompleted ? 'bg-muted/50 border-border opacity-60' : isOverdue ? 'bg-red-950/20 border-red-900/30' : 'bg-muted border-border'}`}>
         <div className="pt-1">
           <button 
             onClick={() => !isCompleted && completeTask(task.id)}
             disabled={isCompleted}
-            className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${isCompleted ? 'bg-slate-600 border-slate-600 text-slate-900 cursor-not-allowed' : 'border-slate-500 hover:border-cyan-400 hover:bg-cyan-500/20 text-transparent hover:text-cyan-400'}`}
+            className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${isCompleted ? 'bg-muted border-border text-slate-900 cursor-not-allowed' : 'border-border hover:border-primary hover:bg-primary/20 text-transparent hover:text-primary'}`}
           >
             <Check className="w-3 h-3" />
           </button>
@@ -163,20 +163,20 @@ export function ProspectTasksSection({ prospectId }: ProspectTasksSectionProps) 
         
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className={`w-2 h-2 rounded-full ${!isCompleted ? priorityColors[task.priority] : 'bg-slate-600'}`} />
-            <p className={`text-sm font-medium ${isCompleted ? 'line-through text-slate-500' : 'text-slate-200'} truncate`}>{task.title}</p>
+            <span className={`w-2 h-2 rounded-full ${!isCompleted ? priorityColors[task.priority] : 'bg-muted'}`} />
+            <p className={`text-sm font-medium ${isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'} truncate`}>{task.title}</p>
             <Badge variant="outline" className={`ml-auto text-[10px] h-5 ${badgeStyle}`}>
               {badgeText}
             </Badge>
           </div>
           
           {task.description && (
-            <p className={`text-xs mt-1 mb-2 line-clamp-2 ${isCompleted ? 'text-slate-600' : 'text-slate-400'}`}>
+            <p className={`text-xs mt-1 mb-2 line-clamp-2 ${isCompleted ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
               {task.description}
             </p>
           )}
           
-          <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-1">
+          <div className="flex items-center gap-3 text-[11px] text-muted-foreground mt-1">
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {format(new Date(task.dueDate), "dd/MM/yyyy 'às' HH:mm")}
@@ -196,7 +196,7 @@ export function ProspectTasksSection({ prospectId }: ProspectTasksSectionProps) 
               deleteTask(task.id);
             }
           }}
-          className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-slate-700 rounded transition-colors"
+          className="p-1.5 text-muted-foreground hover:text-red-400 hover:bg-muted rounded transition-colors"
         >
           <Trash2 className="w-4 h-4" />
         </button>
@@ -205,14 +205,14 @@ export function ProspectTasksSection({ prospectId }: ProspectTasksSectionProps) 
   };
 
   return (
-    <div className="space-y-4 pt-4 border-t border-slate-700">
+    <div className="space-y-4 pt-4 border-t border-border">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-cyan-400 flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
           <CheckSquare className="w-4 h-4" />
           Tarefas
         </h3>
         {pendingTasks.length > 0 && (
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-muted-foreground">
             {pendingTasks.length} pendentes {overdueCount > 0 && <span className="text-red-400">({overdueCount} atrasadas)</span>}
           </span>
         )}
@@ -220,31 +220,31 @@ export function ProspectTasksSection({ prospectId }: ProspectTasksSectionProps) 
 
       {/* Quick Templates */}
       <div className="flex flex-wrap gap-2 mb-2">
-        <Badge variant="outline" className="cursor-pointer hover:bg-slate-800 bg-slate-900 border-slate-600 text-slate-300" onClick={() => applyTemplate('ligar')}>
+        <Badge variant="outline" className="cursor-pointer hover:bg-muted bg-card border-border text-foreground" onClick={() => applyTemplate('ligar')}>
           <PhoneCall className="w-3 h-3 mr-1" /> Ligar amanhã
         </Badge>
-        <Badge variant="outline" className="cursor-pointer hover:bg-slate-800 bg-slate-900 border-slate-600 text-slate-300" onClick={() => applyTemplate('proposta')}>
+        <Badge variant="outline" className="cursor-pointer hover:bg-muted bg-card border-border text-foreground" onClick={() => applyTemplate('proposta')}>
           <FileText className="w-3 h-3 mr-1" /> Enviar proposta
         </Badge>
-        <Badge variant="outline" className="cursor-pointer hover:bg-slate-800 bg-slate-900 border-slate-600 text-slate-300" onClick={() => applyTemplate('retornar3')}>
+        <Badge variant="outline" className="cursor-pointer hover:bg-muted bg-card border-border text-foreground" onClick={() => applyTemplate('retornar3')}>
           <RefreshCw className="w-3 h-3 mr-1" /> Retornar em 3 dias
         </Badge>
-        <Badge variant="outline" className="cursor-pointer hover:bg-slate-800 bg-slate-900 border-slate-600 text-slate-300" onClick={() => applyTemplate('retornar7')}>
+        <Badge variant="outline" className="cursor-pointer hover:bg-muted bg-card border-border text-foreground" onClick={() => applyTemplate('retornar7')}>
           <RefreshCw className="w-3 h-3 mr-1" /> Retornar em 7 dias
         </Badge>
-        <Badge variant="outline" className="cursor-pointer hover:bg-slate-800 bg-slate-900 border-slate-600 text-slate-300" onClick={() => applyTemplate('reuniao')}>
+        <Badge variant="outline" className="cursor-pointer hover:bg-muted bg-card border-border text-foreground" onClick={() => applyTemplate('reuniao')}>
           <CalendarIcon className="w-3 h-3 mr-1" /> Agendar reunião
         </Badge>
       </div>
 
       {/* Form inline */}
-      <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800 space-y-3">
+      <div className="bg-muted/50 p-3 rounded-lg border border-border space-y-3">
         <Input 
           placeholder="Título da tarefa... (Ex: Ligar para confirmar)" 
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           maxLength={120}
-          className="bg-slate-800 border-slate-700 text-slate-200 h-9"
+          className="bg-muted border-border text-foreground h-9"
         />
         
         <Textarea 
@@ -252,7 +252,7 @@ export function ProspectTasksSection({ prospectId }: ProspectTasksSectionProps) 
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           maxLength={300}
-          className="bg-slate-800 border-slate-700 text-slate-200 min-h-[60px] resize-none"
+          className="bg-muted border-border text-foreground min-h-[60px] resize-none"
         />
         
         <div className="flex gap-2 items-center">
@@ -260,14 +260,14 @@ export function ProspectTasksSection({ prospectId }: ProspectTasksSectionProps) 
             type="datetime-local" 
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            className="bg-slate-800 border-slate-700 text-slate-200 h-9 w-auto text-sm"
+            className="bg-muted border-border text-foreground h-9 w-auto text-sm"
           />
           
           <Select value={priority} onValueChange={(v: any) => setPriority(v)}>
-            <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-200 h-9 w-[130px]">
+            <SelectTrigger className="bg-muted border-border text-foreground h-9 w-[130px]">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700">
+            <SelectContent className="bg-muted border-border">
               <SelectItem value="alta">Alta</SelectItem>
               <SelectItem value="media">Média</SelectItem>
               <SelectItem value="baixa">Baixa</SelectItem>
@@ -277,7 +277,7 @@ export function ProspectTasksSection({ prospectId }: ProspectTasksSectionProps) 
           <Button 
             disabled={!title.trim() || !dueDate} 
             onClick={handleCreateTask}
-            className="h-9 ml-auto bg-cyan-600 hover:bg-cyan-500 text-white"
+            className="h-9 ml-auto bg-primary text-primary-foreground hover:bg-primary/90"
           >
             + Adicionar
           </Button>
@@ -286,8 +286,8 @@ export function ProspectTasksSection({ prospectId }: ProspectTasksSectionProps) 
 
       {/* Lista Isolada */}
       {prospectTasks.length === 0 ? (
-        <div className="text-center p-4 border border-dashed border-slate-700 rounded-lg">
-          <p className="text-slate-500 text-sm">Nenhuma tarefa cadastrada para este prospecto</p>
+        <div className="text-center p-4 border border-dashed border-border rounded-lg">
+          <p className="text-muted-foreground text-sm">Nenhuma tarefa cadastrada para este prospecto</p>
         </div>
       ) : (
         <div className="space-y-4 mt-4">
@@ -322,12 +322,12 @@ export function ProspectTasksSection({ prospectId }: ProspectTasksSectionProps) 
                 className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={() => setShowPending(!showPending)}
               >
-                <div className="h-px bg-slate-700/50 flex-1"></div>
-                <span className="text-xs font-semibold text-cyan-500 flex items-center gap-1">
+                <div className="h-px bg-muted/50 flex-1"></div>
+                <span className="text-xs font-semibold text-primary flex items-center gap-1">
                   <Clock className="w-3 h-3" />
                   🕐 Pendentes ({pendingTasksList.length})
                 </span>
-                <div className="h-px bg-slate-700/50 flex-1"></div>
+                <div className="h-px bg-muted/50 flex-1"></div>
               </div>
               
               {showPending && (
@@ -345,12 +345,12 @@ export function ProspectTasksSection({ prospectId }: ProspectTasksSectionProps) 
                 className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={() => setShowCompleted(!showCompleted)}
               >
-                <div className="h-px bg-slate-800/50 flex-1"></div>
-                <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
+                <div className="h-px bg-muted/50 flex-1"></div>
+                <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
                   <CheckSquare className="w-3 h-3" />
                   ✅ Concluídas ({completedTasksList.length})
                 </span>
-                <div className="h-px bg-slate-800/50 flex-1"></div>
+                <div className="h-px bg-muted/50 flex-1"></div>
               </div>
               
               {showCompleted && (

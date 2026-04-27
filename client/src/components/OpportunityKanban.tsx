@@ -1,46 +1,44 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { OpportunityFormDialog } from "./OpportunityFormDialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, Kanban as KanbanIcon, Plus, Building } from "lucide-react";
+import { Loader2, Kanban as KanbanIcon, Plus, Building, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DndContext, DragOverlay, closestCorners, KeyboardSensor, PointerSensor, useSensor, useSensors, DragStartEvent, DragEndEvent
 } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-// we will inline a simple card or create it
-
-import { Trash2 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
-// Inlined Opportunity Card for simplicity in this file
+// Premium Opportunity Card — Attio/Pipedrive style
 function SimpleOppCard({ opp }: { opp: any }) {
   const deleteMutation = trpc.opportunities.delete.useMutation();
   const utils = trpc.useUtils();
 
   return (
-    <div className="bg-slate-800 p-3 rounded border border-slate-700 shadow-sm hover:border-slate-600 mb-2 group relative">
-      <div className="flex justify-between items-start mb-1">
-        <h4 className="font-medium text-slate-200 text-sm cursor-grab active:cursor-grabbing">{opp.title}</h4>
+    <div className="bg-card p-3 rounded-[10px] border shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all duration-150 mb-2 group relative">
+      {/* Title + Delete */}
+      <div className="flex justify-between items-start mb-1.5">
+        <h4 className="text-card-title cursor-grab active:cursor-grabbing leading-snug pr-2">{opp.title}</h4>
         
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <button className="text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1">
+            <button className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded">
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           </AlertDialogTrigger>
-          <AlertDialogContent className="bg-slate-900 border-slate-700">
+          <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-slate-100">Excluir oportunidade?</AlertDialogTitle>
-              <AlertDialogDescription className="text-slate-400">
+              <AlertDialogTitle>Excluir oportunidade?</AlertDialogTitle>
+              <AlertDialogDescription>
                 Esta ação não pode ser desfeita. Isto excluirá permanentemente a oportunidade e os dados associados.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel className="bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white">Cancelar</AlertDialogCancel>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction 
                 onClick={async () => {
                   try {
@@ -51,7 +49,7 @@ function SimpleOppCard({ opp }: { opp: any }) {
                     toast.error("Erro ao excluir: " + error.message);
                   }
                 }}
-                className="bg-red-600 hover:bg-red-700 text-white"
+                className="bg-destructive text-white hover:bg-destructive/90"
               >
                 {deleteMutation.isPending ? "Excluindo..." : "Sim, Excluir"}
               </AlertDialogAction>
@@ -59,19 +57,29 @@ function SimpleOppCard({ opp }: { opp: any }) {
           </AlertDialogContent>
         </AlertDialog>
       </div>
-      <div className="flex items-center text-xs text-slate-400 mb-2 cursor-grab active:cursor-grabbing">
-        <Building className="w-3 h-3 mr-1" />
-        {opp.contactName} {opp.contactCompany ? `(${opp.contactCompany})` : ""}
+
+      {/* Company */}
+      <div className="flex items-center text-xs text-muted-foreground mb-2 cursor-grab active:cursor-grabbing">
+        <Building className="w-3 h-3 mr-1.5 shrink-0" />
+        <span className="truncate">{opp.contactName} {opp.contactCompany ? `(${opp.contactCompany})` : ""}</span>
       </div>
+
+      {/* Value */}
       {opp.monetaryValue !== null && opp.monetaryValue !== undefined && opp.monetaryValue !== "" && (
-        <div className="text-xs font-semibold text-emerald-400 cursor-grab active:cursor-grabbing">
+        <div className="text-sm font-semibold text-primary tabular-nums cursor-grab active:cursor-grabbing">
           R$ {Number(opp.monetaryValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
         </div>
       )}
-      <div className="mt-2 flex justify-end">
+
+      {/* Edit link */}
+      <div className="mt-2.5 flex justify-end">
         <OpportunityFormDialog 
           opportunity={opp} 
-          trigger={<span className="text-xs text-cyan-500 hover:underline cursor-pointer">Editar</span>} 
+          trigger={
+            <span className="text-xs text-primary hover:text-primary/80 font-medium cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
+              Editar
+            </span>
+          } 
         />
       </div>
     </div>
@@ -83,9 +91,11 @@ export function OpportunityKanban() {
   const [activePipelineId, setActivePipelineId] = useState<string>("");
 
   // Select the first pipeline automatically if none is selected
-  if (!activePipelineId && pipelines && pipelines.length > 0) {
-    setActivePipelineId(pipelines[0].id.toString());
-  }
+  useEffect(() => {
+    if (!activePipelineId && pipelines && pipelines.length > 0) {
+      setActivePipelineId(pipelines[0].id.toString());
+    }
+  }, [activePipelineId, pipelines]);
 
   const { data: opportunities, isLoading: loadingOpps } = trpc.opportunities.list.useQuery(
     { pipelineId: activePipelineId ? parseInt(activePipelineId) : undefined },
@@ -116,10 +126,8 @@ export function OpportunityKanban() {
     if (!over) return;
 
     const oppId = active.id as number;
-    const overId = over.id; // Could be a stageId or another oppId
+    const overId = over.id;
 
-    // Very simplified drag and drop: 
-    // If we dropped over a stage container (whose ID we will prefix with 'stage-')
     if (typeof overId === 'string' && overId.startsWith('stage-')) {
       const newStageId = parseInt(overId.replace('stage-', ''));
       const opp = opportunities?.find(o => o.id === oppId);
@@ -138,7 +146,7 @@ export function OpportunityKanban() {
             utils.opportunities.stats.invalidate();
           }).catch((e) => {
             console.error("Failed to move", e);
-            utils.opportunities.list.invalidate(); // rollback optimistic update
+            utils.opportunities.list.invalidate();
           });
         } catch (e) {
           console.error("Failed to move", e);
@@ -147,19 +155,23 @@ export function OpportunityKanban() {
     }
   };
 
-  if (loadingPipes) return <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-slate-500" /></div>;
+  if (loadingPipes) return (
+    <div className="flex justify-center p-8">
+      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+    </div>
+  );
 
   return (
-    <div className="flex flex-col h-[calc(100vh-180px)]">
+    <div className="flex flex-col h-[calc(100vh-220px)]">
       {/* Header controls */}
       <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-4">
-          <KanbanIcon className="w-5 h-5 text-slate-400" />
+        <div className="flex items-center gap-3">
+          <KanbanIcon className="w-4 h-4 text-muted-foreground" />
           <Select value={activePipelineId} onValueChange={setActivePipelineId}>
-            <SelectTrigger className="w-[250px] bg-slate-800 border-slate-700 text-slate-200">
+            <SelectTrigger className="w-[220px]">
               <SelectValue placeholder="Selecione um Funil..." />
             </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
+            <SelectContent>
               {pipelines?.map(p => (
                 <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
               ))}
@@ -171,9 +183,9 @@ export function OpportunityKanban() {
       </div>
 
       {/* Kanban Board */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden">
+      <div className="flex-1 overflow-x-auto overflow-y-hidden kanban-container">
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="flex h-full gap-4 pb-4 items-start">
+          <div className="flex h-full gap-3 pb-4 items-start">
             {stages.map(stage => {
               const stageOpps = opportunities?.filter(o => o.stageId === stage.id) || [];
               const stageValue = stageOpps.reduce((sum, o) => sum + (Number(o.monetaryValue) || 0), 0);
@@ -182,14 +194,14 @@ export function OpportunityKanban() {
                 <div 
                   key={`stage-${stage.id}`} 
                   id={`stage-${stage.id}`}
-                  className="flex-shrink-0 w-[300px] h-full flex flex-col bg-slate-900/50 rounded-xl border border-slate-800"
+                  className="flex-shrink-0 w-[280px] h-full flex flex-col bg-muted/50 rounded-xl border kanban-column"
                 >
                   {/* Stage Header */}
-                  <div className="p-3 border-b border-slate-800 flex items-center justify-between">
+                  <div className="px-3 py-2.5 border-b flex items-center justify-between kanban-column-header">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stage.color || '#475569' }} />
-                      <h3 className="font-semibold text-slate-200 truncate">{stage.name}</h3>
-                      <span className="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full">
+                      <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: stage.color || 'var(--muted-foreground)' }} />
+                      <h3 className="font-semibold text-foreground text-[13px] truncate">{stage.name}</h3>
+                      <span className="bg-muted text-muted-foreground text-xs px-1.5 py-0.5 rounded-md font-medium">
                         {stageOpps.length}
                       </span>
                     </div>
@@ -197,15 +209,21 @@ export function OpportunityKanban() {
                   
                   {/* Stage Value */}
                   {stageValue > 0 && (
-                    <div className="px-3 py-1 bg-slate-800/30 text-xs text-slate-400 border-b border-slate-800">
-                      R$ {stageValue.toLocaleString('pt-BR')}
+                    <div className="px-3 py-1.5 text-xs font-semibold text-primary tabular-nums border-b bg-card/50">
+                      R$ {stageValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </div>
                   )}
 
                   {/* Cards Container */}
-                  <div className="flex-1 overflow-y-auto p-2 min-h-[150px]" id={`stage-${stage.id}`}>
+                  <div className="flex-1 overflow-y-auto p-2 min-h-[120px] custom-scrollbar" id={`stage-${stage.id}`}>
                     {loadingOpps ? (
-                      <div className="flex justify-center p-4"><Loader2 className="w-4 h-4 animate-spin text-slate-600" /></div>
+                      <div className="flex justify-center p-4">
+                        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : stageOpps.length === 0 ? (
+                      <div className="flex items-center justify-center h-20 text-xs text-muted-foreground">
+                        Nenhum negócio
+                      </div>
                     ) : (
                       stageOpps.map(opp => (
                         <div key={opp.id} id={opp.id.toString()}>
@@ -220,7 +238,9 @@ export function OpportunityKanban() {
           </div>
           <DragOverlay>
             {activeId ? (
-              <SimpleOppCard opp={opportunities?.find(o => o.id === activeId)} />
+              <div className="drag-overlay-card">
+                <SimpleOppCard opp={opportunities?.find(o => o.id === activeId)} />
+              </div>
             ) : null}
           </DragOverlay>
         </DndContext>

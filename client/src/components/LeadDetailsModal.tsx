@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -81,7 +81,7 @@ const STATUS_OPTIONS = [
   { value: "Contatado", label: "Contatado", color: "bg-orange-500" },
   { value: "Não Respondeu", label: "Não Respondeu", color: "bg-slate-500" },
   { value: "Interessado", label: "Interessado", color: "bg-green-500" },
-  { value: "Não possui Interesse", label: "Não possui Interesse", color: "bg-slate-600" },
+  { value: "Não possui Interesse", label: "Não possui Interesse", color: "bg-muted" },
 ];
 
 export default function LeadDetailsModal({
@@ -233,14 +233,14 @@ export default function LeadDetailsModal({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl bg-slate-900 border border-slate-700 text-slate-100 overflow-hidden">
-          <DialogHeader className="border-b border-slate-700 pb-4 shrink-0">
+        <DialogContent className="max-w-2xl bg-card border border-border text-foreground overflow-hidden">
+          <DialogHeader className="border-b border-border pb-4 shrink-0">
             <div className="flex items-center justify-between">
               <div>
-                <DialogTitle className="text-2xl font-bold text-cyan-400">
+                <DialogTitle className="text-2xl font-bold text-primary">
                   {isEditing ? "Editar Lead" : "Detalhes do Lead"}
                 </DialogTitle>
-                <DialogDescription className="text-slate-400">
+                <DialogDescription className="text-muted-foreground">
                   {editedLead?.company_name}
                 </DialogDescription>
               </div>
@@ -251,7 +251,7 @@ export default function LeadDetailsModal({
                       size="sm"
                       variant="outline"
                       onClick={() => setIsEditing(true)}
-                      className="border-slate-600 hover:bg-slate-800"
+                      className="border-border hover:bg-muted"
                     >
                       <Edit2 className="w-4 h-4 mr-2" />
                       Editar
@@ -274,14 +274,14 @@ export default function LeadDetailsModal({
           <div className="space-y-6 overflow-y-auto pr-2" style={{ maxHeight: 'calc(80vh - 180px)' }}>
             {/* Informações Principais */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-cyan-400 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
                 <Building2 className="w-4 h-4" />
                 Informações Principais
               </h3>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-slate-400">Empresa <span className="text-red-400">*</span></label>
+                  <label className="text-xs text-muted-foreground">Empresa <span className="text-red-400">*</span></label>
                   {isEditing ? (
                     <Input
                       value={editedLead?.company_name || ""}
@@ -291,15 +291,15 @@ export default function LeadDetailsModal({
                           company_name: e.target.value,
                         })
                       }
-                      className="bg-slate-800 border-slate-600 text-slate-100 mt-1"
+                      className="bg-muted border-border text-foreground mt-1"
                     />
                   ) : (
-                    <p className="text-slate-100 font-medium">{lead.company_name}</p>
+                    <p className="text-foreground font-medium">{lead.company_name}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400">Contato</label>
+                  <label className="text-xs text-muted-foreground">Contato</label>
                   {isEditing ? (
                     <Input
                       value={editedLead?.contact_name || ""}
@@ -309,10 +309,10 @@ export default function LeadDetailsModal({
                           contact_name: e.target.value,
                         })
                       }
-                      className="bg-slate-800 border-slate-600 text-slate-100 mt-1"
+                      className="bg-muted border-border text-foreground mt-1"
                     />
                   ) : (
-                    <p className="text-slate-100 font-medium">{lead.contact_name}</p>
+                    <p className="text-foreground font-medium">{lead.contact_name}</p>
                   )}
                 </div>
               </div>
@@ -320,7 +320,7 @@ export default function LeadDetailsModal({
 
             {/* Tags */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-cyan-400 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
                 <Tag className="w-4 h-4" />
                 Tags
               </h3>
@@ -345,7 +345,7 @@ export default function LeadDetailsModal({
                       <TagBadge key={tag.id} tag={tag as any} />
                     ))
                   ) : (
-                    <span className="text-slate-500 text-sm">Nenhuma tag preenchida</span>
+                    <span className="text-muted-foreground text-sm">Nenhuma tag preenchida</span>
                   )}
                 </div>
               )}
@@ -353,14 +353,14 @@ export default function LeadDetailsModal({
 
             {/* Contato */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-cyan-400 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
                 <Phone className="w-4 h-4" />
                 Dados de Contato
               </h3>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-slate-400">Telefone <span className="text-red-400">*</span></label>
+                  <label className="text-xs text-muted-foreground">Telefone <span className="text-red-400">*</span></label>
                   {isEditing ? (
                     <Input
                       value={editedLead?.phone || ""}
@@ -370,11 +370,11 @@ export default function LeadDetailsModal({
                           phone: e.target.value,
                         })
                       }
-                      className="bg-slate-800 border-slate-600 text-slate-100 mt-1"
+                      className="bg-muted border-border text-foreground mt-1"
                     />
                   ) : (
                     <div className="flex items-center gap-2 mt-1">
-                      <p className="text-slate-100 font-medium">{lead.phone}</p>
+                      <p className="text-foreground font-medium">{lead.phone}</p>
                       {lead.phone && (
                       <WhatsAppButton phone={lead.phone} leadId={lead.id} size="sm" />
                       )}
@@ -383,7 +383,7 @@ export default function LeadDetailsModal({
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400">Email</label>
+                  <label className="text-xs text-muted-foreground">Email</label>
                   {isEditing ? (
                     <Input
                       type="email"
@@ -394,16 +394,16 @@ export default function LeadDetailsModal({
                           email: e.target.value,
                         })
                       }
-                      className="bg-slate-800 border-slate-600 text-slate-100 mt-1"
+                      className="bg-muted border-border text-foreground mt-1"
                     />
                   ) : (
-                    <p className="text-slate-100 font-medium">{lead.email || "-"}</p>
+                    <p className="text-foreground font-medium">{lead.email || "-"}</p>
                   )}
                 </div>
               </div>
 
               <div>
-                <label className="text-xs text-slate-400">Site</label>
+                <label className="text-xs text-muted-foreground">Site</label>
                 {isEditing ? (
                   <Input
                     value={editedLead?.site || ""}
@@ -413,24 +413,24 @@ export default function LeadDetailsModal({
                         site: e.target.value,
                       })
                     }
-                    className="bg-slate-800 border-slate-600 text-slate-100 mt-1"
+                    className="bg-muted border-border text-foreground mt-1"
                   />
                 ) : (
-                  <p className="text-slate-100 font-medium">{lead.site || "-"}</p>
+                  <p className="text-foreground font-medium">{lead.site || "-"}</p>
                 )}
               </div>
             </div>
 
             {/* Valores */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-cyan-400 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
                 <Tag className="w-4 h-4" />
                 Valores
               </h3>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-slate-400">Valor Implantação (R$)</label>
+                  <label className="text-xs text-muted-foreground">Valor Implantação (R$)</label>
                   {isEditing ? (
                     <Input
                       type="number"
@@ -443,18 +443,18 @@ export default function LeadDetailsModal({
                           implementationValue: e.target.value ? parseFloat(e.target.value) : undefined,
                         })
                       }
-                      className="bg-slate-800 border-slate-600 text-slate-100 mt-1"
+                      className="bg-muted border-border text-foreground mt-1"
                       placeholder="0.00"
                     />
                   ) : (
-                    <p className="text-slate-100 font-medium mt-1">
+                    <p className="text-foreground font-medium mt-1">
                       {lead.implementationValue ? `R$ ${parseFloat(String(lead.implementationValue)).toFixed(2).replace('.', ',')}` : "-"}
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400">Valor Recorrência (R$)</label>
+                  <label className="text-xs text-muted-foreground">Valor Recorrência (R$)</label>
                   {isEditing ? (
                     <Input
                       type="number"
@@ -467,11 +467,11 @@ export default function LeadDetailsModal({
                           recurringValue: e.target.value ? parseFloat(e.target.value) : undefined,
                         })
                       }
-                      className="bg-slate-800 border-slate-600 text-slate-100 mt-1"
+                      className="bg-muted border-border text-foreground mt-1"
                       placeholder="0.00"
                     />
                   ) : (
-                    <p className="text-slate-100 font-medium mt-1">
+                    <p className="text-foreground font-medium mt-1">
                       {lead.recurringValue ? `R$ ${parseFloat(String(lead.recurringValue)).toFixed(2).replace('.', ',')}` : "-"}
                     </p>
                   )}
@@ -481,14 +481,14 @@ export default function LeadDetailsModal({
 
             {/* Classificação */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-cyan-400 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
                 <Tag className="w-4 h-4" />
                 Classificação
               </h3>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-slate-400">Segmento <span className="text-red-400">*</span></label>
+                  <label className="text-xs text-muted-foreground">Segmento <span className="text-red-400">*</span></label>
                   {isEditing ? (
                     <Input
                       value={editedLead?.segment || ""}
@@ -498,27 +498,27 @@ export default function LeadDetailsModal({
                           segment: e.target.value,
                         })
                       }
-                      className="bg-slate-800 border-slate-600 text-slate-100 mt-1"
+                      className="bg-muted border-border text-foreground mt-1"
                     />
                   ) : (
-                    <p className="text-slate-100 font-medium">{lead.segment}</p>
+                    <p className="text-foreground font-medium">{lead.segment}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400">Tipo</label>
-                  <p className="text-slate-100 font-medium mt-1">{lead.type}</p>
+                  <label className="text-xs text-muted-foreground">Tipo</label>
+                  <p className="text-foreground font-medium mt-1">{lead.type}</p>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs text-slate-400">Status</label>
+                <label className="text-xs text-muted-foreground">Status</label>
                 {isEditing ? (
                   <Select value={editedLead?.status || ""} onValueChange={handleStatusChange}>
-                    <SelectTrigger className="bg-slate-800 border-slate-600 text-slate-100 mt-1">
+                    <SelectTrigger className="bg-muted border-border text-foreground mt-1">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
+                    <SelectContent className="bg-muted border-border">
                       {STATUS_OPTIONS.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
@@ -527,12 +527,12 @@ export default function LeadDetailsModal({
                     </SelectContent>
                   </Select>
                 ) : (
-                  <p className="text-slate-100 font-medium mt-1">{lead.status}</p>
+                  <p className="text-foreground font-medium mt-1">{lead.status}</p>
                 )}
               </div>
 
               <div>
-                <label className="text-xs text-slate-400">Cidade</label>
+                <label className="text-xs text-muted-foreground">Cidade</label>
                 {isEditing ? (
                   <Input
                     value={editedLead?.city || ""}
@@ -542,10 +542,10 @@ export default function LeadDetailsModal({
                         city: e.target.value,
                       })
                     }
-                    className="bg-slate-800 border-slate-600 text-slate-100 mt-1"
+                    className="bg-muted border-border text-foreground mt-1"
                   />
                 ) : (
-                  <p className="text-slate-100 font-medium">{lead.city || "-"}</p>
+                  <p className="text-foreground font-medium">{lead.city || "-"}</p>
                 )}
               </div>
             </div>
@@ -553,7 +553,7 @@ export default function LeadDetailsModal({
             {/* Custom Fields (Informações Adicionais) */}
             {customFields && customFields.length > 0 && (
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-cyan-400 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
                   <FileText className="w-4 h-4" />
                   Informações Adicionais
                 </h3>
@@ -574,7 +574,7 @@ export default function LeadDetailsModal({
 
             {/* Notas + Timeline */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-cyan-400 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
                 <FileText className="w-4 h-4" />
                 Linha do Tempo
               </h3>
@@ -588,7 +588,7 @@ export default function LeadDetailsModal({
                       notes: e.target.value,
                     })
                   }
-                  className="bg-slate-800 border-slate-600 text-slate-100 min-h-24"
+                  className="bg-muted border-border text-foreground min-h-24"
                   placeholder="Adicione observações sobre este lead..."
                 />
               ) : (
@@ -599,7 +599,7 @@ export default function LeadDetailsModal({
                       value={newNote}
                       onChange={(e) => setNewNote(e.target.value)}
                       placeholder="Adicionar nova nota..."
-                      className="bg-slate-800 border-slate-600 text-slate-100"
+                      className="bg-muted border-border text-foreground"
                       onKeyPress={(e) => {
                         if (e.key === "Enter") {
                           handleAddNote();
@@ -609,7 +609,7 @@ export default function LeadDetailsModal({
                     <Button
                       onClick={handleAddNote}
                       disabled={!newNote.trim() || addNoteMutation.isPending}
-                      className="bg-cyan-500 hover:bg-cyan-600 text-white"
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
                       Adicionar
                     </Button>
@@ -627,22 +627,22 @@ export default function LeadDetailsModal({
             )}
 
             {/* Datas */}
-            <div className="space-y-4 border-t border-slate-700 pt-4">
-              <h3 className="text-sm font-semibold text-cyan-400 flex items-center gap-2">
+            <div className="space-y-4 border-t border-border pt-4">
+              <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 Datas
               </h3>
 
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <label className="text-xs text-slate-400">Criado em</label>
-                  <p className="text-slate-100">
+                  <label className="text-xs text-muted-foreground">Criado em</label>
+                  <p className="text-foreground">
                     {new Date(lead.createdAt).toLocaleDateString("pt-BR")}
                   </p>
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400">Atualizado em</label>
-                  <p className="text-slate-100">
+                  <label className="text-xs text-muted-foreground">Atualizado em</label>
+                  <p className="text-foreground">
                     {new Date(lead.updatedAt).toLocaleDateString("pt-BR")}
                   </p>
                 </div>
@@ -651,14 +651,14 @@ export default function LeadDetailsModal({
           </div>
 
           {/* Rodapé unificado: Status Final + Ações */}
-          <div className="border-t border-slate-700 pt-4 shrink-0">
+          <div className="border-t border-border pt-4 shrink-0">
             {isEditing ? (
               /* Modo edição: tudo em uma linha */
               <div className="flex items-center gap-2 flex-wrap">
                 {/* Status Final (só se o lead não estiver em status final) */}
                 {lead && !["Perdido", "Abandonado", "Ganho"].includes(lead.status) && (
                   <>
-                    <span className="text-xs text-slate-400 font-semibold whitespace-nowrap">Mover para:</span>
+                    <span className="text-xs text-muted-foreground font-semibold whitespace-nowrap">Mover para:</span>
                     <Button
                       onClick={() => setFinalStatusModal({ open: true, status: "Perdido" })}
                       className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 h-8"
@@ -680,7 +680,7 @@ export default function LeadDetailsModal({
                     >
                       Ganho
                     </Button>
-                    <div className="w-px h-6 bg-slate-600 mx-1" />
+                    <div className="w-px h-6 bg-muted mx-1" />
                   </>
                 )}
                 {/* Ações de edição */}
@@ -692,7 +692,7 @@ export default function LeadDetailsModal({
                       setIsEditing(false);
                       setEditedLead(lead);
                     }}
-                    className="border-slate-600 hover:bg-slate-800"
+                    className="border-border hover:bg-muted"
                   >
                     Cancelar
                   </Button>
@@ -700,7 +700,7 @@ export default function LeadDetailsModal({
                     size="sm"
                     onClick={handleSave}
                     disabled={updateMutation.isPending}
-                    className="bg-cyan-500 hover:bg-cyan-600 text-white"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
                   >
                     {updateMutation.isPending ? "Salvando..." : "Salvar"}
                   </Button>
@@ -711,7 +711,7 @@ export default function LeadDetailsModal({
               <div className="space-y-3">
                 {lead && !["Perdido", "Abandonado", "Ganho"].includes(lead.status) && (
                   <div className="space-y-2">
-                    <p className="text-xs text-slate-400 font-semibold">Mover para Status Final:</p>
+                    <p className="text-xs text-muted-foreground font-semibold">Mover para Status Final:</p>
                     <div className="flex gap-2">
                       <Button
                         onClick={() => setFinalStatusModal({ open: true, status: "Perdido" })}
@@ -738,7 +738,7 @@ export default function LeadDetailsModal({
                   <Button
                     variant="outline"
                     onClick={() => onOpenChange(false)}
-                    className="border-slate-600 hover:bg-slate-800"
+                    className="border-border hover:bg-muted"
                   >
                     Fechar
                   </Button>
@@ -765,15 +765,15 @@ export default function LeadDetailsModal({
       )}
 
       <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
-        <AlertDialogContent className="bg-slate-900 border-slate-700">
+        <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-red-400">Deletar Lead</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogDescription className="text-muted-foreground">
               Tem certeza que deseja deletar este lead? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex gap-2 justify-end">
-            <AlertDialogCancel className="border-slate-600 hover:bg-slate-800">
+            <AlertDialogCancel className="border-border hover:bg-muted">
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction

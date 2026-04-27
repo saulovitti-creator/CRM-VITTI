@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -123,7 +123,7 @@ export function FinalStatusModal({
                 Valor Fechado <span className="text-red-500">*</span>
               </Label>
               <div className="flex items-center gap-2">
-                <span className="text-slate-400">R$</span>
+                <span className="text-muted-foreground">R$</span>
                 <Input
                   id="valorFechado"
                   type="number"
@@ -151,7 +151,7 @@ export function FinalStatusModal({
               className="min-h-[100px]"
               disabled={isLoading}
             />
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">
               {motivoSaida.length}/10 caracteres mínimos
             </p>
           </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -115,9 +115,9 @@ export default function CreateColumnForm({ columnId, onSuccess, onCancel }: Crea
 
   return (
     <Dialog open={true} onOpenChange={onCancel}>
-      <DialogContent className="max-w-md bg-slate-950 border-slate-800">
+      <DialogContent className="max-w-md bg-background border-border">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-cyan-400">
+          <DialogTitle className="text-xl font-bold text-primary">
             {columnId ? 'Editar Coluna' : 'Nova Coluna'}
           </DialogTitle>
         </DialogHeader>
@@ -125,13 +125,13 @@ export default function CreateColumnForm({ columnId, onSuccess, onCancel }: Crea
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name Field */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Nome *</label>
+            <label className="block text-sm font-medium text-foreground mb-2">Nome *</label>
             <Input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Ex: Qualificado"
-              className="bg-slate-900 border-slate-700 text-white placeholder-slate-500"
+              className="bg-card border-border text-white placeholder-slate-500"
               disabled={isLoading}
             />
             {errors.name && <p className="text-red-400 text-sm mt-1">{errors.name}</p>}
@@ -139,7 +139,7 @@ export default function CreateColumnForm({ columnId, onSuccess, onCancel }: Crea
 
           {/* Color Picker */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Cor *</label>
+            <label className="block text-sm font-medium text-foreground mb-2">Cor *</label>
             <div className="space-y-2">
               {/* Preset Colors */}
               <div className="flex gap-2 flex-wrap">
@@ -149,7 +149,7 @@ export default function CreateColumnForm({ columnId, onSuccess, onCancel }: Crea
                     type="button"
                     onClick={() => setFormData({ ...formData, color })}
                     className={`w-10 h-10 rounded-lg border-2 transition-all ${
-                      formData.color === color ? 'border-white' : 'border-slate-600'
+                      formData.color === color ? 'border-white' : 'border-border'
                     }`}
                     style={{ backgroundColor: color }}
                     title={color}
@@ -164,7 +164,7 @@ export default function CreateColumnForm({ columnId, onSuccess, onCancel }: Crea
                   value={formData.color}
                   onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                   placeholder="#000000"
-                  className="bg-slate-900 border-slate-700 text-white placeholder-slate-500 font-mono"
+                  className="bg-card border-border text-white placeholder-slate-500 font-mono"
                   disabled={isLoading}
                 />
                 <input
@@ -180,13 +180,13 @@ export default function CreateColumnForm({ columnId, onSuccess, onCancel }: Crea
             </div>
 
             {/* Color Preview */}
-            <div className="mt-3 p-4 rounded-lg border border-slate-700 flex items-center gap-3">
+            <div className="mt-3 p-4 rounded-lg border border-border flex items-center gap-3">
               <div
-                className="w-12 h-12 rounded-lg border border-slate-600"
+                className="w-12 h-12 rounded-lg border border-border"
                 style={{ backgroundColor: formData.color }}
               />
               <div>
-                <p className="text-xs text-slate-400">Preview da cor</p>
+                <p className="text-xs text-muted-foreground">Preview da cor</p>
                 <p className="text-sm font-mono text-white">{formData.color}</p>
               </div>
             </div>
@@ -194,18 +194,18 @@ export default function CreateColumnForm({ columnId, onSuccess, onCancel }: Crea
 
           {/* Description Field */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Descrição (opcional)
             </label>
             <Textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Ex: Leads que passaram na qualificação inicial"
-              className="bg-slate-900 border-slate-700 text-white placeholder-slate-500 resize-none"
+              className="bg-card border-border text-white placeholder-slate-500 resize-none"
               rows={3}
               disabled={isLoading}
             />
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {formData.description.length}/200 caracteres
             </p>
             {errors.description && (
@@ -219,14 +219,14 @@ export default function CreateColumnForm({ columnId, onSuccess, onCancel }: Crea
               type="button"
               onClick={onCancel}
               variant="outline"
-              className="flex-1 border-slate-700 text-slate-300 hover:bg-slate-900"
+              className="flex-1 border-border text-foreground hover:bg-card"
               disabled={isLoading}
             >
               Cancelar
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white"
+              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
               disabled={isLoading}
             >
               {isLoading ? 'Salvando...' : columnId ? 'Atualizar' : 'Criar'}
