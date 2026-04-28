@@ -44,12 +44,12 @@ export function KanbanColumn({ stage, opportunities, isLoading, loadingCardId, e
       ref={setNodeRef}
       className={[
         "flex-shrink-0 w-[280px] h-full flex flex-col rounded-xl border kanban-column",
-        isOver ? "kanban-drop-zone-active" : "bg-muted/50",
+        isOver ? "kanban-drop-zone-active" : "bg-slate-200/50 border-slate-300/60 dark:bg-muted/50 dark:border-border",
       ].join(" ")}
     >
       {/* Stage Header */}
       <div className={[
-        "px-3 py-2.5 border-b flex items-center justify-between kanban-column-header",
+        "px-3 py-2.5 border-b border-slate-300/60 dark:border-border flex items-center justify-between kanban-column-header",
         isOver ? "kanban-column-header-active" : "",
       ].join(" ")}>
         <div className="flex items-center gap-2">
@@ -66,7 +66,7 @@ export function KanbanColumn({ stage, opportunities, isLoading, loadingCardId, e
 
       {/* Stage Value */}
       {stageValue > 0 && (
-        <div className="px-3 py-1.5 text-xs font-semibold text-primary tabular-nums border-b bg-card/50">
+        <div className="px-3 py-1.5 text-xs font-semibold text-primary tabular-nums border-b border-slate-300/60 dark:border-border bg-card/50">
           R$ {stageValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
         </div>
       )}
