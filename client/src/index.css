@@ -52,43 +52,41 @@
 }
 
 /* -------------------------------------------------------------------
-   LIGHT MODE (Default) — Attio / Folk inspired
-   Clean, airy, professional
+   LIGHT MODE (Default) — High Contrast / Jira Inspired
+   Solid structure, distinct quadrantes, high legibility
    ------------------------------------------------------------------- */
 :root {
   --radius: 0.5rem;
 
   /* Backgrounds */
-  --background: #F8F9FB;
-  --foreground: #0F172A;
-  --card: #FFFFFF;
-  --card-foreground: #0F172A;
+  --background: #F4F5F7; /* Solid light gray base */
+  --foreground: #172B4D; /* Deep navy text for AAA contrast */
+  --card: #FFFFFF; /* Pure white cards */
+  --card-foreground: #172B4D;
   --popover: #FFFFFF;
-  --popover-foreground: #0F172A;
+  --popover-foreground: #172B4D;
 
   /* Primary — Indigo */
   --primary: #6366F1;
   --primary-foreground: #FFFFFF;
 
-  /* Secondary */
-  --secondary: #F1F3F5;
-  --secondary-foreground: #344054;
-
-  /* Muted */
-  --muted: #F1F3F5;
-  --muted-foreground: #64748B;
+  /* Secondary & Muted (Used for Columns and structure) */
+  --secondary: #EBECF0;
+  --secondary-foreground: #172B4D;
+  --muted: #EBECF0; /* Distinct column background */
+  --muted-foreground: #5E6C84; /* Medium gray for secondary text */
 
   /* Accent */
-  --accent: #F1F3F5;
-  --accent-foreground: #0F172A;
+  --accent: #DFE1E6;
+  --accent-foreground: #172B4D;
 
   /* Destructive */
-  --destructive: #EF4444;
+  --destructive: #E34935;
   --destructive-foreground: #FFFFFF;
 
   /* Borders & Inputs */
-  --border: #E2E8F0;
-  --input: #E2E8F0;
+  --border: #DFE1E6; /* Crisp structural border */
+  --input: #DFE1E6;
   --ring: #6366F1;
 
   /* Chart palette */
@@ -100,33 +98,33 @@
 
   /* Sidebar */
   --sidebar: #FFFFFF;
-  --sidebar-foreground: #344054;
+  --sidebar-foreground: #172B4D;
   --sidebar-primary: #6366F1;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F1F3F5;
-  --sidebar-accent-foreground: #0F172A;
-  --sidebar-border: #E2E8F0;
+  --sidebar-accent: #EBECF0;
+  --sidebar-accent-foreground: #172B4D;
+  --sidebar-border: #DFE1E6;
   --sidebar-ring: #6366F1;
 
   /* Semantic status colors */
-  --success: #22C55E;
-  --success-light: rgba(34, 197, 94, 0.12);
-  --warning: #F59E0B;
-  --warning-light: rgba(245, 158, 11, 0.12);
-  --info: #6366F1;
-  --info-light: rgba(99, 102, 241, 0.10);
-  --error: #EF4444;
-  --error-light: rgba(239, 68, 68, 0.10);
+  --success: #00875A;
+  --success-light: #E3FCEF;
+  --warning: #FF991F;
+  --warning-light: #FFFAE6;
+  --info: #0052CC;
+  --info-light: #DEEBFF;
+  --error: #DE350B;
+  --error-light: #FFEBE6;
 
-  /* Shadow scale (3 levels) */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  /* Shadow scale (Enterprise Depth) */
+  --shadow-sm: 0 1px 2px rgba(9, 30, 66, 0.25);
+  --shadow-md: 0 3px 6px rgba(9, 30, 66, 0.15), 0 0 1px rgba(9, 30, 66, 0.31);
+  --shadow-lg: 0 8px 12px rgba(9, 30, 66, 0.15), 0 0 1px rgba(9, 30, 66, 0.31);
 
   /* Text hierarchy */
-  --text-primary: #0F172A;
-  --text-secondary: #475569;
-  --text-tertiary: #94A3B8;
+  --text-primary: #172B4D;
+  --text-secondary: #5E6C84;
+  --text-tertiary: #8993A4;
 
   /* Kanban-specific */
   --kanban-drag-shadow: 0 12px 28px rgba(99, 102, 241, 0.18), 0 4px 10px rgba(0, 0, 0, 0.08);
