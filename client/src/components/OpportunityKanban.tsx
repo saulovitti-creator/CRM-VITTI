@@ -37,7 +37,17 @@ export function OpportunityKanban() {
   );
 
   const activePipeline = pipelines?.find(p => p.id.toString() === activePipelineId);
-  const stages = activePipeline?.stages || [];
+  const allStages = activePipeline?.stages || [];
+  
+  // Ocultar colunas finais conforme solicitado pelo usuário
+  const hiddenStageNames = ['Perdido', 'Abandonado', 'Ganho'];
+  const stages = allStages.filter(s => !hiddenStageNames.includes(s.name));
+  
+  // Filtrar também as oportunidades que estão nessas colunas para que não apareçam na lista
+  const visibleOpportunities = opportunities?.filter(o => {
+    const stage = allStages.find(s => s.id === o.stageId);
+    return stage && !hiddenStageNames.includes(stage.name);
+  });
 
   // ── Filter System ──
   const {
@@ -48,7 +58,7 @@ export function OpportunityKanban() {
     filteredOpportunities,
     activeFilterCount,
     isFiltered,
-  } = useOpportunityFilters(opportunities, stages);
+  } = useOpportunityFilters(visibleOpportunities, stages);
 
   if (loadingPipes) return (
     <div className="flex justify-center p-8">
