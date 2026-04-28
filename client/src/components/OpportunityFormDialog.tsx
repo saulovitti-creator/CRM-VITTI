@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Briefcase, Plus } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { CurrencyInput } from "./ui/currency-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface OpportunityFormDialogProps {
@@ -248,13 +249,11 @@ export function OpportunityFormDialog({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-foreground">Valor Esperado (R$)</Label>
-              <Input
-                type="number"
-                step="0.01"
+              <CurrencyInput
                 value={formData.monetaryValue}
-                onChange={(e) => setFormData({ ...formData, monetaryValue: e.target.value })}
-                className=" mt-1"
-                placeholder="0.00"
+                onValueChange={(val) => setFormData({ ...formData, monetaryValue: val })}
+                className="mt-1"
+                placeholder="R$ 0,00"
               />
             </div>
             <div>
