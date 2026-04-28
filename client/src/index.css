@@ -59,72 +59,72 @@
   --radius: 0.5rem;
 
   /* Backgrounds */
-  --background: #F4F5F7; /* Solid light gray base */
-  --foreground: #172B4D; /* Deep navy text for AAA contrast */
+  --background: #F8FAFC; /* Slate 50 - Base leve mas com cor */
+  --foreground: #0F172A; /* Slate 900 - Preto profundo */
   --card: #FFFFFF; /* Pure white cards */
-  --card-foreground: #172B4D;
+  --card-foreground: #0F172A;
   --popover: #FFFFFF;
-  --popover-foreground: #172B4D;
+  --popover-foreground: #0F172A;
 
   /* Primary — Indigo */
-  --primary: #6366F1;
+  --primary: #4F46E5; /* Indigo 600 - Mais escuro para melhor contraste */
   --primary-foreground: #FFFFFF;
 
   /* Secondary & Muted (Used for Columns and structure) */
-  --secondary: #EBECF0;
-  --secondary-foreground: #172B4D;
-  --muted: #EBECF0; /* Distinct column background */
-  --muted-foreground: #5E6C84; /* Medium gray for secondary text */
+  --secondary: #E2E8F0; /* Slate 200 */
+  --secondary-foreground: #0F172A;
+  --muted: #E2E8F0; /* Slate 200 - Quadrantes incrivelmente demarcados */
+  --muted-foreground: #475569; /* Slate 600 */
 
   /* Accent */
-  --accent: #DFE1E6;
-  --accent-foreground: #172B4D;
+  --accent: #CBD5E1; /* Slate 300 */
+  --accent-foreground: #0F172A;
 
   /* Destructive */
-  --destructive: #E34935;
+  --destructive: #DC2626; /* Red 600 */
   --destructive-foreground: #FFFFFF;
 
   /* Borders & Inputs */
-  --border: #DFE1E6; /* Crisp structural border */
-  --input: #DFE1E6;
-  --ring: #6366F1;
+  --border: #94A3B8; /* Slate 400 - Bordas MUITO nítidas */
+  --input: #CBD5E1; /* Slate 300 */
+  --ring: #4F46E5;
 
   /* Chart palette */
-  --chart-1: #6366F1;
-  --chart-2: #8B5CF6;
-  --chart-3: #A78BFA;
-  --chart-4: #C4B5FD;
-  --chart-5: #4F46E5;
+  --chart-1: #4F46E5;
+  --chart-2: #7C3AED;
+  --chart-3: #8B5CF6;
+  --chart-4: #A78BFA;
+  --chart-5: #6366F1;
 
   /* Sidebar */
   --sidebar: #FFFFFF;
-  --sidebar-foreground: #172B4D;
-  --sidebar-primary: #6366F1;
+  --sidebar-foreground: #0F172A;
+  --sidebar-primary: #4F46E5;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #EBECF0;
-  --sidebar-accent-foreground: #172B4D;
-  --sidebar-border: #DFE1E6;
-  --sidebar-ring: #6366F1;
+  --sidebar-accent: #E2E8F0;
+  --sidebar-accent-foreground: #0F172A;
+  --sidebar-border: #CBD5E1;
+  --sidebar-ring: #4F46E5;
 
   /* Semantic status colors */
-  --success: #00875A;
-  --success-light: #E3FCEF;
-  --warning: #FF991F;
-  --warning-light: #FFFAE6;
-  --info: #0052CC;
-  --info-light: #DEEBFF;
-  --error: #DE350B;
-  --error-light: #FFEBE6;
+  --success: #16A34A; /* Green 600 */
+  --success-light: #DCFCE7;
+  --warning: #D97706; /* Amber 600 */
+  --warning-light: #FEF3C7;
+  --info: #2563EB; /* Blue 600 */
+  --info-light: #DBEAFE;
+  --error: #DC2626; /* Red 600 */
+  --error-light: #FEE2E2;
 
   /* Shadow scale (Enterprise Depth) */
-  --shadow-sm: 0 1px 2px rgba(9, 30, 66, 0.25);
-  --shadow-md: 0 3px 6px rgba(9, 30, 66, 0.15), 0 0 1px rgba(9, 30, 66, 0.31);
-  --shadow-lg: 0 8px 12px rgba(9, 30, 66, 0.15), 0 0 1px rgba(9, 30, 66, 0.31);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.2), 0 2px 4px -2px rgba(15, 23, 42, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.2), 0 4px 6px -4px rgba(15, 23, 42, 0.2);
 
   /* Text hierarchy */
-  --text-primary: #172B4D;
-  --text-secondary: #5E6C84;
-  --text-tertiary: #8993A4;
+  --text-primary: #0F172A;
+  --text-secondary: #334155;
+  --text-tertiary: #64748B;
 
   /* Kanban-specific */
   --kanban-drag-shadow: 0 12px 28px rgba(99, 102, 241, 0.18), 0 4px 10px rgba(0, 0, 0, 0.08);
