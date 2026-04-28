@@ -539,3 +539,21 @@
     100% { background-position: -200% 0; }
   }
 }
+
+/* -------------------------------------------------------------------
+   FILTER ANIMATIONS
+   ------------------------------------------------------------------- */
+@keyframes filterTagEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.filter-tags-enter > span {
+  animation: filterTagEnter 200ms ease-out forwards;
+}

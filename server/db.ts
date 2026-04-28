@@ -1428,10 +1428,10 @@ export async function getOpportunities(filters?: {
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(desc(opportunities.createdAt));
 
-  // Enrich with contact name, stage info
+  // Enrich with contact name, phone, email, stage info
   const enriched = [];
   for (const opp of results) {
-    const [contact] = await db.select({ name: contacts.name, company: contacts.company })
+    const [contact] = await db.select({ name: contacts.name, company: contacts.company, phone: contacts.phone, email: contacts.email })
       .from(contacts).where(eq(contacts.id, opp.contactId));
     const [stage] = await db.select({ name: pipelineStages.name, color: pipelineStages.color })
       .from(pipelineStages).where(eq(pipelineStages.id, opp.stageId));
@@ -1440,6 +1440,8 @@ export async function getOpportunities(filters?: {
       ...opp,
       contactName: contact?.name || "Desconhecido",
       contactCompany: contact?.company || "",
+      contactPhone: contact?.phone || "",
+      contactEmail: contact?.email || "",
       stageName: stage?.name || "",
       stageColor: stage?.color || "",
     });

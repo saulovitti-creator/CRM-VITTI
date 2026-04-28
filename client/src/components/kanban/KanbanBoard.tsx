@@ -18,11 +18,16 @@ import { KanbanCard } from "./KanbanCard";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
+import { SearchX } from "lucide-react";
+
 interface KanbanBoardProps {
   stages: Array<{ id: number; name: string; color?: string | null }>;
   opportunities: any[] | undefined;
   isLoading: boolean;
   pipelineId: string;
+  isFiltered?: boolean;
+  onClearFilters?: () => void;
 }
 
 /**
@@ -36,7 +41,7 @@ interface KanbanBoardProps {
  *  - Drop zone tracking (activeOverId) for column highlighting
  *  - ARIA live region for screen reader feedback
  */
-export function KanbanBoard({ stages, opportunities, isLoading, pipelineId }: KanbanBoardProps) {
+export function KanbanBoard({ stages, opportunities, isLoading, pipelineId, isFiltered, onClearFilters }: KanbanBoardProps) {
   const moveMutation = trpc.opportunities.moveToStage.useMutation();
   const utils = trpc.useUtils();
 
@@ -230,7 +235,14 @@ export function KanbanBoard({ stages, opportunities, isLoading, pipelineId }: Ka
         onDragCancel={handleDragCancel}
         measuring={measuring}
       >
-        <div className="flex h-full gap-3 pb-4 items-start">
+        <div className="flex h-full gap-3 pb-4 items-start relative min-h-[300px]">
+          {isFiltered && opportunities?.length === 0 && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-card/60 backdrop-blur-[2px] rounded-xl border border-dashed m-1">
+              <SearchX className="w-10 h-10 text-muted-foreground mb-3" />
+              <p className="text-muted-foreground font-medium mb-4">Nenhum lead encontrado com os filtros aplicados.</p>
+              <Button variant="outline" onClick={onClearFilters}>Limpar Filtros</Button>
+            </div>
+          )}
           {stages.map((stage) => {
             const stageOpps = opportunities?.filter((o) => o.stageId === stage.id) || [];
 

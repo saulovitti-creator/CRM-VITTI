@@ -1,18 +1,27 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { OpportunityFormDialog } from "./OpportunityFormDialog";
 import { Button } from "@/components/ui/button";
-import { Trash2, Building, GripVertical } from "lucide-react";
+import { Trash2, Building, SearchX } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-export function OpportunityListView({ opportunities, stages }: { opportunities: any[], stages: any[] }) {
+export function OpportunityListView({ opportunities, stages, isFiltered, onClearFilters }: { opportunities: any[], stages: any[], isFiltered?: boolean, onClearFilters?: () => void }) {
   const deleteMutation = trpc.opportunities.delete.useMutation();
   const utils = trpc.useUtils();
 
   if (!opportunities || opportunities.length === 0) {
+    if (isFiltered) {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 text-muted-foreground bg-card rounded-[10px] border border-dashed mt-4">
+          <SearchX className="w-10 h-10 text-muted-foreground mb-3" />
+          <p className="font-medium mb-4">Nenhum lead encontrado com os filtros aplicados.</p>
+          <Button variant="outline" onClick={onClearFilters}>Limpar Filtros</Button>
+        </div>
+      );
+    }
     return (
       <div className="flex flex-col items-center justify-center h-64 text-muted-foreground bg-card rounded-[10px] border mt-4">
         <p>Nenhuma oportunidade encontrada neste funil.</p>

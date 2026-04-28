@@ -3,6 +3,8 @@ import { trpc } from "@/lib/trpc";
 import { OpportunityFormDialog } from "./OpportunityFormDialog";
 import { OpportunityListView } from "./OpportunityListView";
 import { KanbanBoard } from "./kanban/KanbanBoard";
+import { FilterBar } from "./FilterBar";
+import { useOpportunityFilters } from "@/hooks/useOpportunityFilters";
 import { Button } from "@/components/ui/button";
 import { Loader2, Kanban as KanbanIcon, LayoutGrid, List } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,14 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 /**
  * OpportunityKanban — Orchestrator component.
  *
- * Responsible ONLY for:
+ * Responsible for:
  *  - Pipeline selection
  *  - View mode toggle (kanban / list)
  *  - Data fetching (pipelines + opportunities)
- *  - Delegating to <KanbanBoard> or <OpportunityListView>
- *
- * All DnD logic, visual states, and mutation handling
- * are encapsulated in the kanban/ subdirectory.
+ *  - Filter orchestration via useOpportunityFilters
+ *  - Delegating filtered data to <KanbanBoard> or <OpportunityListView>
  */
 export function OpportunityKanban() {
   const { data: pipelines, isLoading: loadingPipes } = trpc.pipelines.list.useQuery();
@@ -38,6 +38,17 @@ export function OpportunityKanban() {
 
   const activePipeline = pipelines?.find(p => p.id.toString() === activePipelineId);
   const stages = activePipeline?.stages || [];
+
+  // ── Filter System ──
+  const {
+    filters,
+    updateFilter,
+    clearFilters,
+    removeFilter,
+    filteredOpportunities,
+    activeFilterCount,
+    isFiltered,
+  } = useOpportunityFilters(opportunities, stages);
 
   if (loadingPipes) return (
     <div className="flex justify-center p-8">
@@ -92,21 +103,36 @@ export function OpportunityKanban() {
         <OpportunityFormDialog defaultPipelineId={parseInt(activePipelineId)} />
       </div>
 
+      {/* ── Filter Bar ── */}
+      <FilterBar
+        filters={filters}
+        updateFilter={updateFilter}
+        clearFilters={clearFilters}
+        removeFilter={removeFilter}
+        activeFilterCount={activeFilterCount}
+        isFiltered={isFiltered}
+        stages={stages}
+      />
+
       {/* Main Content Area */}
       {viewMode === "list" ? (
         <div className="flex-1 overflow-y-auto pr-1">
           <OpportunityListView
-            opportunities={opportunities || []}
+            opportunities={filteredOpportunities}
             stages={stages}
+            isFiltered={isFiltered}
+            onClearFilters={clearFilters}
           />
         </div>
       ) : (
         <div className="flex-1 overflow-x-auto overflow-y-hidden kanban-container">
           <KanbanBoard
             stages={stages}
-            opportunities={opportunities}
+            opportunities={filteredOpportunities}
             isLoading={loadingOpps}
             pipelineId={activePipelineId}
+            isFiltered={isFiltered}
+            onClearFilters={clearFilters}
           />
         </div>
       )}
