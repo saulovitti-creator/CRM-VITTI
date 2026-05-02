@@ -27,7 +27,36 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
+import { getDb } from "../db";
+import { sql } from "drizzle-orm";
+
+async function applyPendingMigrations() {
+  const db = await getDb();
+  if (!db) return;
+  
+  try {
+    await db.execute(sql`ALTER TABLE kanban_columns ADD COLUMN is_active_in_funnel BOOLEAN DEFAULT true`);
+    await db.execute(sql`UPDATE kanban_columns SET is_active_in_funnel = false WHERE name IN ('Ganho', 'Perdido', 'Abandonado')`);
+    console.log("[Migration] kanban_columns updated with is_active_in_funnel");
+  } catch (e: any) {
+    if (!e.message?.includes('Duplicate column name')) {
+      console.log("[Migration] kanban_columns alter error:", e.message);
+    }
+  }
+
+  try {
+    await db.execute(sql`ALTER TABLE pipeline_stages ADD COLUMN is_active_in_funnel BOOLEAN DEFAULT true`);
+    await db.execute(sql`UPDATE pipeline_stages SET is_active_in_funnel = false WHERE name IN ('Ganho', 'Perdido', 'Abandonado')`);
+    console.log("[Migration] pipeline_stages updated with is_active_in_funnel");
+  } catch (e: any) {
+    if (!e.message?.includes('Duplicate column name')) {
+      console.log("[Migration] pipeline_stages alter error:", e.message);
+    }
+  }
+}
+
 async function startServer() {
+  await applyPendingMigrations();
   const app = express();
   const server = createServer(app);
   // Configure body parser with larger size limit for file uploads
