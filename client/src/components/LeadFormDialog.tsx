@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,6 +24,7 @@ import { LEAD_CATEGORIES, LEAD_STATUSES, type Lead } from "@shared/types";
 import { toast } from "sonner";
 import { TagSelector } from "./TagSelector";
 import { DynamicFieldRenderer } from "./DynamicFieldRenderer";
+import { useActiveFunnelStages } from "@/hooks/useActiveFunnelStages";
 
 interface LeadFormDialogProps {
   lead?: Lead;
@@ -52,6 +53,12 @@ export function LeadFormDialog({ lead, onSuccess, type }: LeadFormDialogProps) {
   const updateMutation = trpc.leads.update.useMutation();
   const saveCustomValuesMutation = trpc.customFields.setValues.useMutation();
   const utils = trpc.useUtils();
+
+  // Dynamic Funnel Stages Hook
+  const { stages: activeStages, isLoading: loadingStages, error: stagesError } = useActiveFunnelStages({
+    type: "lead",
+    currentStatusOrId: lead?.status,
+  });
 
   // Custom Fields State
   const [customValues, setCustomValues] = useState<Record<number, string | null>>({});
@@ -256,18 +263,29 @@ export function LeadFormDialog({ lead, onSuccess, type }: LeadFormDialogProps) {
               onValueChange={(value) =>
                 setFormData({ ...formData, status: value as any })
               }
+              disabled={loadingStages}
             >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder={loadingStages ? "Carregando estágios..." : "Selecione o estágio"} />
               </SelectTrigger>
               <SelectContent>
-                {LEAD_STATUSES.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {status}
+                {activeStages.length === 0 && !loadingStages && (
+                  <SelectItem value="_empty" disabled>
+                    Nenhum estágio disponível
+                  </SelectItem>
+                )}
+                {activeStages.map((stage) => (
+                  <SelectItem key={stage.id} value={stage.name}>
+                    {stage.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {stagesError && (
+              <p className="text-xs text-red-500 mt-1">
+                Erro ao carregar estágios.
+              </p>
+            )}
           </div>
 
           <div>

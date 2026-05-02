@@ -80,6 +80,7 @@ export const kanbanColumns = mysqlTable("kanban_columns", {
   createdAt: datetime("createdAt").notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime("updatedAt").notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
   isDefault: mysqlBoolean("isDefault").default(false),
+  isActiveInFunnel: mysqlBoolean("is_active_in_funnel").default(true),
 });
 
 export type InsertUser = typeof users.$inferInsert;
@@ -197,6 +198,7 @@ export const pipelineStages = mysqlTable("pipeline_stages", {
   displayOrder: int("displayOrder").notNull().default(0),
   isFinal: mysqlBoolean("isFinal").default(false),
   finalType: mysqlVarchar("finalType", { length: 20 }),  // "ganho" | "perdido" | "abandonado" | null
+  isActiveInFunnel: mysqlBoolean("is_active_in_funnel").default(true),
   createdAt: datetime("createdAt").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 

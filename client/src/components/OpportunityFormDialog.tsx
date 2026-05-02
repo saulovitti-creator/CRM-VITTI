@@ -14,6 +14,7 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { CurrencyInput } from "./ui/currency-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useActiveFunnelStages } from "@/hooks/useActiveFunnelStages";
 
 interface OpportunityFormDialogProps {
   opportunity?: any;
@@ -48,6 +49,13 @@ export function OpportunityFormDialog({
   const { data: contacts } = trpc.contacts.list.useQuery();
   const { data: pipelines } = trpc.pipelines.list.useQuery();
   
+  // Dynamic Funnel Stages Hook
+  const { stages: activeStages, isLoading: loadingStages, error: stagesError } = useActiveFunnelStages({
+    type: "opportunity",
+    pipelineId: formData.pipelineId,
+    currentStatusOrId: opportunity?.stageId,
+  });
+
   const createMutation = trpc.opportunities.create.useMutation();
   const updateMutation = trpc.opportunities.update.useMutation();
   const deleteMutation = trpc.opportunities.delete.useMutation();
@@ -92,7 +100,7 @@ export function OpportunityFormDialog({
     }
   }, [open, opportunity, pipelines, defaultContactId, defaultPipelineId, defaultStageId]);
 
-  // Find currently selected pipeline to get its stages
+  // Find currently selected pipeline to get its stages (kept for other logic if needed, or can be removed if activeStages replaces it everywhere)
   const selectedPipeline = pipelines?.find(p => p.id.toString() === formData.pipelineId);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -230,19 +238,27 @@ export function OpportunityFormDialog({
               <Select 
                 value={formData.stageId} 
                 onValueChange={(val) => setFormData({ ...formData, stageId: val })}
-                disabled={!formData.pipelineId}
+                disabled={!formData.pipelineId || loadingStages}
               >
                 <SelectTrigger className=" mt-1">
-                  <SelectValue placeholder="Selecione..." />
+                  <SelectValue placeholder={loadingStages ? "Carregando..." : "Selecione..."} />
                 </SelectTrigger>
                 <SelectContent className="">
-                  {selectedPipeline?.stages?.map((stage: any) => (
+                  {activeStages.length === 0 && !loadingStages && (
+                    <SelectItem value="_empty" disabled>
+                      Nenhum estágio disponível
+                    </SelectItem>
+                  )}
+                  {activeStages.map((stage) => (
                     <SelectItem key={stage.id} value={stage.id.toString()}>
                       {stage.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {stagesError && (
+                <p className="text-xs text-red-500 mt-1">Erro ao carregar estágios.</p>
+              )}
             </div>
           </div>
 
