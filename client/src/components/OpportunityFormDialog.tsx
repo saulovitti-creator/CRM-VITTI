@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { CurrencyInput } from "./ui/currency-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useActiveFunnelStages } from "@/hooks/useActiveFunnelStages";
+import { DynamicFieldRenderer } from "./DynamicFieldRenderer";
 
 interface OpportunityFormDialogProps {
   opportunity?: any;
@@ -59,7 +60,31 @@ export function OpportunityFormDialog({
   const createMutation = trpc.opportunities.create.useMutation();
   const updateMutation = trpc.opportunities.update.useMutation();
   const deleteMutation = trpc.opportunities.delete.useMutation();
+  const saveCustomValuesMutation = trpc.customFields.setValues.useMutation();
   const utils = trpc.useUtils();
+
+  // Custom Fields State
+  const [customValues, setCustomValues] = useState<Record<number, string | null>>({});
+
+  const { data: customFields } = trpc.customFields.listDefinitions.useQuery(
+    { model: "opportunity" },
+    { enabled: open }
+  );
+
+  const { data: existingValues } = trpc.customFields.getValues.useQuery(
+    { entityId: opportunity?.id as number, entityType: "opportunity" },
+    { enabled: open && !!opportunity?.id }
+  );
+
+  useEffect(() => {
+    if (existingValues) {
+      const vals: Record<number, string | null> = {};
+      existingValues.forEach((v: any) => vals[v.definitionId] = v.value);
+      setCustomValues(vals);
+    } else if (!opportunity) {
+      setCustomValues({});
+    }
+  }, [existingValues, opportunity, open]);
 
   useEffect(() => {
     if (open) {
@@ -132,16 +157,37 @@ export function OpportunityFormDialog({
           return old.map((o: any) => o.id === opportunity.id ? { ...o, ...payload } : o);
         });
 
-        updateMutation.mutateAsync({ id: opportunity.id, ...payload }).then(() => {
+        updateMutation.mutateAsync({ id: opportunity.id, ...payload }).then(async () => {
+          if (Object.keys(customValues).length > 0) {
+            await saveCustomValuesMutation.mutateAsync({
+              entityId: opportunity.id,
+              entityType: "opportunity",
+              values: Object.entries(customValues).map(([k, v]) => ({
+                definitionId: parseInt(k),
+                value: v,
+              })),
+            });
+          }
           toast.success("Oportunidade atualizada!");
           utils.opportunities.list.invalidate();
           utils.opportunities.stats.invalidate();
+          utils.customFields.getValues.invalidate({ entityId: opportunity.id, entityType: "opportunity" });
         }).catch((error: any) => {
           toast.error(`Erro ao salvar oportunidade: ${error.message || error}`);
           utils.opportunities.list.invalidate();
         });
       } else {
-        createMutation.mutateAsync(payload).then(() => {
+        createMutation.mutateAsync(payload).then(async (newOpp) => {
+          if (Object.keys(customValues).length > 0) {
+            await saveCustomValuesMutation.mutateAsync({
+              entityId: newOpp.id,
+              entityType: "opportunity",
+              values: Object.entries(customValues).map(([k, v]) => ({
+                definitionId: parseInt(k),
+                value: v,
+              })),
+            });
+          }
           toast.success("Oportunidade criada!");
           utils.opportunities.list.invalidate();
           utils.opportunities.stats.invalidate();
@@ -282,6 +328,39 @@ export function OpportunityFormDialog({
               />
             </div>
           </div>
+
+          {/* Custom Fields (Renderizados Dinamicamente) */}
+          {customFields && customFields.length > 0 && (
+            <div className="bg-muted/50 p-4 rounded-lg border border-border/50 space-y-4 my-4">
+              <h4 className="text-sm font-semibold text-primary border-b border-border pb-2">Informações Adicionais</h4>
+              
+              {/* Agrupamento por GroupName */}
+              {(() => {
+                const groups: Record<string, typeof customFields> = {};
+                customFields.forEach(field => {
+                  const g = field.groupName || "Gerais";
+                  if (!groups[g]) groups[g] = [];
+                  groups[g].push(field);
+                });
+
+                return Object.entries(groups).map(([groupName, fields]) => (
+                  <div key={groupName} className="space-y-3">
+                    {groupName !== "Gerais" && (
+                      <h5 className="text-xs font-medium text-muted-foreground mt-4 uppercase">{groupName}</h5>
+                    )}
+                    {fields.map(field => (
+                      <DynamicFieldRenderer
+                        key={field.id}
+                        definition={field}
+                        value={customValues[field.id] || null}
+                        onChange={(val) => setCustomValues(prev => ({ ...prev, [field.id]: val }))}
+                      />
+                    ))}
+                  </div>
+                ));
+              })()}
+            </div>
+          )}
 
           <div>
             <Label className="text-foreground">Observações da Oportunidade</Label>
