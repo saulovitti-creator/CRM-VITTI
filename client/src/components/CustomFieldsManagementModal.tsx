@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -44,7 +44,7 @@ const FIELD_TYPES = [
 export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFieldsManagementModalProps) {
   const utils = trpc.useUtils();
   const { data: fields = [], isLoading } = trpc.customFields.listDefinitions.useQuery(
-    { model: "lead" },
+    undefined,
     { enabled: open }
   );
 
@@ -54,6 +54,7 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
   // Form State
   const [name, setName] = useState("");
   const [fieldType, setFieldType] = useState<string>("text");
+  const [modelType, setModelType] = useState<string>("lead");
   const [groupName, setGroupName] = useState("");
   const [placeholder, setPlaceholder] = useState("");
   const [optionsStr, setOptionsStr] = useState(""); // Comma separated for dropdown
@@ -90,6 +91,7 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
     setEditingId(null);
     setName("");
     setFieldType("text");
+    setModelType("lead");
     setGroupName("");
     setPlaceholder("");
     setOptionsStr("");
@@ -100,6 +102,7 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
     setEditingId(field.id);
     setName(field.name);
     setFieldType(field.fieldType);
+    setModelType(field.model || "lead");
     setGroupName(field.groupName || "");
     setPlaceholder(field.placeholder || "");
     setIsRequired(field.isRequired || false);
@@ -137,7 +140,7 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
     const payload = {
       name: name.trim(),
       fieldType: fieldType as any,
-      model: "lead",
+      model: modelType,
       groupName: groupName.trim() || undefined,
       placeholder: placeholder.trim() || undefined,
       options: optionsJson,
@@ -203,6 +206,20 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
                     </SelectContent>
                   </Select>
                   {!!editingId && <p className="text-[10px] text-muted-foreground mt-1">Não é possível mudar o tipo de um campo existente.</p>}
+                </div>
+
+                <div className="space-y-1">
+                  <Label>Vincular ao Cadastro de <span className="text-red-400">*</span></Label>
+                  <Select value={modelType} onValueChange={setModelType} disabled={!!editingId}>
+                    <SelectTrigger className="bg-card border-border focus:border-primary">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-muted border-border text-foreground">
+                      <SelectItem value="lead">Leads (Pipeline)</SelectItem>
+                      <SelectItem value="opportunity">Oportunidades (Sprint 3)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {!!editingId && <p className="text-[10px] text-muted-foreground mt-1">Não é possível mudar o vínculo após a criação.</p>}
                 </div>
 
                 <div className="space-y-1">
@@ -301,6 +318,9 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
                         <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
                           <span className="bg-card px-1.5 py-0.5 rounded text-foreground border border-border">
                             {FIELD_TYPES.find(t => t.value === field.fieldType)?.label || field.fieldType}
+                          </span>
+                          <span className={`px-1.5 py-0.5 rounded border text-[10px] uppercase font-bold ${field.model === 'opportunity' ? 'bg-purple-900/30 text-purple-400 border-purple-800' : 'bg-blue-900/30 text-blue-400 border-blue-800'}`}>
+                            {field.model === 'opportunity' ? 'Oportunidade' : 'Lead'}
                           </span>
                           {field.groupName && (
                             <span className="text-primary/70">Grupo: {field.groupName}</span>
