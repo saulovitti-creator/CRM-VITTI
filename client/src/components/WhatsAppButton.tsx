@@ -19,17 +19,12 @@ export function WhatsAppButton({
   variant = "icon",
 }: WhatsAppButtonProps) {
   const isValidPhone = formatPhoneForWhatsApp(phone) !== null;
-  const logContact = trpc.leads.logContact.useMutation();
-
   if (!isValidPhone) {
     return null;
   }
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (leadId) {
-      logContact.mutate({ leadId });
-    }
     openWhatsApp(phone, message);
   };
 

@@ -3,6 +3,8 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { TagManagementModal } from "@/components/TagManagementModal";
 import { CustomFieldsManagementModal } from "@/components/CustomFieldsManagementModal";
+import { ImportXLSXDialog } from "@/components/ImportXLSXDialog";
+import { DownloadTemplateButton } from "@/components/DownloadTemplateButton";
 import { ContactsList } from "@/components/ContactsList";
 import { OpportunityKanban } from "@/components/OpportunityKanban";
 import { Users, Briefcase, Settings2, Tags } from "lucide-react";
@@ -27,6 +29,9 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-2">
+            <DownloadTemplateButton />
+            <ImportXLSXDialog leadType="CRM" />
+            
             <Button 
               variant="outline" 
               size="sm" 

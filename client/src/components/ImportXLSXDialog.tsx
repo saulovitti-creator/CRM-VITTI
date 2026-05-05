@@ -71,13 +71,13 @@ export function ImportXLSXDialog({ leadType }: ImportXLSXDialogProps) {
     setErrors((prev) => prev.filter((e) => e.id !== id));
   };
 
-  const importMutation = trpc.leads.importLeads.useMutation();
+  const createContact = trpc.contacts.create.useMutation();
   const utils = trpc.useUtils();
 
   const validateRow = (row: ImportedLead, rowNum: number): string | null => {
     // Validar campos obrigatórios
-    if (!row["Empresa *"]?.trim()) {
-      return `Linha ${rowNum}: Campo "Empresa" é obrigatório`;
+    if (!row["Empresa *"]?.trim() && !row["Contato"]?.trim()) {
+      return `Linha ${rowNum}: Pelo menos "Empresa" ou "Contato" é obrigatório`;
     }
 
     // Converter telefone para string se for número
@@ -131,7 +131,7 @@ export function ImportXLSXDialog({ leadType }: ImportXLSXDialogProps) {
           errors.push(error);
         } else {
           validLeads.push({
-            companyName: row["Empresa *"].trim(),
+            companyName: row["Empresa *"]?.trim() || "",
             contactName: row["Contato"]?.trim() || undefined,
             phone: String(row["Telefone *"] || "").trim(),
             email: row["Email"]?.trim() || undefined,
@@ -156,22 +156,54 @@ export function ImportXLSXDialog({ leadType }: ImportXLSXDialogProps) {
       }
 
       // Importar leads válidos com tipo de aba
-      const result = await importMutation.mutateAsync({ leads: validLeads, type: leadType });
-
-      setImportResults(result.results);
-
-      // Invalidar cache
-      await utils.leads.list.invalidate();
-      await utils.leads.stats.invalidate();
-      await utils.leads.getUniqueSegments.invalidate();
-
-      // Mostrar resultado
-      if (result.successCount > 0) {
-        toast.success(`${result.successCount} prospecto(s) importado(s) para ${leadType} com sucesso!`);
+      let successCount = 0;
+      let errorCount = 0;
+      const results: ImportResult[] = [];
+      
+      for (let i = 0; i < validLeads.length; i++) {
+        const lead = validLeads[i];
+        try {
+          await createContact.mutateAsync({
+            name: lead.contactName || lead.companyName || "Contato Desconhecido",
+            company: lead.companyName,
+            phone: lead.phone,
+            email: lead.email,
+            segment: lead.segment,
+            city: lead.city,
+            site: lead.site,
+            source: leadType, // Map CRM/Site to source
+            notes: lead.notes,
+          });
+          successCount++;
+          results.push({
+            rowIndex: i + 2,
+            company: lead.companyName || lead.contactName || "Desconhecido",
+            status: "success"
+          });
+        } catch (e: any) {
+          errorCount++;
+          results.push({
+            rowIndex: i + 2,
+            company: lead.companyName || lead.contactName || "Desconhecido",
+            status: "error",
+            error: e.message || "Erro desconhecido"
+          });
+        }
       }
 
-      if (result.errorCount > 0) {
-        toast.error(`${result.errorCount} prospecto(s) falharam na importação`);
+      setImportResults(results);
+
+      // Invalidar cache
+      await utils.contacts.list.invalidate();
+      await utils.dashboard.stats.invalidate();
+
+      // Mostrar resultado
+      if (successCount > 0) {
+        toast.success(`${successCount} contato(s) importado(s) para ${leadType} com sucesso!`);
+      }
+
+      if (errorCount > 0) {
+        toast.error(`${errorCount} contato(s) falharam na importação`);
       }
 
       // Limpar input

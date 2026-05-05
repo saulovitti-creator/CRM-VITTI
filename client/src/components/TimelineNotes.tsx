@@ -1,13 +1,13 @@
-﻿import { trpc } from "@/lib/trpc";
+import { trpc } from "@/lib/trpc";
 import { MessageCircle, Bot, Loader2, Trash2 } from "lucide-react";
 
 interface TimelineNotesProps {
-  leadId: number;
+  opportunityId: number;
 }
 
-export function TimelineNotes({ leadId }: TimelineNotesProps) {
-  const notesQuery = trpc.leads.notes.list.useQuery({ leadId });
-  const deleteNoteMutation = trpc.leads.notes.delete.useMutation({
+export function TimelineNotes({ opportunityId }: TimelineNotesProps) {
+  const notesQuery = trpc.opportunities.getNotes.useQuery({ opportunityId });
+  const deleteNoteMutation = trpc.opportunities.deleteNote.useMutation({
     onSuccess: () => notesQuery.refetch(),
   });
   const notes = notesQuery.data || [];

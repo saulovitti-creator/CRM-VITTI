@@ -1,4 +1,4 @@
-﻿import { useAuth } from "@/_core/hooks/useAuth";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { DateFilterDropdown } from "@/components/DateFilterDropdown";
 import { useState } from "react";
@@ -24,7 +24,7 @@ export default function Dashboard() {
   const [dateFilter, setDateFilter] = useState<{ dataInicial?: Date; dataFinal?: Date; isActive: boolean }>({ isActive: false });
 
   const statsQuery = trpc.dashboard.stats.useQuery({ 
-    type: undefined,
+    pipelineId: undefined,
     dataInicial: dateFilter.dataInicial,
     dataFinal: dateFilter.dataFinal
   });
