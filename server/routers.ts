@@ -60,9 +60,9 @@ import {
   getOpportunityStats,
 } from "./db";
 import { hashPassword, verifyPassword } from "./auth-utils";
-import { tags, contacts } from "../drizzle/schema";
+import { tags, contacts, pipelines, pipelineStages, contactTags, opportunities } from "../drizzle/schema";
 import { TRPCError } from "@trpc/server";
-import { eq, inArray, or } from "drizzle-orm";
+import { eq, inArray, or, and, asc } from "drizzle-orm";
 
 export const appRouter = router({
   system: systemRouter,
@@ -596,6 +596,297 @@ export const appRouter = router({
     deleteTask: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(({ input }) => deleteOpportunityTask(input.id)),
+  }),
+
+  // ===================== IMPORTAÇÃO COMERCIAL INTELIGENTE =====================
+  import: router({
+    bulkImport: protectedProcedure
+      .input(z.object({
+        mode: z.enum(["contacts_only", "contacts_and_opportunities"]),
+        rows: z.array(z.object({
+          // Bloco A — Contato
+          nome: z.string().optional(),
+          empresa: z.string().optional(),
+          telefone: z.string().optional(),
+          email: z.string().optional(),
+          segmento: z.string().optional(),
+          cidade: z.string().optional(),
+          // Bloco B — Oportunidade
+          nomeDaOportunidade: z.string().optional(),
+          pipeline: z.string().optional(),
+          estagioInicial: z.string().optional(),
+          valorEstimado: z.string().optional(),
+          origem: z.string().optional(),
+          tags: z.string().optional(),
+          observacoes: z.string().optional(),
+        })),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        // ── RBAC mínimo: apenas admin pode importar no MVP ──
+        if (ctx.user && (ctx.user as any).role !== "admin") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Apenas administradores podem importar dados.",
+          });
+        }
+
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+
+        const { mode, rows } = input;
+
+        // ── Pré-carregar dados de referência ──
+        const allPipelines = await db.select().from(pipelines);
+        const allStages = await db.select().from(pipelineStages).orderBy(asc(pipelineStages.displayOrder));
+        const allTags = await db.select().from(tags);
+        const allContacts = await db.select({
+          id: contacts.id,
+          phone: contacts.phone,
+          email: contacts.email,
+        }).from(contacts);
+
+        // ── Helpers de normalização ──
+        const normalize = (s?: string | null) => (s || "").trim().toLowerCase();
+        const normalizePhone = (s?: string | null) => (s || "").replace(/\D/g, "").trim();
+
+        // ── Processar cada linha ──
+        type LineResult = {
+          rowIndex: number;
+          status: "success" | "error" | "skipped";
+          errors: string[];
+          alerts: string[];
+          contactId?: number;
+          contactCreated?: boolean;
+          opportunityId?: number;
+        };
+
+        const results: LineResult[] = [];
+        let contactsCreated = 0;
+        let contactsReused = 0;
+        let opportunitiesCreated = 0;
+        let linesWithError = 0;
+        let linesSkipped = 0;
+        let tagsIgnored = 0;
+
+        // Track newly-created contacts within this import batch
+        const batchContacts: { id: number; phone: string; email: string }[] = [];
+
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          const rowIndex = i + 2; // Excel row (header = 1)
+          const errors: string[] = [];
+          const alerts: string[] = [];
+
+          // ── 1. Ignorar linhas 100% vazias ──
+          const allEmpty = Object.values(row).every(v => !v || v.trim() === "");
+          if (allEmpty) {
+            linesSkipped++;
+            continue; // Silenciosamente ignorada
+          }
+
+          // ── 2. Validar campos obrigatórios de contato ──
+          const nome = row.nome?.trim() || "";
+          const empresa = row.empresa?.trim() || "";
+          const telefone = row.telefone?.trim() || "";
+          const email = row.email?.trim() || "";
+
+          if (!nome && !empresa) {
+            errors.push("Nome e Empresa estão vazios. Pelo menos um é obrigatório.");
+          }
+          if (!telefone && !email) {
+            errors.push("Telefone e Email estão vazios. Pelo menos um é obrigatório.");
+          }
+
+          // ── 3. Validar campos de oportunidade (se modo 2) ──
+          let resolvedPipelineId: number | null = null;
+          let resolvedStageId: number | null = null;
+
+          if (mode === "contacts_and_opportunities") {
+            const pipelineName = row.pipeline?.trim() || "";
+            if (!pipelineName) {
+              errors.push("Pipeline é obrigatório no modo Contatos + Oportunidades.");
+            } else {
+              // Buscar pipeline por nome (case-insensitive, trim)
+              const normalizedPipeName = normalize(pipelineName);
+              const matchingPipelines = allPipelines.filter(p => normalize(p.name) === normalizedPipeName);
+
+              if (matchingPipelines.length === 0) {
+                errors.push(`Pipeline "${pipelineName}" não encontrado.`);
+              } else if (matchingPipelines.length > 1) {
+                errors.push(`Mais de um pipeline compatível com "${pipelineName}". Corrija o cadastro dos pipelines.`);
+              } else {
+                resolvedPipelineId = matchingPipelines[0].id;
+
+                // Resolver estágio
+                const estagioName = row.estagioInicial?.trim() || "";
+                const pipeStages = allStages.filter(s => s.pipelineId === resolvedPipelineId);
+
+                if (!estagioName) {
+                  // Fallback: primeiro estágio ativo
+                  const activeStage = pipeStages.find(s => s.isActiveInFunnel !== false);
+                  if (activeStage) {
+                    resolvedStageId = activeStage.id;
+                    alerts.push(`Estágio vazio: será usado "${activeStage.name}".`);
+                  } else {
+                    errors.push(`Nenhum estágio ativo encontrado no pipeline "${pipelineName}".`);
+                  }
+                } else {
+                  const normalizedStageName = normalize(estagioName);
+                  const matchingStage = pipeStages.find(s => normalize(s.name) === normalizedStageName);
+                  if (matchingStage) {
+                    resolvedStageId = matchingStage.id;
+                  } else {
+                    errors.push(`Estágio "${estagioName}" não encontrado no pipeline "${pipelineName}".`);
+                  }
+                }
+              }
+            }
+
+            // Validar valor estimado
+            const valorStr = row.valorEstimado?.trim() || "";
+            if (valorStr) {
+              const valorNum = parseFloat(valorStr.replace(",", "."));
+              if (isNaN(valorNum) || valorNum < 0) {
+                errors.push(`Valor estimado "${valorStr}" é inválido.`);
+              }
+            }
+          }
+
+          // ── 4. Se houver erro, pular a linha inteira ──
+          if (errors.length > 0) {
+            linesWithError++;
+            results.push({ rowIndex, status: "error", errors, alerts });
+            continue;
+          }
+
+          // ── 5. Buscar/reutilizar contato (telefone → email) ──
+          let contactId: number | null = null;
+          let contactCreated = false;
+          const phoneNorm = normalizePhone(telefone);
+          const emailNorm = normalize(email);
+
+          // Check existing DB contacts
+          if (phoneNorm) {
+            const match = allContacts.find(c => normalizePhone(c.phone) === phoneNorm);
+            if (match) contactId = match.id;
+            // Also check batch contacts from this import
+            if (!contactId) {
+              const batchMatch = batchContacts.find(c => normalizePhone(c.phone) === phoneNorm);
+              if (batchMatch) contactId = batchMatch.id;
+            }
+          }
+          if (!contactId && emailNorm) {
+            const match = allContacts.find(c => normalize(c.email) === emailNorm);
+            if (match) contactId = match.id;
+            if (!contactId) {
+              const batchMatch = batchContacts.find(c => normalize(c.email) === emailNorm);
+              if (batchMatch) contactId = batchMatch.id;
+            }
+          }
+
+          if (contactId) {
+            contactCreated = false;
+            contactsReused++;
+            alerts.push("Contato já existente reutilizado.");
+          } else {
+            // Criar novo contato
+            try {
+              const [result] = await db.insert(contacts).values({
+                name: nome || empresa,
+                company: empresa || undefined,
+                phone: telefone || undefined,
+                email: email || undefined,
+                segment: row.segmento?.trim() || undefined,
+                city: row.cidade?.trim() || undefined,
+                source: row.origem?.trim() || undefined,
+              }).$returningId();
+              contactId = result.id;
+              contactCreated = true;
+              contactsCreated++;
+              // Track in batch for dedup within this import
+              batchContacts.push({ id: contactId, phone: telefone, email: email });
+            } catch (e: any) {
+              errors.push(`Erro ao criar contato: ${e.message}`);
+              linesWithError++;
+              results.push({ rowIndex, status: "error", errors, alerts });
+              continue;
+            }
+          }
+
+          // ── 6. Resolver e aplicar tags ao contato ──
+          const tagName = row.tags?.trim() || "";
+          if (tagName && contactId) {
+            const normalizedTagName = normalize(tagName);
+            const matchingTag = allTags.find(t => normalize(t.name) === normalizedTagName);
+            if (matchingTag) {
+              try {
+                // Check if tag already applied
+                const existing = await db.select().from(contactTags)
+                  .where(and(eq(contactTags.contactId, contactId), eq(contactTags.tagId, matchingTag.id)))
+                  .limit(1);
+                if (existing.length === 0) {
+                  await db.insert(contactTags).values({ contactId, tagId: matchingTag.id });
+                }
+              } catch { /* ignore duplicate tag errors */ }
+            } else {
+              alerts.push(`Tag "${tagName}" não encontrada. Registro importado sem essa tag.`);
+              tagsIgnored++;
+            }
+          }
+
+          // ── 7. Criar oportunidade (se modo 2) ──
+          let opportunityId: number | undefined;
+          if (mode === "contacts_and_opportunities" && resolvedPipelineId && resolvedStageId && contactId) {
+            const oppTitle = row.nomeDaOportunidade?.trim() || `Venda - ${empresa || nome}`;
+            const valorStr = row.valorEstimado?.trim() || "";
+            const valorClean = valorStr ? valorStr.replace(",", ".") : undefined;
+
+            try {
+              const result = await db.insert(opportunities).values({
+                contactId,
+                pipelineId: resolvedPipelineId,
+                stageId: resolvedStageId,
+                title: oppTitle,
+                monetaryValue: valorClean || undefined,
+                source: row.origem?.trim() || undefined,
+                notes: row.observacoes?.trim() || undefined,
+                segment: row.segmento?.trim() || undefined,
+              });
+              const insertedId = (result as any)[0]?.insertId ?? (result as any).insertId;
+              opportunityId = insertedId;
+              opportunitiesCreated++;
+            } catch (e: any) {
+              errors.push(`Erro ao criar oportunidade: ${e.message}`);
+              // Contact was created but opportunity failed — keep contact, report error
+              alerts.push("Contato foi criado/reutilizado, mas a oportunidade falhou.");
+            }
+          }
+
+          results.push({
+            rowIndex,
+            status: errors.length > 0 ? "error" : "success",
+            errors,
+            alerts,
+            contactId: contactId ?? undefined,
+            contactCreated,
+            opportunityId,
+          });
+        }
+
+        return {
+          summary: {
+            totalRows: rows.length,
+            linesProcessed: results.length,
+            linesSkipped,
+            linesWithError,
+            contactsCreated,
+            contactsReused,
+            opportunitiesCreated,
+            tagsIgnored,
+          },
+          results,
+        };
+      }),
   }),
 });
 

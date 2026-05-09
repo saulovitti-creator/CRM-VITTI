@@ -30,7 +30,7 @@ export default function Home() {
 
           <div className="flex items-center gap-2">
             <DownloadTemplateButton />
-            <ImportXLSXDialog leadType="CRM" />
+            <ImportXLSXDialog />
             
             <Button 
               variant="outline" 

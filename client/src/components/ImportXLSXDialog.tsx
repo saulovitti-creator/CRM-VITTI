@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -8,345 +8,457 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Upload, AlertCircle, CheckCircle, AlertTriangle } from "lucide-react";
+import { Upload, AlertCircle, CheckCircle, AlertTriangle, Download, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
-import { LEAD_CATEGORIES } from "@shared/types";
-import { ErrorList, generateErrorMessage, ImportError } from "@/components/ErrorAlert";
 
-interface ImportedLead {
-  "Empresa *": string;
-  "Contato"?: string;
-  "Telefone *": string;
+// ── Types ──
+interface SpreadsheetRow {
+  "Nome"?: string;
+  "Empresa"?: string;
+  "Telefone"?: string;
   "Email"?: string;
-  "Segmento *": string;
-  "Status"?: string;
-  "Site"?: string;
+  "Segmento"?: string;
   "Cidade"?: string;
-  "Notas"?: string;
+  "Nome da Oportunidade"?: string;
+  "Pipeline"?: string;
+  "Estágio Inicial"?: string;
+  "Valor Estimado"?: string;
+  "Origem"?: string;
+  "Tags"?: string;
+  "Observações"?: string;
 }
 
-interface ProcessedLead {
-  companyName: string;
-  contactName?: string;
-  phone: string;
+interface MappedRow {
+  nome?: string;
+  empresa?: string;
+  telefone?: string;
   email?: string;
-  segment: string;
-  status?: string;
-  site?: string;
-  city?: string;
-  notes?: string;
+  segmento?: string;
+  cidade?: string;
+  nomeDaOportunidade?: string;
+  pipeline?: string;
+  estagioInicial?: string;
+  valorEstimado?: string;
+  origem?: string;
+  tags?: string;
+  observacoes?: string;
 }
 
-interface ImportResult {
-  rowIndex: number;
-  company: string;
-  status: string;
-  error?: string;
+type ImportMode = "contacts_only" | "contacts_and_opportunities";
+type WizardStep = "upload" | "preview" | "importing" | "report";
+
+// ── Map spreadsheet columns to backend fields ──
+function mapRow(row: SpreadsheetRow): MappedRow {
+  return {
+    nome: row["Nome"] || undefined,
+    empresa: row["Empresa"] || undefined,
+    telefone: row["Telefone"] != null ? String(row["Telefone"]) : undefined,
+    email: row["Email"] || undefined,
+    segmento: row["Segmento"] || undefined,
+    cidade: row["Cidade"] || undefined,
+    nomeDaOportunidade: row["Nome da Oportunidade"] || undefined,
+    pipeline: row["Pipeline"] || undefined,
+    estagioInicial: row["Estágio Inicial"] || undefined,
+    valorEstimado: row["Valor Estimado"] != null ? String(row["Valor Estimado"]) : undefined,
+    origem: row["Origem"] || undefined,
+    tags: row["Tags"] || undefined,
+    observacoes: row["Observações"] || undefined,
+  };
 }
 
-interface ImportXLSXDialogProps {
-  leadType: "CRM" | "Site";
+// ── Pre-validation (client-side, lightweight) ──
+interface PreValidation {
+  totalRows: number;
+  emptyRows: number;
+  validRows: number;
+  rowsWithIssues: number;
+  missingIdentification: number;
+  missingContact: number;
+  missingPipeline: number;
 }
 
-export function ImportXLSXDialog({ leadType }: ImportXLSXDialogProps) {
+function preValidate(rows: MappedRow[], mode: ImportMode): PreValidation {
+  let emptyRows = 0;
+  let validRows = 0;
+  let missingIdentification = 0;
+  let missingContact = 0;
+  let missingPipeline = 0;
+
+  for (const row of rows) {
+    const allEmpty = Object.values(row).every(v => !v || v.trim() === "");
+    if (allEmpty) { emptyRows++; continue; }
+
+    let hasIssue = false;
+    if (!row.nome?.trim() && !row.empresa?.trim()) { missingIdentification++; hasIssue = true; }
+    if (!row.telefone?.trim() && !row.email?.trim()) { missingContact++; hasIssue = true; }
+    if (mode === "contacts_and_opportunities" && !row.pipeline?.trim()) { missingPipeline++; hasIssue = true; }
+
+    if (!hasIssue) validRows++;
+  }
+
+  return {
+    totalRows: rows.length,
+    emptyRows,
+    validRows,
+    rowsWithIssues: missingIdentification + missingContact + missingPipeline,
+    missingIdentification,
+    missingContact,
+    missingPipeline,
+  };
+}
+
+// ── Main Component ──
+export function ImportXLSXDialog() {
   const [open, setOpen] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [importResults, setImportResults] = useState<ImportResult[]>([]);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const [errors, setErrors] = useState<ImportError[]>([]);
+  const [step, setStep] = useState<WizardStep>("upload");
+  const [mode, setMode] = useState<ImportMode>("contacts_and_opportunities");
+  const [rawRows, setRawRows] = useState<MappedRow[]>([]);
+  const [fileName, setFileName] = useState("");
+  const [importResult, setImportResult] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const addError = (errorType: string, details?: any) => {
-    const errorData = generateErrorMessage(errorType, details);
-    const newError: ImportError = {
-      id: `${Date.now()}-${Math.random()}`,
-      ...errorData,
-    };
-    setErrors((prev) => [...prev, newError]);
-  };
-
-  const dismissError = (id: string) => {
-    setErrors((prev) => prev.filter((e) => e.id !== id));
-  };
-
-  const createContact = trpc.contacts.create.useMutation();
+  const bulkImport = trpc.import.bulkImport.useMutation();
   const utils = trpc.useUtils();
 
-  const validateRow = (row: ImportedLead, rowNum: number): string | null => {
-    // Validar campos obrigatórios
-    if (!row["Empresa *"]?.trim() && !row["Contato"]?.trim()) {
-      return `Linha ${rowNum}: Pelo menos "Empresa" ou "Contato" é obrigatório`;
-    }
+  const validation = useMemo(() => preValidate(rawRows, mode), [rawRows, mode]);
 
-    // Converter telefone para string se for número
-    const phone = String(row["Telefone *"] || "").trim();
-    if (!phone) {
-      return `Linha ${rowNum}: Campo "Telefone" é obrigatório`;
-    }
-
-    if (!row["Segmento *"]?.trim()) {
-      return `Linha ${rowNum}: Campo "Segmento" é obrigatório`;
-    }
-
-    // Validar email se fornecido
-    if (row["Email"] && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row["Email"])) {
-      return `Linha ${rowNum}: Email inválido`;
-    }
-
-    return null;
+  // ── Reset state ──
+  const resetWizard = () => {
+    setStep("upload");
+    setMode("contacts_and_opportunities");
+    setRawRows([]);
+    setFileName("");
+    setImportResult(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  // ── Step 1: File Upload ──
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     try {
-      setImporting(true);
-      setValidationErrors([]);
-      setImportResults([]);
-
-      // Ler arquivo
       const arrayBuffer = await file.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer, { type: "array" });
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json<ImportedLead>(worksheet);
+      const data = XLSX.utils.sheet_to_json<SpreadsheetRow>(worksheet);
 
       if (data.length === 0) {
-        addError('EMPTY_FILE');
-        setImporting(false);
+        toast.error("A planilha está vazia.");
         return;
       }
 
-      // Validar dados e separar válidos de inválidos
-      const validLeads: ProcessedLead[] = [];
-      const errors: string[] = [];
-      
-      data.forEach((row, index) => {
-        const rowNum = index + 2;
-        const error = validateRow(row, rowNum);
-
-        if (error) {
-          errors.push(error);
-        } else {
-          validLeads.push({
-            companyName: row["Empresa *"]?.trim() || "",
-            contactName: row["Contato"]?.trim() || undefined,
-            phone: String(row["Telefone *"] || "").trim(),
-            email: row["Email"]?.trim() || undefined,
-            segment: row["Segmento *"].trim(),
-            status: row["Status"]?.trim() || undefined,
-            site: row["Site"]?.trim() || undefined,
-            city: row["Cidade"]?.trim() || undefined,
-            notes: row["Notas"]?.trim() || undefined,
-          });
-        }
-      });
-
-      if (errors.length > 0) {
-        setValidationErrors(errors);
-        toast.warning(`${errors.length} erro(s) de validação encontrado(s). Importando ${validLeads.length} linha(s) válida(s)...`);
-      }
-
-      if (validLeads.length === 0) {
-        toast.error("Nenhuma linha válida para importar");
-        setImporting(false);
-        return;
-      }
-
-      // Importar leads válidos com tipo de aba
-      let successCount = 0;
-      let errorCount = 0;
-      const results: ImportResult[] = [];
-      
-      for (let i = 0; i < validLeads.length; i++) {
-        const lead = validLeads[i];
-        try {
-          await createContact.mutateAsync({
-            name: lead.contactName || lead.companyName || "Contato Desconhecido",
-            company: lead.companyName,
-            phone: lead.phone,
-            email: lead.email,
-            segment: lead.segment,
-            city: lead.city,
-            site: lead.site,
-            source: leadType, // Map CRM/Site to source
-            notes: lead.notes,
-          });
-          successCount++;
-          results.push({
-            rowIndex: i + 2,
-            company: lead.companyName || lead.contactName || "Desconhecido",
-            status: "success"
-          });
-        } catch (e: any) {
-          errorCount++;
-          results.push({
-            rowIndex: i + 2,
-            company: lead.companyName || lead.contactName || "Desconhecido",
-            status: "error",
-            error: e.message || "Erro desconhecido"
-          });
-        }
-      }
-
-      setImportResults(results);
-
-      // Invalidar cache
-      await utils.contacts.list.invalidate();
-      await utils.dashboard.stats.invalidate();
-
-      // Mostrar resultado
-      if (successCount > 0) {
-        toast.success(`${successCount} contato(s) importado(s) para ${leadType} com sucesso!`);
-      }
-
-      if (errorCount > 0) {
-        toast.error(`${errorCount} contato(s) falharam na importação`);
-      }
-
-      // Limpar input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-
-      // Fechar após 3 segundos
-      setTimeout(() => {
-        setOpen(false);
-        setImportResults([]);
-        setValidationErrors([]);
-      }, 3000);
+      setRawRows(data.map(mapRow));
+      setFileName(file.name);
+      setStep("preview");
     } catch (error) {
-      console.error("Erro ao importar:", error);
-      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      addError('INVALID_FORMAT', { message: errorMessage });
-    } finally {
-      setImporting(false);
+      console.error("Erro ao ler planilha:", error);
+      toast.error("Erro ao ler o arquivo. Verifique se é um XLSX válido.");
     }
   };
 
+  // ── Step 3: Execute Import ──
+  const handleConfirmImport = async () => {
+    setStep("importing");
+
+    try {
+      const result = await bulkImport.mutateAsync({
+        mode,
+        rows: rawRows,
+      });
+
+      setImportResult(result);
+      setStep("report");
+
+      // Invalidate caches
+      await utils.contacts.list.invalidate();
+      await utils.opportunities.list.invalidate();
+      await utils.dashboard.stats.invalidate();
+
+      if (result.summary.linesWithError === 0) {
+        toast.success(`Importação concluída! ${result.summary.contactsCreated + result.summary.contactsReused} contatos, ${result.summary.opportunitiesCreated} oportunidades.`);
+      } else {
+        toast.warning(`Importação parcial: ${result.summary.linesWithError} linha(s) com erro.`);
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Erro na importação.");
+      setStep("preview");
+    }
+  };
+
+  // ── Download Error Report ──
+  const handleDownloadReport = () => {
+    if (!importResult) return;
+
+    const reportData = importResult.results.map((r: any) => ({
+      "Linha": r.rowIndex,
+      "Status": r.status === "success" ? "Importado" : r.status === "error" ? "Erro" : "Ignorado",
+      "Contato Criado": r.contactCreated ? "Sim" : r.contactId ? "Reutilizado" : "-",
+      "Oportunidade ID": r.opportunityId || "-",
+      "Erros": r.errors.join("; ") || "-",
+      "Alertas": r.alerts.join("; ") || "-",
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(reportData);
+    ws["!cols"] = [
+      { wch: 8 }, { wch: 12 }, { wch: 16 }, { wch: 18 }, { wch: 50 }, { wch: 50 },
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Relatório");
+    XLSX.writeFile(wb, "relatorio-importacao-crm-vitti.xlsx");
+    toast.success("Relatório baixado!");
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetWizard(); }}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <Upload className="w-4 h-4 mr-2" />
           Importar
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Importar Prospectos para {leadType}</DialogTitle>
+          <DialogTitle>
+            {step === "upload" && "Importar Planilha"}
+            {step === "preview" && "Pré-validação"}
+            {step === "importing" && "Importando..."}
+            {step === "report" && "Relatório da Importação"}
+          </DialogTitle>
           <DialogDescription>
-            Selecione um arquivo XLSX com os prospectos para importar na aba <strong>{leadType}</strong>
+            {step === "upload" && "Escolha o modo de importação e suba sua planilha XLSX."}
+            {step === "preview" && `Arquivo: ${fileName} — Revise antes de confirmar.`}
+            {step === "importing" && "Processando sua planilha no servidor..."}
+            {step === "report" && "Veja o resultado detalhado da importação."}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Type Indicator Badge */}
-          <div className={`flex items-center gap-2 p-3 rounded-lg border ${leadType === 'CRM' ? 'bg-blue-500/10 border-blue-500/30 text-blue-300' : 'bg-purple-500/10 border-purple-500/30 text-purple-300'}`}>
-            <div className={`w-3 h-3 rounded-full ${leadType === 'CRM' ? 'bg-blue-500' : 'bg-purple-500'}`}></div>
-            <span className="text-sm font-medium">
-              Importando para: <strong>{leadType}</strong>
-            </span>
+        {/* ════════════════════ STEP 1: UPLOAD ════════════════════ */}
+        {step === "upload" && (
+          <div className="space-y-6 py-4">
+            {/* Mode Selection */}
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-foreground">Modo de importação</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  onClick={() => setMode("contacts_only")}
+                  className={`p-4 rounded-lg border-2 text-left transition-all ${
+                    mode === "contacts_only"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-muted-foreground/50"
+                  }`}
+                >
+                  <p className="font-medium text-sm">Apenas Contatos</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Popula a base cadastral. Nenhuma oportunidade será criada.
+                  </p>
+                </button>
+                <button
+                  onClick={() => setMode("contacts_and_opportunities")}
+                  className={`p-4 rounded-lg border-2 text-left transition-all ${
+                    mode === "contacts_and_opportunities"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-muted-foreground/50"
+                  }`}
+                >
+                  <p className="font-medium text-sm">Contatos + Oportunidades</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Cria contatos e insere oportunidades no kanban automaticamente.
+                  </p>
+                  <span className="text-[10px] text-primary font-semibold mt-1 inline-block">RECOMENDADO</span>
+                </button>
+              </div>
+            </div>
+
+            {/* File Input */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">Arquivo XLSX</p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleFileSelect}
+                className="block w-full text-sm text-muted-foreground
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-md file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-primary/10 file:text-primary
+                  hover:file:bg-primary/20
+                  cursor-pointer"
+              />
+              <p className="text-xs text-muted-foreground">
+                Use o template oficial do CRM Vitti para melhores resultados.
+              </p>
+            </div>
           </div>
+        )}
 
-          {/* Persistent Errors */}
-          {errors.length > 0 && (
-            <ErrorList errors={errors} onDismiss={dismissError} />
-          )}
-
-          {/* Upload Area */}
-          <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={handleFileSelect}
-              disabled={importing}
-              className="hidden"
-              id="xlsx-input"
-            />
-            <label
-              htmlFor="xlsx-input"
-              className="cursor-pointer flex flex-col items-center gap-2"
-            >
-              <Upload className="w-8 h-8 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">
-                {importing ? `Importando para ${leadType}...` : "Clique para selecionar arquivo"}
+        {/* ════════════════════ STEP 2: PREVIEW ════════════════════ */}
+        {step === "preview" && (
+          <div className="space-y-5 py-4">
+            {/* Mode Badge */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
+                {mode === "contacts_only" ? "Apenas Contatos" : "Contatos + Oportunidades"}
               </span>
-              <span className="text-xs text-muted-foreground">ou arraste um arquivo XLSX</span>
-            </label>
-          </div>
-
-          {/* Validation Errors */}
-          {validationErrors.length > 0 && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 space-y-2">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                <span className="text-sm font-medium text-yellow-800">
-                  {validationErrors.length} erro(s) de validação
-                </span>
-              </div>
-              <ul className="text-xs text-yellow-700 space-y-1 max-h-40 overflow-y-auto">
-                {validationErrors.map((error, i) => (
-                  <li key={i}>• {error}</li>
-                ))}
-              </ul>
             </div>
-          )}
 
-          {/* Import Results */}
-          {importResults.length > 0 && (
-            <div className="bg-muted/30 border border-border rounded-lg p-3 space-y-2">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm font-medium text-foreground">
-                  Resultado da Importação ({importResults.length} linha(s))
-                </span>
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-card border border-border rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-foreground">{validation.totalRows}</p>
+                <p className="text-xs text-muted-foreground">Linhas lidas</p>
               </div>
-              <div className="max-h-48 overflow-y-auto space-y-1">
-                {importResults.map((result, i) => (
-                  <div key={i} className="flex items-start gap-2 text-xs">
-                    {result.status === "success" ? (
-                      <>
-                        <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                        <span className="text-green-700">
-                          Linha {result.rowIndex}: {result.company} ✓
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-                        <div className="text-red-700">
-                          <div>Linha {result.rowIndex}: {result.company}</div>
-                          {result.error && <div className="text-red-600 ml-2">Erro: {result.error}</div>}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ))}
+              <div className="bg-card border border-border rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-green-400">{validation.validRows}</p>
+                <p className="text-xs text-muted-foreground">Válidas</p>
+              </div>
+              <div className="bg-card border border-border rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-red-400">{validation.rowsWithIssues}</p>
+                <p className="text-xs text-muted-foreground">Com erro</p>
+              </div>
+              <div className="bg-card border border-border rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-muted-foreground">{validation.emptyRows}</p>
+                <p className="text-xs text-muted-foreground">Vazias (ignoradas)</p>
               </div>
             </div>
-          )}
 
-          {/* Info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800">
-            <p className="font-medium mb-1">Campos obrigatórios:</p>
-            <ul className="space-y-1">
-              <li>• <strong>Empresa</strong></li>
-              <li>• <strong>Telefone</strong></li>
-              <li>• <strong>Segmento</strong> (Clínica, Bar, Restaurante, Empresa)</li>
-            </ul>
-            <p className="font-medium mt-2 mb-1">Campos opcionais:</p>
-            <ul className="space-y-1">
-              <li>• <strong>Contato</strong></li>
-              <li>• <strong>Email</strong></li>
-              <li>• <strong>Status</strong> (será "Entrar em contato" se não fornecido ou inválido)</li>
-              <li>• <strong>Cidade</strong></li>
-              <li>• <strong>Notas</strong></li>
-            </ul>
+            {/* Issue Details */}
+            {validation.rowsWithIssues > 0 && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 space-y-1">
+                <p className="text-sm font-medium text-red-400 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" /> Problemas detectados
+                </p>
+                {validation.missingIdentification > 0 && (
+                  <p className="text-xs text-red-300">• {validation.missingIdentification} linha(s) sem Nome nem Empresa</p>
+                )}
+                {validation.missingContact > 0 && (
+                  <p className="text-xs text-red-300">• {validation.missingContact} linha(s) sem Telefone nem Email</p>
+                )}
+                {validation.missingPipeline > 0 && (
+                  <p className="text-xs text-red-300">• {validation.missingPipeline} linha(s) sem Pipeline (obrigatório neste modo)</p>
+                )}
+              </div>
+            )}
+
+            {/* Info */}
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+              <p className="text-xs text-blue-300">
+                A validação completa (pipelines, estágios, duplicatas, tags) será feita no servidor ao confirmar.
+                Linhas com erro serão rejeitadas individualmente sem afetar as demais.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-between">
+              <Button variant="outline" size="sm" onClick={() => setStep("upload")}>
+                <ArrowLeft className="w-4 h-4 mr-1" /> Voltar
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleConfirmImport}
+                disabled={validation.validRows === 0}
+              >
+                Confirmar Importação <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* ════════════════════ STEP 3: IMPORTING ════════════════════ */}
+        {step === "importing" && (
+          <div className="flex flex-col items-center justify-center py-12 space-y-4">
+            <Loader2 className="w-10 h-10 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">
+              Processando {rawRows.length} linhas no servidor...
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Isso pode levar alguns segundos para lotes grandes.
+            </p>
+          </div>
+        )}
+
+        {/* ════════════════════ STEP 4: REPORT ════════════════════ */}
+        {step === "report" && importResult && (
+          <div className="space-y-5 py-4">
+            {/* Summary */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-green-400">{importResult.summary.contactsCreated}</p>
+                <p className="text-xs text-muted-foreground">Contatos criados</p>
+              </div>
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-blue-400">{importResult.summary.contactsReused}</p>
+                <p className="text-xs text-muted-foreground">Contatos reutilizados</p>
+              </div>
+              <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-purple-400">{importResult.summary.opportunitiesCreated}</p>
+                <p className="text-xs text-muted-foreground">Oportunidades criadas</p>
+              </div>
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-red-400">{importResult.summary.linesWithError}</p>
+                <p className="text-xs text-muted-foreground">Linhas com erro</p>
+              </div>
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-yellow-400">{importResult.summary.tagsIgnored}</p>
+                <p className="text-xs text-muted-foreground">Tags ignoradas</p>
+              </div>
+              <div className="bg-card border border-border rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-muted-foreground">{importResult.summary.linesSkipped}</p>
+                <p className="text-xs text-muted-foreground">Linhas vazias</p>
+              </div>
+            </div>
+
+            {/* Detailed Results (scrollable) */}
+            {importResult.results.length > 0 && (
+              <div className="max-h-48 overflow-y-auto rounded-lg border border-border">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/50 sticky top-0">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Linha</th>
+                      <th className="px-3 py-2 text-left">Status</th>
+                      <th className="px-3 py-2 text-left">Detalhes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {importResult.results.map((r: any, idx: number) => (
+                      <tr key={idx} className="border-t border-border">
+                        <td className="px-3 py-2 font-mono">{r.rowIndex}</td>
+                        <td className="px-3 py-2">
+                          {r.status === "success" ? (
+                            <span className="flex items-center gap-1 text-green-400">
+                              <CheckCircle className="w-3 h-3" /> OK
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-red-400">
+                              <AlertCircle className="w-3 h-3" /> Erro
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {r.errors.length > 0 && <span className="text-red-400">{r.errors.join("; ")} </span>}
+                          {r.alerts.length > 0 && <span className="text-yellow-400">{r.alerts.join("; ")}</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex justify-between">
+              <Button variant="outline" size="sm" onClick={handleDownloadReport}>
+                <Download className="w-4 h-4 mr-1" /> Baixar Relatório
+              </Button>
+              <Button size="sm" onClick={() => { resetWizard(); setOpen(false); }}>
+                Fechar
+              </Button>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
