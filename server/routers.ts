@@ -622,8 +622,17 @@ export const appRouter = router({
         })),
       }))
       .mutation(async ({ input, ctx }) => {
+        // ── Debug Logs Temporários ──
+        console.log("[Import] AUTH_DISABLED:", process.env.AUTH_DISABLED);
+        console.log("[Import] VITE_AUTH_DISABLED:", process.env.VITE_AUTH_DISABLED);
+        console.log("[Import] ctx.user.role:", ctx.user?.role);
+
+        const isAuthDisabled =
+          process.env.AUTH_DISABLED === "true" ||
+          process.env.VITE_AUTH_DISABLED === "true";
+
         // ── RBAC mínimo: apenas admin pode importar no MVP ──
-        if (ctx.user && (ctx.user as any).role !== "admin") {
+        if (!isAuthDisabled && (!ctx.user || (ctx.user as any).role !== "admin")) {
           throw new TRPCError({
             code: "FORBIDDEN",
             message: "Apenas administradores podem importar dados.",
@@ -648,6 +657,15 @@ export const appRouter = router({
         // ── Helpers de normalização ──
         const normalize = (s?: string | null) => (s || "").trim().toLowerCase();
         const normalizePhone = (s?: string | null) => (s || "").replace(/\D/g, "").trim();
+        const parseMonetaryValue = (val?: string | null): number | "INVALID" | null => {
+          if (!val || val.trim() === "") return null;
+          const s = val.trim();
+          // Aceita apenas dígitos, opcionalmente seguidos por exatamente um ponto ou uma vírgula e mais dígitos.
+          if (!/^\d+([.,]\d+)?$/.test(s)) return "INVALID";
+          const num = parseFloat(s.replace(",", "."));
+          if (isNaN(num) || num < 0) return "INVALID";
+          return num;
+        };
 
         // ── Processar cada linha ──
         type LineResult = {
@@ -700,6 +718,7 @@ export const appRouter = router({
           // ── 3. Validar campos de oportunidade (se modo 2) ──
           let resolvedPipelineId: number | null = null;
           let resolvedStageId: number | null = null;
+          let parsedMonetaryValue: number | null = null;
 
           if (mode === "contacts_and_opportunities") {
             const pipelineName = row.pipeline?.trim() || "";
@@ -732,27 +751,29 @@ export const appRouter = router({
                   }
                 } else {
                   const normalizedStageName = normalize(estagioName);
-                  const matchingStage = pipeStages.find(s => normalize(s.name) === normalizedStageName);
-                  if (matchingStage) {
-                    resolvedStageId = matchingStage.id;
-                  } else {
+                  const matchingStages = pipeStages.filter(s => normalize(s.name) === normalizedStageName);
+                  
+                  if (matchingStages.length === 0) {
                     errors.push(`Estágio "${estagioName}" não encontrado no pipeline "${pipelineName}".`);
+                  } else if (matchingStages.length > 1) {
+                    errors.push(`Estágio ambíguo: mais de um estágio compatível com "${estagioName}" foi encontrado no pipeline "${pipelineName}". Corrija os estágios antes de importar.`);
+                  } else {
+                    resolvedStageId = matchingStages[0].id;
                   }
                 }
               }
             }
 
             // Validar valor estimado
-            const valorStr = row.valorEstimado?.trim() || "";
-            if (valorStr) {
-              const valorNum = parseFloat(valorStr.replace(",", "."));
-              if (isNaN(valorNum) || valorNum < 0) {
-                errors.push(`Valor estimado "${valorStr}" é inválido.`);
-              }
+            const valResult = parseMonetaryValue(row.valorEstimado);
+            if (valResult === "INVALID") {
+              errors.push(`Valor estimado "${row.valorEstimado}" é inválido. Use apenas números, exemplo: 1500, 1500.00 ou 1500,00. Não use R$, pontos de milhar ou texto.`);
+            } else {
+              parsedMonetaryValue = valResult;
             }
           }
 
-          // ── 4. Se houver erro, pular a linha inteira ──
+          // ── 4. Se houver erro bloqueante, pular a linha inteira antes de iniciar transação ──
           if (errors.length > 0) {
             linesWithError++;
             results.push({ rowIndex, status: "error", errors, alerts });
@@ -761,15 +782,14 @@ export const appRouter = router({
 
           // ── 5. Buscar/reutilizar contato (telefone → email) ──
           let contactId: number | null = null;
-          let contactCreated = false;
+          let contactExisted = false;
           const phoneNorm = normalizePhone(telefone);
           const emailNorm = normalize(email);
 
-          // Check existing DB contacts
+          // Verifica no DB existente
           if (phoneNorm) {
             const match = allContacts.find(c => normalizePhone(c.phone) === phoneNorm);
             if (match) contactId = match.id;
-            // Also check batch contacts from this import
             if (!contactId) {
               const batchMatch = batchContacts.find(c => normalizePhone(c.phone) === phoneNorm);
               if (batchMatch) contactId = batchMatch.id;
@@ -785,92 +805,105 @@ export const appRouter = router({
           }
 
           if (contactId) {
-            contactCreated = false;
-            contactsReused++;
+            contactExisted = true;
             alerts.push("Contato já existente reutilizado.");
-          } else {
-            // Criar novo contato
-            try {
-              const [result] = await db.insert(contacts).values({
-                name: nome || empresa,
-                company: empresa || undefined,
-                phone: telefone || undefined,
-                email: email || undefined,
-                segment: row.segmento?.trim() || undefined,
-                city: row.cidade?.trim() || undefined,
-                source: row.origem?.trim() || undefined,
-              }).$returningId();
-              contactId = result.id;
-              contactCreated = true;
-              contactsCreated++;
-              // Track in batch for dedup within this import
-              batchContacts.push({ id: contactId, phone: telefone, email: email });
-            } catch (e: any) {
-              errors.push(`Erro ao criar contato: ${e.message}`);
-              linesWithError++;
-              results.push({ rowIndex, status: "error", errors, alerts });
-              continue;
-            }
           }
 
-          // ── 6. Resolver e aplicar tags ao contato ──
+          // ── 6. Resolver tag a ser aplicada ao contato ──
           const tagName = row.tags?.trim() || "";
-          if (tagName && contactId) {
+          let matchingTagId: number | null = null;
+          if (tagName) {
             const normalizedTagName = normalize(tagName);
             const matchingTag = allTags.find(t => normalize(t.name) === normalizedTagName);
             if (matchingTag) {
-              try {
-                // Check if tag already applied
-                const existing = await db.select().from(contactTags)
-                  .where(and(eq(contactTags.contactId, contactId), eq(contactTags.tagId, matchingTag.id)))
-                  .limit(1);
-                if (existing.length === 0) {
-                  await db.insert(contactTags).values({ contactId, tagId: matchingTag.id });
-                }
-              } catch { /* ignore duplicate tag errors */ }
+              matchingTagId = matchingTag.id;
             } else {
               alerts.push(`Tag "${tagName}" não encontrada. Registro importado sem essa tag.`);
               tagsIgnored++;
             }
           }
 
-          // ── 7. Criar oportunidade (se modo 2) ──
-          let opportunityId: number | undefined;
-          if (mode === "contacts_and_opportunities" && resolvedPipelineId && resolvedStageId && contactId) {
-            const oppTitle = row.nomeDaOportunidade?.trim() || `Venda - ${empresa || nome}`;
-            const valorStr = row.valorEstimado?.trim() || "";
-            const valorClean = valorStr ? valorStr.replace(",", ".") : undefined;
+          // ── 7. Transação Segura Por Linha (DB Insert) ──
+          try {
+            const txResult = await db.transaction(async (tx) => {
+              let txContactId = contactId;
+              let txContactCreated = false;
 
-            try {
-              const result = await db.insert(opportunities).values({
-                contactId,
-                pipelineId: resolvedPipelineId,
-                stageId: resolvedStageId,
-                title: oppTitle,
-                monetaryValue: valorClean || undefined,
-                source: row.origem?.trim() || undefined,
-                notes: row.observacoes?.trim() || undefined,
-                segment: row.segmento?.trim() || undefined,
-              });
-              const insertedId = (result as any)[0]?.insertId ?? (result as any).insertId;
-              opportunityId = insertedId;
-              opportunitiesCreated++;
-            } catch (e: any) {
-              errors.push(`Erro ao criar oportunidade: ${e.message}`);
-              // Contact was created but opportunity failed — keep contact, report error
-              alerts.push("Contato foi criado/reutilizado, mas a oportunidade falhou.");
+              // A. Criar contato se não existia
+              if (!txContactId) {
+                const [result] = await tx.insert(contacts).values({
+                  name: nome || empresa,
+                  company: empresa || undefined,
+                  phone: telefone || undefined,
+                  email: email || undefined,
+                  segment: row.segmento?.trim() || undefined,
+                  city: row.cidade?.trim() || undefined,
+                  source: row.origem?.trim() || undefined,
+                }).$returningId();
+                txContactId = result.id;
+                txContactCreated = true;
+              }
+
+              // B. Aplicar Tag usando 'tx'
+              if (matchingTagId && txContactId) {
+                const existing = await tx.select().from(contactTags)
+                  .where(and(eq(contactTags.contactId, txContactId), eq(contactTags.tagId, matchingTagId)))
+                  .limit(1);
+                if (existing.length === 0) {
+                  await tx.insert(contactTags).values({ contactId: txContactId, tagId: matchingTagId });
+                }
+              }
+
+              // C. Criar Oportunidade usando 'tx'
+              let txOpportunityId: number | undefined;
+              if (mode === "contacts_and_opportunities" && resolvedPipelineId && resolvedStageId && txContactId) {
+                const oppTitle = row.nomeDaOportunidade?.trim() || `Venda - ${empresa || nome}`;
+                const result = await tx.insert(opportunities).values({
+                  contactId: txContactId,
+                  pipelineId: resolvedPipelineId,
+                  stageId: resolvedStageId,
+                  title: oppTitle,
+                  monetaryValue: parsedMonetaryValue !== null ? parsedMonetaryValue.toString() : undefined,
+                  source: row.origem?.trim() || undefined,
+                  notes: row.observacoes?.trim() || undefined,
+                  segment: row.segmento?.trim() || undefined,
+                });
+                const insertedId = (result as any)[0]?.insertId ?? (result as any).insertId;
+                txOpportunityId = insertedId;
+              }
+
+              return {
+                contactId: txContactId,
+                contactCreated: txContactCreated,
+                opportunityId: txOpportunityId,
+              };
+            });
+
+            // Se a transação deu commit, salvamos o progresso
+            if (txResult.contactCreated && txResult.contactId) {
+              contactsCreated++;
+              batchContacts.push({ id: txResult.contactId, phone: telefone, email: email });
+            } else if (contactExisted) {
+              contactsReused++;
             }
-          }
+            if (txResult.opportunityId) opportunitiesCreated++;
 
-          results.push({
-            rowIndex,
-            status: errors.length > 0 ? "error" : "success",
-            errors,
-            alerts,
-            contactId: contactId ?? undefined,
-            contactCreated,
-            opportunityId,
-          });
+            results.push({
+              rowIndex,
+              status: "success",
+              errors,
+              alerts,
+              contactId: txResult.contactId,
+              contactCreated: txResult.contactCreated,
+              opportunityId: txResult.opportunityId,
+            });
+
+          } catch (e: any) {
+            // Se falhou dentro da transação, TUDO dessa linha foi revertido (inclusive o contato recém-criado)
+            errors.push(`Erro na gravação (transação abortada): ${e.message}`);
+            linesWithError++;
+            results.push({ rowIndex, status: "error", errors, alerts });
+          }
         }
 
         return {

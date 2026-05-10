@@ -14,12 +14,12 @@ export async function createContext(
   let user: User | null = null;
 
   try {
-    const isAuthDisabled = process.env.AUTH_DISABLED === 'true' || process.env.VITE_AUTH_DISABLED === 'true';
+    const { isAuthDisabled } = await import("../auth-utils");
     
-    if (isAuthDisabled) {
+    if (isAuthDisabled()) {
       user = {
         id: 1, // Simulated admin ID
-        username: "admin_bypass",
+        username: "admin-teste",
         passwordHash: "",
         openId: "bypass_admin_001",
         name: "Admin (Modo Teste)",
@@ -32,6 +32,7 @@ export async function createContext(
         passwordResetToken: null,
         passwordResetExpires: null,
       };
+      console.log("[AUTH-BYPASS] isAuthDisabled=true. Injecting Admin (Modo Teste).");
     } else {
       user = await sdk.authenticateRequest(opts.req);
     }

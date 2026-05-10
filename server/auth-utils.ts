@@ -21,3 +21,13 @@ export function verifyPassword(password: string, hash: string): boolean {
     .toString("hex");
   return computedHash === storedHash;
 }
+
+/**
+ * Check if authentication bypass is active
+ */
+export function isAuthDisabled(): boolean {
+  return (
+    process.env.AUTH_DISABLED === "true" ||
+    process.env.VITE_AUTH_DISABLED === "true"
+  );
+}
