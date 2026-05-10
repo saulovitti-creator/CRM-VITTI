@@ -654,17 +654,94 @@ export const appRouter = router({
           email: contacts.email,
         }).from(contacts);
 
-        // ── Helpers de normalização ──
-        const normalize = (s?: string | null) => (s || "").trim().toLowerCase();
-        const normalizePhone = (s?: string | null) => (s || "").replace(/\D/g, "").trim();
-        const parseMonetaryValue = (val?: string | null): number | "INVALID" | null => {
-          if (!val || val.trim() === "") return null;
-          const s = val.trim();
-          // Aceita apenas dígitos, opcionalmente seguidos por exatamente um ponto ou uma vírgula e mais dígitos.
-          if (!/^\d+([.,]\d+)?$/.test(s)) return "INVALID";
-          const num = parseFloat(s.replace(",", "."));
-          if (isNaN(num) || num < 0) return "INVALID";
-          return num;
+        // ── Helpers de normalização (Fase 1) ──
+
+        /** Remove espaços extras no início/fim e colapsa espaços duplicados internos. */
+        const normalizeText = (s?: string | null): string => {
+          if (!s) return "";
+          return s.trim().replace(/\s+/g, " ");
+        };
+
+        /** Lowercase + trim. Para comparação de lookup (pipeline, estágio, tag). */
+        const normalizeLookupName = (s?: string | null): string => {
+          return normalizeText(s).toLowerCase();
+        };
+
+        /** Remove espaços e converte para lowercase. */
+        const normalizeEmail = (s?: string | null): string => {
+          if (!s) return "";
+          return s.replace(/\s/g, "").toLowerCase();
+        };
+
+        /** Remove tudo que não é dígito. */
+        const normalizePhoneFn = (s?: string | null): string => {
+          if (!s) return "";
+          return s.replace(/\D/g, "");
+        };
+
+        /**
+         * Parser monetário brasileiro seguro.
+         * Aceita: 1500, 1500.00, 1500,00, 1.500, 1.500,00, R$ 1.500,00
+         * Bloqueia: negativos, "abc", "1,500.00", "1.500.00", "1,2,3"
+         */
+        const parseBrazilianMoney = (val?: string | null): { value: number | null; error?: string; transformed?: string } => {
+          if (!val || val.trim() === "") return { value: null };
+          let s = val.trim();
+
+          // Remover prefixo R$ (case-insensitive)
+          s = s.replace(/^r\$\s*/i, "").trim();
+          if (!s) return { value: null };
+
+          // Bloquear negativos
+          if (s.startsWith("-")) return { value: null, error: `Valor estimado "${val.trim()}" é inválido (negativo). Use apenas valores positivos.` };
+
+          // Bloquear letras (exceto R$ já removido)
+          if (/[a-zA-Z]/.test(s)) return { value: null, error: `Valor estimado "${val.trim()}" é inválido. Use exemplos como 1500, 1500,00 ou R$ 1.500,00.` };
+
+          const hasDot = s.includes(".");
+          const hasComma = s.includes(",");
+
+          // Bloquear formato internacional ambíguo: "1,500.00"
+          if (hasComma && hasDot && s.indexOf(",") < s.indexOf(".")) {
+            return { value: null, error: `Valor estimado "${val.trim()}" é ambíguo (formato internacional?). Use o formato brasileiro: 1.500,00.` };
+          }
+
+          // Bloquear múltiplas vírgulas: "1,2,3"
+          if ((s.match(/,/g) || []).length > 1) {
+            return { value: null, error: `Valor estimado "${val.trim()}" é inválido (múltiplas vírgulas).` };
+          }
+
+          // Bloquear ponto seguido de ponto sem vírgula decimal: "1.500.00"
+          if (hasDot && !hasComma) {
+            const dotParts = s.split(".");
+            if (dotParts.length > 2) {
+              return { value: null, error: `Valor estimado "${val.trim()}" é inválido (múltiplos pontos sem vírgula decimal).` };
+            }
+            // "1.500" → milhar (3 dígitos após ponto); "1500.00" → decimal
+            if (dotParts.length === 2 && dotParts[1].length === 3) {
+              // Ponto como milhar: "1.500" → 1500
+              const num = parseFloat(s.replace(/\./g, ""));
+              if (isNaN(num) || num < 0) return { value: null, error: `Valor estimado "${val.trim()}" é inválido.` };
+              return { value: num, transformed: `"${val.trim()}" → ${num}` };
+            }
+            // Ponto como decimal: "1500.00" → 1500, "1500.5" → 1500.5
+            const num = parseFloat(s);
+            if (isNaN(num) || num < 0) return { value: null, error: `Valor estimado "${val.trim()}" é inválido.` };
+            return { value: num, transformed: val.trim() !== String(num) ? `"${val.trim()}" → ${num}` : undefined };
+          }
+
+          // Formato brasileiro com vírgula decimal: "1.500,00" ou "1500,00"
+          if (hasComma) {
+            const clean = s.replace(/\./g, "").replace(",", ".");
+            const num = parseFloat(clean);
+            if (isNaN(num) || num < 0) return { value: null, error: `Valor estimado "${val.trim()}" é inválido.` };
+            return { value: num, transformed: `"${val.trim()}" → ${num}` };
+          }
+
+          // Apenas dígitos: "1500"
+          const num = parseFloat(s);
+          if (isNaN(num) || num < 0) return { value: null, error: `Valor estimado "${val.trim()}" é inválido.` };
+          return { value: num };
         };
 
         // ── Processar cada linha ──
@@ -702,11 +779,30 @@ export const appRouter = router({
             continue; // Silenciosamente ignorada
           }
 
-          // ── 2. Validar campos obrigatórios de contato ──
-          const nome = row.nome?.trim() || "";
-          const empresa = row.empresa?.trim() || "";
-          const telefone = row.telefone?.trim() || "";
-          const email = row.email?.trim() || "";
+          // ── 2. Normalizar e validar campos de contato ──
+          const nome = normalizeText(row.nome);
+          const empresa = normalizeText(row.empresa);
+          const segmento = normalizeText(row.segmento);
+          const cidade = normalizeText(row.cidade);
+          const origem = normalizeText(row.origem);
+          const observacoes = normalizeText(row.observacoes);
+
+          // Telefone: normalizar (remover máscara)
+          const rawPhone = (row.telefone || "").trim();
+          const telefone = normalizePhoneFn(rawPhone);
+          if (rawPhone && telefone && rawPhone !== telefone) {
+            alerts.push(`Telefone "${rawPhone}" normalizado para "${telefone}".`);
+          }
+          if (telefone && telefone.length < 8) {
+            alerts.push(`Telefone "${telefone}" parece curto (${telefone.length} dígitos).`);
+          }
+
+          // Email: normalizar (lowercase, sem espaços)
+          const rawEmail = (row.email || "").trim();
+          const email = normalizeEmail(rawEmail);
+          if (rawEmail && email && rawEmail !== email) {
+            alerts.push(`Email "${rawEmail}" normalizado para "${email}".`);
+          }
 
           if (!nome && !empresa) {
             errors.push("Nome e Empresa estão vazios. Pelo menos um é obrigatório.");
@@ -721,13 +817,13 @@ export const appRouter = router({
           let parsedMonetaryValue: number | null = null;
 
           if (mode === "contacts_and_opportunities") {
-            const pipelineName = row.pipeline?.trim() || "";
+            const pipelineName = normalizeText(row.pipeline);
             if (!pipelineName) {
               errors.push("Pipeline é obrigatório no modo Contatos + Oportunidades.");
             } else {
-              // Buscar pipeline por nome (case-insensitive, trim)
-              const normalizedPipeName = normalize(pipelineName);
-              const matchingPipelines = allPipelines.filter(p => normalize(p.name) === normalizedPipeName);
+              // Buscar pipeline por nome (normalizeLookupName)
+              const normalizedPipeName = normalizeLookupName(pipelineName);
+              const matchingPipelines = allPipelines.filter(p => normalizeLookupName(p.name) === normalizedPipeName);
 
               if (matchingPipelines.length === 0) {
                 errors.push(`Pipeline "${pipelineName}" não encontrado.`);
@@ -737,7 +833,7 @@ export const appRouter = router({
                 resolvedPipelineId = matchingPipelines[0].id;
 
                 // Resolver estágio
-                const estagioName = row.estagioInicial?.trim() || "";
+                const estagioName = normalizeText(row.estagioInicial);
                 const pipeStages = allStages.filter(s => s.pipelineId === resolvedPipelineId);
 
                 if (!estagioName) {
@@ -750,8 +846,8 @@ export const appRouter = router({
                     errors.push(`Nenhum estágio ativo encontrado no pipeline "${pipelineName}".`);
                   }
                 } else {
-                  const normalizedStageName = normalize(estagioName);
-                  const matchingStages = pipeStages.filter(s => normalize(s.name) === normalizedStageName);
+                  const normalizedStageName = normalizeLookupName(estagioName);
+                  const matchingStages = pipeStages.filter(s => normalizeLookupName(s.name) === normalizedStageName);
                   
                   if (matchingStages.length === 0) {
                     errors.push(`Estágio "${estagioName}" não encontrado no pipeline "${pipelineName}".`);
@@ -764,12 +860,15 @@ export const appRouter = router({
               }
             }
 
-            // Validar valor estimado
-            const valResult = parseMonetaryValue(row.valorEstimado);
-            if (valResult === "INVALID") {
-              errors.push(`Valor estimado "${row.valorEstimado}" é inválido. Use apenas números, exemplo: 1500, 1500.00 ou 1500,00. Não use R$, pontos de milhar ou texto.`);
+            // Validar valor estimado com parser brasileiro
+            const moneyResult = parseBrazilianMoney(row.valorEstimado);
+            if (moneyResult.error) {
+              errors.push(moneyResult.error);
             } else {
-              parsedMonetaryValue = valResult;
+              parsedMonetaryValue = moneyResult.value;
+              if (moneyResult.transformed) {
+                alerts.push(`Valor estimado ${moneyResult.transformed}.`);
+              }
             }
           }
 
@@ -783,23 +882,22 @@ export const appRouter = router({
           // ── 5. Buscar/reutilizar contato (telefone → email) ──
           let contactId: number | null = null;
           let contactExisted = false;
-          const phoneNorm = normalizePhone(telefone);
-          const emailNorm = normalize(email);
+          // telefone e email já estão normalizados na seção 2
 
           // Verifica no DB existente
-          if (phoneNorm) {
-            const match = allContacts.find(c => normalizePhone(c.phone) === phoneNorm);
+          if (telefone) {
+            const match = allContacts.find(c => normalizePhoneFn(c.phone) === telefone);
             if (match) contactId = match.id;
             if (!contactId) {
-              const batchMatch = batchContacts.find(c => normalizePhone(c.phone) === phoneNorm);
+              const batchMatch = batchContacts.find(c => normalizePhoneFn(c.phone) === telefone);
               if (batchMatch) contactId = batchMatch.id;
             }
           }
-          if (!contactId && emailNorm) {
-            const match = allContacts.find(c => normalize(c.email) === emailNorm);
+          if (!contactId && email) {
+            const match = allContacts.find(c => normalizeEmail(c.email) === email);
             if (match) contactId = match.id;
             if (!contactId) {
-              const batchMatch = batchContacts.find(c => normalize(c.email) === emailNorm);
+              const batchMatch = batchContacts.find(c => normalizeEmail(c.email) === email);
               if (batchMatch) contactId = batchMatch.id;
             }
           }
@@ -810,11 +908,11 @@ export const appRouter = router({
           }
 
           // ── 6. Resolver tag a ser aplicada ao contato ──
-          const tagName = row.tags?.trim() || "";
+          const tagName = normalizeText(row.tags);
           let matchingTagId: number | null = null;
           if (tagName) {
-            const normalizedTagName = normalize(tagName);
-            const matchingTag = allTags.find(t => normalize(t.name) === normalizedTagName);
+            const normalizedTagName = normalizeLookupName(tagName);
+            const matchingTag = allTags.find(t => normalizeLookupName(t.name) === normalizedTagName);
             if (matchingTag) {
               matchingTagId = matchingTag.id;
             } else {
@@ -836,9 +934,9 @@ export const appRouter = router({
                   company: empresa || undefined,
                   phone: telefone || undefined,
                   email: email || undefined,
-                  segment: row.segmento?.trim() || undefined,
-                  city: row.cidade?.trim() || undefined,
-                  source: row.origem?.trim() || undefined,
+                  segment: segmento || undefined,
+                  city: cidade || undefined,
+                  source: origem || undefined,
                 }).$returningId();
                 txContactId = result.id;
                 txContactCreated = true;
@@ -857,16 +955,16 @@ export const appRouter = router({
               // C. Criar Oportunidade usando 'tx'
               let txOpportunityId: number | undefined;
               if (mode === "contacts_and_opportunities" && resolvedPipelineId && resolvedStageId && txContactId) {
-                const oppTitle = row.nomeDaOportunidade?.trim() || `Venda - ${empresa || nome}`;
+                const oppTitle = normalizeText(row.nomeDaOportunidade) || `Venda - ${empresa || nome}`;
                 const result = await tx.insert(opportunities).values({
                   contactId: txContactId,
                   pipelineId: resolvedPipelineId,
                   stageId: resolvedStageId,
                   title: oppTitle,
                   monetaryValue: parsedMonetaryValue !== null ? parsedMonetaryValue.toString() : undefined,
-                  source: row.origem?.trim() || undefined,
-                  notes: row.observacoes?.trim() || undefined,
-                  segment: row.segmento?.trim() || undefined,
+                  source: origem || undefined,
+                  notes: observacoes || undefined,
+                  segment: segmento || undefined,
                 });
                 const insertedId = (result as any)[0]?.insertId ?? (result as any).insertId;
                 txOpportunityId = insertedId;
