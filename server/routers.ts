@@ -622,17 +622,17 @@ export const appRouter = router({
         })),
       }))
       .mutation(async ({ input, ctx }) => {
+        const { isAuthDisabled } = await import("./auth-utils");
+        const bypassActive = isAuthDisabled();
+
         // ── Debug Logs Temporários ──
         console.log("[Import] AUTH_DISABLED:", process.env.AUTH_DISABLED);
         console.log("[Import] VITE_AUTH_DISABLED:", process.env.VITE_AUTH_DISABLED);
+        console.log("[Import] bypassActive:", bypassActive);
         console.log("[Import] ctx.user.role:", ctx.user?.role);
 
-        const isAuthDisabled =
-          process.env.AUTH_DISABLED === "true" ||
-          process.env.VITE_AUTH_DISABLED === "true";
-
         // ── RBAC mínimo: apenas admin pode importar no MVP ──
-        if (!isAuthDisabled && (!ctx.user || (ctx.user as any).role !== "admin")) {
+        if (!bypassActive && (!ctx.user || (ctx.user as any).role !== "admin")) {
           throw new TRPCError({
             code: "FORBIDDEN",
             message: "Apenas administradores podem importar dados.",

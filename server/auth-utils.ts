@@ -26,8 +26,7 @@ export function verifyPassword(password: string, hash: string): boolean {
  * Check if authentication bypass is active
  */
 export function isAuthDisabled(): boolean {
-  return (
-    process.env.AUTH_DISABLED === "true" ||
-    process.env.VITE_AUTH_DISABLED === "true"
-  );
+  const authDisabled = String(process.env.AUTH_DISABLED || "").trim().toLowerCase();
+  const viteAuthDisabled = String(process.env.VITE_AUTH_DISABLED || "").trim().toLowerCase();
+  return authDisabled === "true" || viteAuthDisabled === "true";
 }
