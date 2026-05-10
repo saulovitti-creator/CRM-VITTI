@@ -32,7 +32,6 @@ export async function createContext(
         passwordResetToken: null,
         passwordResetExpires: null,
       };
-      console.log("[AUTH-BYPASS] isAuthDisabled=true. Injecting Admin (Modo Teste).");
     } else {
       user = await sdk.authenticateRequest(opts.req);
     }

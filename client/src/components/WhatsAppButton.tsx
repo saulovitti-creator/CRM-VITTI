@@ -5,7 +5,7 @@ import { trpc } from "@/lib/trpc";
 
 interface WhatsAppButtonProps {
   phone: string;
-  leadId?: number;
+  contactId?: number;
   message?: string;
   size?: "sm" | "md" | "lg";
   variant?: "icon" | "text";
@@ -13,7 +13,7 @@ interface WhatsAppButtonProps {
 
 export function WhatsAppButton({
   phone,
-  leadId,
+  contactId,
   message,
   size = "sm",
   variant = "icon",

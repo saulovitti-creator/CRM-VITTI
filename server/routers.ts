@@ -267,7 +267,7 @@ export const appRouter = router({
       .input(z.object({
         name: z.string().min(1).max(255),
         fieldType: z.enum(["text", "textarea", "number", "currency", "date", "dropdown", "checkbox", "url", "email", "phone"]),
-        model: z.string().default("lead"),
+        model: z.string().default("contact"),
         groupName: z.string().max(100).optional(),
         placeholder: z.string().max(255).optional(),
         options: z.string().optional(), // JSON array as string
@@ -303,14 +303,14 @@ export const appRouter = router({
     getValues: protectedProcedure
       .input(z.object({
         entityId: z.number(),
-        entityType: z.string().default("lead"),
+        entityType: z.string().default("contact"),
       }))
       .query(({ input }) => getCustomFieldValues(input.entityId, input.entityType)),
 
     setValues: protectedProcedure
       .input(z.object({
         entityId: z.number(),
-        entityType: z.string().default("lead"),
+        entityType: z.string().default("contact"),
         values: z.array(z.object({
           definitionId: z.number(),
           value: z.string().nullable(),
@@ -622,17 +622,8 @@ export const appRouter = router({
         })),
       }))
       .mutation(async ({ input, ctx }) => {
-        const { isAuthDisabled } = await import("./auth-utils");
-        const bypassActive = isAuthDisabled();
-
-        // ── Debug Logs Temporários ──
-        console.log("[Import] AUTH_DISABLED:", process.env.AUTH_DISABLED);
-        console.log("[Import] VITE_AUTH_DISABLED:", process.env.VITE_AUTH_DISABLED);
-        console.log("[Import] bypassActive:", bypassActive);
-        console.log("[Import] ctx.user.role:", ctx.user?.role);
-
         // ── RBAC mínimo: apenas admin pode importar no MVP ──
-        if (!bypassActive && (!ctx.user || (ctx.user as any).role !== "admin")) {
+        if (!ctx.user || (ctx.user as any).role !== "admin") {
           throw new TRPCError({
             code: "FORBIDDEN",
             message: "Apenas administradores podem importar dados.",

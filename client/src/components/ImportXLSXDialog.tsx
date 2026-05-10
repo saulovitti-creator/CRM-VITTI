@@ -158,10 +158,22 @@ export function ImportXLSXDialog() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  // ── Limites de importação ──
+  const MAX_FILE_SIZE_MB = 5;
+  const MAX_ROWS = 1000;
+
   // ── Step 1: File Upload ──
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // Validar tamanho do arquivo
+    const fileSizeMB = file.size / (1024 * 1024);
+    if (fileSizeMB > MAX_FILE_SIZE_MB) {
+      toast.error(`Arquivo muito grande (${fileSizeMB.toFixed(1)} MB). O limite atual é ${MAX_FILE_SIZE_MB} MB.`);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
 
     try {
       const arrayBuffer = await file.arrayBuffer();
@@ -171,6 +183,13 @@ export function ImportXLSXDialog() {
 
       if (data.length === 0) {
         toast.error("A planilha está vazia.");
+        return;
+      }
+
+      // Validar número de linhas
+      if (data.length > MAX_ROWS) {
+        toast.error(`A planilha possui ${data.length} linhas. O limite atual é ${MAX_ROWS} linhas por importação.`);
+        if (fileInputRef.current) fileInputRef.current.value = "";
         return;
       }
 

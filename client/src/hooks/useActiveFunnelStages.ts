@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 
 interface UseActiveFunnelStagesOptions {
-  type?: "lead" | "opportunity";
+  type?: "contact" | "opportunity";
   pipelineId?: string | number;
   currentStatusOrId?: string | number | null;
 }

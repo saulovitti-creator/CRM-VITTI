@@ -101,12 +101,12 @@ export default function Dashboard() {
 
         {/* KPI Cards Row 1 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Total Leads */}
+          {/* Total Contatos */}
           <Card>
             <CardContent className="py-5 px-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-label">Total de Leads</p>
+                  <p className="text-label">Total de Contatos</p>
                   <p className="text-3xl font-bold text-foreground mt-1 tabular-nums">{stats?.totalLeads || 0}</p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -174,7 +174,7 @@ export default function Dashboard() {
                   <p className="text-2xl font-bold text-foreground mt-1 tabular-nums">
                     {formatCurrency(stats?.dinheiroNaMesa?.implementacao || 0)}
                   </p>
-                  <p className="text-metadata mt-1">Implantação de leads ativos</p>
+                  <p className="text-metadata mt-1">Implantação de oportunidades ativas</p>
                 </div>
                 <DollarSign className="w-6 h-6 text-[var(--success)] opacity-40" />
               </div>
@@ -243,11 +243,11 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Leads por Mês */}
+          {/* Oportunidades por Mês */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-primary" /> Evolução Mensal de Leads
+                <TrendingUp className="w-4 h-4 text-primary" /> Evolução Mensal de Oportunidades
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -273,7 +273,7 @@ export default function Dashboard() {
 
         {/* Bottom Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Leads por Segmento */}
+          {/* Contatos por Segmento */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -309,7 +309,7 @@ export default function Dashboard() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Thermometer className="w-4 h-4 text-destructive" /> Leads Frios (sem contato há 3+ dias)
+                <Thermometer className="w-4 h-4 text-destructive" /> Oportunidades Frias (sem contato há 3+ dias)
                 <span className="ml-auto badge-error text-xs font-semibold px-2 py-0.5 rounded-md">
                   {stats?.leadsFrios || 0}
                 </span>
@@ -318,7 +318,7 @@ export default function Dashboard() {
             <CardContent>
               {alerts.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-[var(--success)] text-sm font-medium">✅ Nenhum lead frio! Todos contatados recentemente.</p>
+                  <p className="text-[var(--success)] text-sm font-medium">✅ Nenhuma oportunidade fria! Todas contatadas recentemente.</p>
                 </div>
               ) : (
                 <div className="space-y-2 max-h-72 overflow-y-auto pr-2 custom-scrollbar">

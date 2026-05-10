@@ -72,7 +72,7 @@ export function TodayTasks() {
       >
         <CardContent>
           <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-            {/* Automação Implacável: Leads Frios */}
+            {/* Alerta: Oportunidades Frias */}
             {coldLeads.map((lead: any) => {
               const daysSince = lead.lastContactAt
                 ? Math.floor((Date.now() - new Date(lead.lastContactAt).getTime()) / (1000 * 60 * 60 * 24))
@@ -85,7 +85,7 @@ export function TodayTasks() {
                       <Flame className="w-4 h-4" /> URGENTE: Ligar para {lead.companyName}
                     </p>
                     <p className="text-xs text-red-300/80 mt-1">
-                      Lead parado em "{lead.status}" 
+                      Oportunidade parada em "{lead.status}" 
                       {daysSince !== null ? ` há ${daysSince} dias sem follow-up.` : ' sem contato.'}
                     </p>
                   </div>

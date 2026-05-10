@@ -493,7 +493,7 @@ export async function reorderCustomFieldDefinitions(orderedIds: number[]) {
 /**
  * Get all custom field values for a specific entity
  */
-export async function getCustomFieldValues(entityId: number, entityType: string = "lead"): Promise<CustomFieldValue[]> {
+export async function getCustomFieldValues(entityId: number, entityType: string = "contact"): Promise<CustomFieldValue[]> {
   const db = await getDb();
   if (!db) return [];
 
@@ -547,7 +547,7 @@ export async function setCustomFieldValues(
 /**
  * Delete all custom field values for a specific entity
  */
-export async function deleteCustomFieldValuesForEntity(entityId: number, entityType: string = "lead") {
+export async function deleteCustomFieldValuesForEntity(entityId: number, entityType: string = "contact") {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -684,13 +684,15 @@ export async function deleteContact(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Delete related opportunities first (cascade should handle, but be explicit)
-  const opps = await db.select({ id: opportunities.id }).from(opportunities).where(eq(opportunities.contactId, id));
-  for (const opp of opps) {
-    await db.delete(opportunityNotes).where(eq(opportunityNotes.opportunityId, opp.id));
-    await db.delete(opportunityTasks).where(eq(opportunityTasks.opportunityId, opp.id));
+  // ── Hardening: bloquear exclusão se contato possui oportunidades ──
+  const linkedOpps = await db.select({ id: opportunities.id }).from(opportunities).where(eq(opportunities.contactId, id));
+  if (linkedOpps.length > 0) {
+    throw new Error(
+      `Não é possível excluir este contato porque ele possui ${linkedOpps.length} oportunidade(s) vinculada(s). Exclua ou transfira as oportunidades antes de remover o contato.`
+    );
   }
-  await db.delete(opportunities).where(eq(opportunities.contactId, id));
+
+  // Sem oportunidades: exclusão segura de vínculos auxiliares e contato
   await db.delete(contactTags).where(eq(contactTags.contactId, id));
   await db.delete(contacts).where(eq(contacts.id, id));
 }

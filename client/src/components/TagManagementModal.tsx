@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -65,7 +65,7 @@ export function TagManagementModal({ open, onOpenChange }: TagManagementModalPro
 
   const deleteMutation = trpc.tags.delete.useMutation({
     onSuccess: () => {
-      toast.success("Tag removida de todos os leads");
+      toast.success("Tag removida de todos os contatos");
       utils.tags.list.invalidate();
     },
     onError: (e) => {
@@ -101,7 +101,7 @@ export function TagManagementModal({ open, onOpenChange }: TagManagementModalPro
   };
 
   const handleDelete = (id: number) => {
-    if (confirm("ATENÇÃO: Isso removerá esta tag de TODOS os leads que a possuem. Deseja continuar?")) {
+    if (confirm("ATENÇÃO: Isso removerá esta tag de TODOS os contatos que a possuem. Deseja continuar?")) {
       deleteMutation.mutate({ id });
     }
   };
@@ -137,7 +137,7 @@ export function TagManagementModal({ open, onOpenChange }: TagManagementModalPro
         <DialogHeader>
           <DialogTitle className="text-primary">Gerenciar Tags</DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Crie, edite ou remova tags do sistema. Removê-las afetará todos os leads.
+            Crie, edite ou remova tags do sistema. Removê-las afetará todos os contatos.
           </DialogDescription>
         </DialogHeader>
 
