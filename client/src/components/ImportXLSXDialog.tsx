@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Upload, AlertCircle, CheckCircle, AlertTriangle, Download, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { Upload, AlertCircle, CheckCircle, AlertTriangle, Download, ArrowLeft, ArrowRight, Loader2, Info } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -109,6 +109,21 @@ function preValidate(rows: MappedRow[], mode: ImportMode): PreValidation {
   };
 }
 
+// ── Helpers for report ──
+function getLineStatus(r: any): "success" | "warning" | "error" {
+  if (r.status === "error") return "error";
+  if (r.alerts && r.alerts.length > 0) return "warning";
+  return "success";
+}
+
+function getLineStatusLabel(status: "success" | "warning" | "error"): string {
+  switch (status) {
+    case "success": return "Importado";
+    case "warning": return "Importado com alertas";
+    case "error": return "Erro";
+  }
+}
+
 // ── Main Component ──
 export function ImportXLSXDialog() {
   const [open, setOpen] = useState(false);
@@ -123,6 +138,15 @@ export function ImportXLSXDialog() {
   const utils = trpc.useUtils();
 
   const validation = useMemo(() => preValidate(rawRows, mode), [rawRows, mode]);
+
+  // Compute report stats
+  const reportStats = useMemo(() => {
+    if (!importResult?.results) return { linesWithAlerts: 0 };
+    const linesWithAlerts = importResult.results.filter(
+      (r: any) => r.status === "success" && r.alerts && r.alerts.length > 0
+    ).length;
+    return { linesWithAlerts };
+  }, [importResult]);
 
   // ── Reset state ──
   const resetWizard = () => {
@@ -188,22 +212,36 @@ export function ImportXLSXDialog() {
     }
   };
 
-  // ── Download Error Report ──
+  // ── Download Report ──
   const handleDownloadReport = () => {
     if (!importResult) return;
 
-    const reportData = importResult.results.map((r: any) => ({
-      "Linha": r.rowIndex,
-      "Status": r.status === "success" ? "Importado" : r.status === "error" ? "Erro" : "Ignorado",
-      "Contato Criado": r.contactCreated ? "Sim" : r.contactId ? "Reutilizado" : "-",
-      "Oportunidade ID": r.opportunityId || "-",
-      "Erros": r.errors.join("; ") || "-",
-      "Alertas": r.alerts.join("; ") || "-",
-    }));
+    const reportData = importResult.results.map((r: any) => {
+      const status = getLineStatus(r);
+      // Find original row data (rowIndex is Excel row, header=1, data starts at 2)
+      const originalRow = rawRows[r.rowIndex - 2];
+
+      return {
+        "Linha": r.rowIndex,
+        "Status": getLineStatusLabel(status),
+        "Tipo": status === "error" ? "Erro" : status === "warning" ? "Alerta" : "Sucesso",
+        "Nome": originalRow?.nome || "-",
+        "Empresa": originalRow?.empresa || "-",
+        "Telefone": originalRow?.telefone || "-",
+        "Email": originalRow?.email || "-",
+        "Contato": r.contactCreated ? "Novo" : r.contactId ? "Reutilizado" : "-",
+        "Oportunidade ID": r.opportunityId || "-",
+        "Erros": r.errors.length > 0 ? r.errors.join("; ") : "-",
+        "Alertas": r.alerts.length > 0 ? r.alerts.join("; ") : "-",
+      };
+    });
 
     const ws = XLSX.utils.json_to_sheet(reportData);
     ws["!cols"] = [
-      { wch: 8 }, { wch: 12 }, { wch: 16 }, { wch: 18 }, { wch: 50 }, { wch: 50 },
+      { wch: 8 }, { wch: 22 }, { wch: 10 },
+      { wch: 25 }, { wch: 25 }, { wch: 18 }, { wch: 28 },
+      { wch: 14 }, { wch: 18 },
+      { wch: 60 }, { wch: 60 },
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Relatório");
@@ -223,7 +261,7 @@ export function ImportXLSXDialog() {
         <DialogHeader>
           <DialogTitle>
             {step === "upload" && "Importar Planilha"}
-            {step === "preview" && "Pré-validação"}
+            {step === "preview" && "Conferência Inicial"}
             {step === "importing" && "Importando..."}
             {step === "report" && "Relatório da Importação"}
           </DialogTitle>
@@ -313,11 +351,11 @@ export function ImportXLSXDialog() {
               </div>
               <div className="bg-card border border-border rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-green-400">{validation.validRows}</p>
-                <p className="text-xs text-muted-foreground">Válidas</p>
+                <p className="text-xs text-muted-foreground">Aparentemente válidas</p>
               </div>
               <div className="bg-card border border-border rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-red-400">{validation.rowsWithIssues}</p>
-                <p className="text-xs text-muted-foreground">Com erro</p>
+                <p className="text-xs text-muted-foreground">Com problema visível</p>
               </div>
               <div className="bg-card border border-border rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-muted-foreground">{validation.emptyRows}</p>
@@ -329,7 +367,7 @@ export function ImportXLSXDialog() {
             {validation.rowsWithIssues > 0 && (
               <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 space-y-1">
                 <p className="text-sm font-medium text-red-400 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" /> Problemas detectados
+                  <AlertCircle className="w-4 h-4" /> Problemas detectados na conferência
                 </p>
                 {validation.missingIdentification > 0 && (
                   <p className="text-xs text-red-300">• {validation.missingIdentification} linha(s) sem Nome nem Empresa</p>
@@ -343,11 +381,19 @@ export function ImportXLSXDialog() {
               </div>
             )}
 
-            {/* Info */}
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-              <p className="text-xs text-blue-300">
-                A validação completa (pipelines, estágios, duplicatas, tags) será feita no servidor ao confirmar.
-                Linhas com erro serão rejeitadas individualmente sem afetar as demais.
+            {/* Transparency Info */}
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 space-y-2">
+              <p className="text-xs text-blue-300 flex items-center gap-2 font-medium">
+                <Info className="w-3.5 h-3.5 flex-shrink-0" /> Conferência inicial da planilha
+              </p>
+              <p className="text-xs text-blue-300/80">
+                Esta é uma verificação preliminar dos campos básicos (nome, telefone, email, pipeline).
+                A validação completa — incluindo existência de pipelines, estágios, duplicidades,
+                normalização de telefones, emails e valores monetários — será feita no servidor ao confirmar a importação.
+              </p>
+              <p className="text-xs text-blue-300/80">
+                Linhas com erro serão rejeitadas individualmente, sem afetar as demais.
+                Transformações automáticas (ex: remoção de máscara do telefone) serão informadas no relatório final.
               </p>
             </div>
 
@@ -375,7 +421,7 @@ export function ImportXLSXDialog() {
               Processando {rawRows.length} linhas no servidor...
             </p>
             <p className="text-xs text-muted-foreground">
-              Isso pode levar alguns segundos para lotes grandes.
+              Validando dados, normalizando formatos e gravando no banco de dados.
             </p>
           </div>
         )}
@@ -402,8 +448,8 @@ export function ImportXLSXDialog() {
                 <p className="text-xs text-muted-foreground">Linhas com erro</p>
               </div>
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-yellow-400">{importResult.summary.tagsIgnored}</p>
-                <p className="text-xs text-muted-foreground">Tags ignoradas</p>
+                <p className="text-2xl font-bold text-yellow-400">{reportStats.linesWithAlerts}</p>
+                <p className="text-xs text-muted-foreground">Linhas com alertas</p>
               </div>
               <div className="bg-card border border-border rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-muted-foreground">{importResult.summary.linesSkipped}</p>
@@ -411,38 +457,67 @@ export function ImportXLSXDialog() {
               </div>
             </div>
 
+            {/* Tags ignored info */}
+            {importResult.summary.tagsIgnored > 0 && (
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-2.5">
+                <p className="text-xs text-yellow-300 flex items-center gap-2">
+                  <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                  {importResult.summary.tagsIgnored} tag(s) não encontrada(s) no CRM. Os registros foram importados sem essas tags.
+                </p>
+              </div>
+            )}
+
             {/* Detailed Results (scrollable) */}
             {importResult.results.length > 0 && (
-              <div className="max-h-48 overflow-y-auto rounded-lg border border-border">
+              <div className="max-h-52 overflow-y-auto rounded-lg border border-border">
                 <table className="w-full text-xs">
                   <thead className="bg-muted/50 sticky top-0">
                     <tr>
-                      <th className="px-3 py-2 text-left">Linha</th>
-                      <th className="px-3 py-2 text-left">Status</th>
+                      <th className="px-3 py-2 text-left w-14">Linha</th>
+                      <th className="px-3 py-2 text-left w-36">Status</th>
                       <th className="px-3 py-2 text-left">Detalhes</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {importResult.results.map((r: any, idx: number) => (
-                      <tr key={idx} className="border-t border-border">
-                        <td className="px-3 py-2 font-mono">{r.rowIndex}</td>
-                        <td className="px-3 py-2">
-                          {r.status === "success" ? (
-                            <span className="flex items-center gap-1 text-green-400">
-                              <CheckCircle className="w-3 h-3" /> OK
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1 text-red-400">
-                              <AlertCircle className="w-3 h-3" /> Erro
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-muted-foreground">
-                          {r.errors.length > 0 && <span className="text-red-400">{r.errors.join("; ")} </span>}
-                          {r.alerts.length > 0 && <span className="text-yellow-400">{r.alerts.join("; ")}</span>}
-                        </td>
-                      </tr>
-                    ))}
+                    {importResult.results.map((r: any, idx: number) => {
+                      const status = getLineStatus(r);
+                      return (
+                        <tr key={idx} className={`border-t border-border ${
+                          status === "error" ? "bg-red-500/5" :
+                          status === "warning" ? "bg-yellow-500/5" : ""
+                        }`}>
+                          <td className="px-3 py-2 font-mono">{r.rowIndex}</td>
+                          <td className="px-3 py-2">
+                            {status === "success" && (
+                              <span className="flex items-center gap-1 text-green-400">
+                                <CheckCircle className="w-3 h-3" /> OK
+                              </span>
+                            )}
+                            {status === "warning" && (
+                              <span className="flex items-center gap-1 text-yellow-400">
+                                <AlertTriangle className="w-3 h-3" /> OK com alertas
+                              </span>
+                            )}
+                            {status === "error" && (
+                              <span className="flex items-center gap-1 text-red-400">
+                                <AlertCircle className="w-3 h-3" /> Erro
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 space-y-0.5">
+                            {r.errors.length > 0 && (
+                              <p className="text-red-400">{r.errors.join("; ")}</p>
+                            )}
+                            {r.alerts.length > 0 && (
+                              <p className="text-yellow-400/80">{r.alerts.join("; ")}</p>
+                            )}
+                            {r.errors.length === 0 && r.alerts.length === 0 && (
+                              <p className="text-muted-foreground">Importado com sucesso.</p>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
