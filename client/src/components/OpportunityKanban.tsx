@@ -5,8 +5,45 @@ import { OpportunityListView } from "./OpportunityListView";
 import { KanbanBoard } from "./kanban/KanbanBoard";
 import { FilterBar } from "./FilterBar";
 import { useOpportunityFilters } from "@/hooks/useOpportunityFilters";
-import { Loader2, Kanban as KanbanIcon, LayoutGrid, List } from "lucide-react";
+import { Loader2, Kanban as KanbanIcon, LayoutGrid, List, Download } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import * as XLSX from "xlsx";
+
+type OpportunityRow = {
+  id: number;
+  title: string;
+  contactName?: string;
+  contactCompany?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  stageName?: string;
+  monetaryValue?: string | number | null;
+  source?: string | null;
+  status?: string | null;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+};
+
+function formatDateBr(value?: string | Date) {
+  if (!value) return "";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function normalizeMoney(value?: string | number | null) {
+  if (value === null || value === undefined || value === "") return "";
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : "";
+}
 
 export function OpportunityKanban() {
   const { data: pipelines, isLoading: loadingPipes } = trpc.pipelines.list.useQuery();
@@ -43,6 +80,45 @@ export function OpportunityKanban() {
     activeFilterCount,
     isFiltered,
   } = useOpportunityFilters(visibleOpportunities, stages);
+
+  const handleExportXlsx = () => {
+    const exportRows = (filteredOpportunities || []) as OpportunityRow[];
+    if (exportRows.length === 0) {
+      toast.info("Não há oportunidades abertas para exportar neste funil.");
+      return;
+    }
+
+    const pipelineName = activePipeline?.name || "";
+    const sheetRows = exportRows.map((opportunity) => ({
+      "ID da Oportunidade": opportunity.id,
+      "Nome da Oportunidade": opportunity.title || "",
+      "Empresa": opportunity.contactCompany || "",
+      "Nome do Contato": opportunity.contactName || "",
+      "Telefone": opportunity.contactPhone || "",
+      "Email": opportunity.contactEmail || "",
+      "Pipeline": pipelineName,
+      "Estágio": opportunity.stageName || "",
+      "Valor Estimado": normalizeMoney(opportunity.monetaryValue),
+      "Origem": opportunity.source || "",
+      "Status": opportunity.status === "open" ? "Aberta" : (opportunity.status || ""),
+      "Criado em": formatDateBr(opportunity.createdAt),
+      "Atualizado em": formatDateBr(opportunity.updatedAt),
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(sheetRows);
+    worksheet["!cols"] = [
+      { wch: 18 }, { wch: 34 }, { wch: 28 }, { wch: 28 }, { wch: 18 },
+      { wch: 30 }, { wch: 24 }, { wch: 24 }, { wch: 16 }, { wch: 16 },
+      { wch: 12 }, { wch: 20 }, { wch: 20 },
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Oportunidades");
+
+    const datePart = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(workbook, `funil_crm_vitti_${datePart}.xlsx`);
+    toast.success(`Exportação concluída (${exportRows.length} oportunidade(s)).`);
+  };
 
   if (loadingPipes) {
     return (
@@ -96,7 +172,18 @@ export function OpportunityKanban() {
           </div>
         </div>
 
-        <OpportunityFormDialog defaultPipelineId={parseInt(activePipelineId)} />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportXlsx}
+            disabled={loadingOpps}
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Exportar XLSX
+          </Button>
+          <OpportunityFormDialog defaultPipelineId={parseInt(activePipelineId)} />
+        </div>
       </div>
 
       <FilterBar
