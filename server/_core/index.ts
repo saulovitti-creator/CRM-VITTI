@@ -30,21 +30,27 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 import { getDb } from "../db";
 import { sql } from "drizzle-orm";
 
+function normalizeRows(result: unknown): Array<Record<string, unknown>> {
+  // mysql2/drizzle may return [rows, fields]
+  if (Array.isArray(result) && result.length > 0 && Array.isArray(result[0])) {
+    return result[0] as Array<Record<string, unknown>>;
+  }
+  // drizzle may return rows directly
+  if (Array.isArray(result)) {
+    return result as Array<Record<string, unknown>>;
+  }
+  // some adapters wrap as { rows: [...] }
+  if (Array.isArray((result as any)?.rows)) {
+    return (result as any).rows as Array<Record<string, unknown>>;
+  }
+  return [];
+}
+
 function extractCount(result: unknown): number {
-  const rows = Array.isArray(result)
-    ? result
-    : Array.isArray((result as any)?.rows)
-      ? (result as any).rows
-      : [];
+  const rows = normalizeRows(result);
   const firstRow = rows[0] as Record<string, unknown> | undefined;
   const rawCount = firstRow?.count ?? firstRow?.COUNT ?? 0;
   return Number(rawCount) || 0;
-}
-
-function extractRows(result: unknown): Array<Record<string, unknown>> {
-  if (Array.isArray(result)) return result as Array<Record<string, unknown>>;
-  if (Array.isArray((result as any)?.rows)) return (result as any).rows as Array<Record<string, unknown>>;
-  return [];
 }
 
 function parseDatabaseNameFromUrl(connectionString?: string): string | null {
@@ -63,7 +69,7 @@ async function getDatabaseCandidates(db: any): Promise<string[]> {
 
   try {
     const result = await db.execute(sql`SELECT DATABASE() AS currentDatabase`);
-    const rows = extractRows(result);
+    const rows = normalizeRows(result);
     const currentDatabase = rows[0]?.currentDatabase;
     if (typeof currentDatabase === "string" && currentDatabase.trim()) {
       candidates.add(currentDatabase.trim().toLowerCase());
@@ -83,7 +89,7 @@ async function getDatabaseCandidates(db: any): Promise<string[]> {
 async function getCurrentDatabase(db: any): Promise<string | null> {
   try {
     const result = await db.execute(sql`SELECT DATABASE() AS currentDatabase`);
-    const rows = extractRows(result);
+    const rows = normalizeRows(result);
     const currentDatabase = rows[0]?.currentDatabase;
     if (typeof currentDatabase === "string" && currentDatabase.trim()) {
       return currentDatabase.trim();
@@ -96,58 +102,60 @@ async function getCurrentDatabase(db: any): Promise<string | null> {
 
 async function tableExists(db: any, tableName: string): Promise<boolean> {
   const schemaCandidates = await getDatabaseCandidates(db);
-  if (schemaCandidates.length === 0) {
+  if (schemaCandidates.length > 0) {
     const result = await db.execute(
       sql`
         SELECT COUNT(*) AS count
         FROM information_schema.TABLES
         WHERE LOWER(TABLE_NAME) = LOWER(${tableName})
+          AND LOWER(TABLE_SCHEMA) IN (${sql.join(
+            schemaCandidates.map(schema => sql`${schema}`),
+            sql`, `
+          )})
       `
     );
-    return extractCount(result) > 0;
+    if (extractCount(result) > 0) return true;
   }
 
-  const result = await db.execute(
+  // Fallback when DATABASE()/schema candidates are unreliable in managed environments.
+  const fallbackResult = await db.execute(
     sql`
       SELECT COUNT(*) AS count
       FROM information_schema.TABLES
       WHERE LOWER(TABLE_NAME) = LOWER(${tableName})
-        AND LOWER(TABLE_SCHEMA) IN (${sql.join(
-          schemaCandidates.map(schema => sql`${schema}`),
-          sql`, `
-        )})
     `
   );
-  return extractCount(result) > 0;
+  return extractCount(fallbackResult) > 0;
 }
 
 async function columnExists(db: any, tableName: string, columnName: string): Promise<boolean> {
   const schemaCandidates = await getDatabaseCandidates(db);
-  if (schemaCandidates.length === 0) {
+  if (schemaCandidates.length > 0) {
     const result = await db.execute(
       sql`
         SELECT COUNT(*) AS count
         FROM information_schema.COLUMNS
         WHERE LOWER(TABLE_NAME) = LOWER(${tableName})
           AND LOWER(COLUMN_NAME) = LOWER(${columnName})
+          AND LOWER(TABLE_SCHEMA) IN (${sql.join(
+            schemaCandidates.map(schema => sql`${schema}`),
+            sql`, `
+          )})
       `
     );
-    return extractCount(result) > 0;
+    if (extractCount(result) > 0) return true;
   }
 
-  const result = await db.execute(
+  // Fallback without schema constraint for startup diagnostics/migrations.
+  const fallbackResult = await db.execute(
     sql`
       SELECT COUNT(*) AS count
       FROM information_schema.COLUMNS
       WHERE LOWER(TABLE_NAME) = LOWER(${tableName})
         AND LOWER(COLUMN_NAME) = LOWER(${columnName})
-        AND LOWER(TABLE_SCHEMA) IN (${sql.join(
-          schemaCandidates.map(schema => sql`${schema}`),
-          sql`, `
-        )})
     `
   );
-  return extractCount(result) > 0;
+  return extractCount(fallbackResult) > 0;
 }
 
 async function applyPendingMigrations() {
@@ -175,12 +183,20 @@ async function applyPendingMigrations() {
         LIMIT 50
       `
     );
-    console.log("[Migration][Debug] schema diagnostics", {
-      currentDatabase,
-      schemaCandidates,
-      pipelineTables: extractRows(pipelineTablesResult),
-      activeColumns: extractRows(activeColumnsResult),
-    });
+    console.log(
+      "[Migration][Debug] schema diagnostics",
+      JSON.stringify(
+        {
+          currentDatabase,
+          schemaCandidates,
+          extractedDatabaseFromUrl: parseDatabaseNameFromUrl(process.env.DATABASE_URL),
+          pipelineTables: normalizeRows(pipelineTablesResult),
+          activeColumns: normalizeRows(activeColumnsResult),
+        },
+        null,
+        2
+      )
+    );
   } catch (error) {
     console.warn("[Migration][Debug] schema diagnostics failed:", error);
   }
@@ -205,24 +221,7 @@ async function applyPendingMigrations() {
 
   try {
     const hasPipelineStages = await tableExists(db, "pipeline_stages");
-    let resolvedPipelineStagesExists = hasPipelineStages;
-
-    if (!resolvedPipelineStagesExists) {
-      // Fallback for managed environments where TABLE_SCHEMA filtering can diverge from active connection metadata.
-      const fallbackResult = await db.execute(
-        sql`
-          SELECT COUNT(*) AS count
-          FROM information_schema.TABLES
-          WHERE LOWER(TABLE_NAME) = 'pipeline_stages'
-        `
-      );
-      resolvedPipelineStagesExists = extractCount(fallbackResult) > 0;
-      if (resolvedPipelineStagesExists) {
-        console.log("[Migration] pipeline_stages found via schema-agnostic fallback.");
-      }
-    }
-
-    if (!resolvedPipelineStagesExists) {
+    if (!hasPipelineStages) {
       console.warn("[Migration] pipeline_stages not found, skipping migration.");
     } else {
       const hasIsActiveInFunnel = await columnExists(db, "pipeline_stages", "is_active_in_funnel");
