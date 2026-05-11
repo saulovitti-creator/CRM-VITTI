@@ -40,25 +40,25 @@ export default function Dashboard() {
   };
 
   const chartData = useMemo(() => {
-    if (!stats?.leadsPorMes) return [];
-    return stats.leadsPorMes.map((m: any) => {
+    if (!stats?.opportunitiesByMonth) return [];
+    return stats.opportunitiesByMonth.map((m: any) => {
       const [year, month] = m.month.split("-");
       return { label: `${monthNames[month]}/${year.slice(2)}`, count: m.count };
     });
-  }, [stats?.leadsPorMes]);
+  }, [stats?.opportunitiesByMonth]);
 
   const maxChart = useMemo(() => Math.max(...chartData.map((d: any) => d.count), 1), [chartData]);
 
   const segmentData = useMemo(() => {
-    if (!stats?.leadsPorSegmento) return [];
-    return Object.entries(stats.leadsPorSegmento)
+    if (!stats?.opportunitiesBySegment) return [];
+    return Object.entries(stats.opportunitiesBySegment)
       .sort(([, a], [, b]) => (b as number) - (a as number))
       .slice(0, 8);
-  }, [stats?.leadsPorSegmento]);
+  }, [stats?.opportunitiesBySegment]);
 
   const segmentMax = useMemo(() => Math.max(...segmentData.map(([, v]) => v as number), 1), [segmentData]);
 
-  const funnelStatuses = [
+  const stageMetrics = [
     { key: "Entrar em contato", color: "bg-blue-500" },
     { key: "Contatado", color: "bg-amber-500" },
     { key: "Não Respondeu", color: "bg-orange-500" },
@@ -70,9 +70,9 @@ export default function Dashboard() {
   ];
 
   const funnelMax = useMemo(() => {
-    if (!stats?.countByStatus) return 1;
-    return Math.max(...Object.values(stats.countByStatus).map(Number), 1);
-  }, [stats?.countByStatus]);
+    if (!stats?.opportunitiesByStage) return 1;
+    return Math.max(...Object.values(stats.opportunitiesByStage).map(Number), 1);
+  }, [stats?.opportunitiesByStage]);
 
   if (statsQuery.isLoading) {
     return (
@@ -101,13 +101,13 @@ export default function Dashboard() {
 
         {/* KPI Cards Row 1 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Total Contatos */}
+          {/* Total Oportunidades */}
           <Card>
             <CardContent className="py-5 px-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-label">Total de Contatos</p>
-                  <p className="text-3xl font-bold text-foreground mt-1 tabular-nums">{stats?.totalLeads || 0}</p>
+                  <p className="text-label">Total de Oportunidades</p>
+                  <p className="text-3xl font-bold text-foreground mt-1 tabular-nums">{stats?.totalOpportunities || 0}</p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Users className="w-5 h-5 text-primary" />
@@ -123,7 +123,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-label">Taxa de Conversão</p>
                   <p className="text-3xl font-bold text-foreground mt-1 tabular-nums">{stats?.taxaConversao || 0}%</p>
-                  <p className="text-metadata mt-1">{stats?.ganhos || 0} ganhos</p>
+                  <p className="text-metadata mt-1">{stats?.wonOpportunities || 0} ganhos</p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-[var(--success-light)] flex items-center justify-center">
                   <TrendingUp className="w-5 h-5 text-[var(--success)]" />
@@ -139,7 +139,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-label">Taxa Dropout</p>
                   <p className="text-3xl font-bold text-foreground mt-1 tabular-nums">{stats?.taxaDropout || 0}%</p>
-                  <p className="text-metadata mt-1">{stats?.perdidos || 0} perdidos</p>
+                  <p className="text-metadata mt-1">{stats?.lostOpportunities || 0} perdidos</p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-[var(--error-light)] flex items-center justify-center">
                   <TrendingDown className="w-5 h-5 text-destructive" />
@@ -222,8 +222,8 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {funnelStatuses.map((s) => {
-                const count = stats?.countByStatus?.[s.key] || 0;
+              {stageMetrics.map((s) => {
+                const count = stats?.opportunitiesByStage?.[s.key] || 0;
                 const pct = funnelMax > 0 ? (count / funnelMax) * 100 : 0;
                 return (
                   <div key={s.key} className="space-y-1">
@@ -311,7 +311,7 @@ export default function Dashboard() {
               <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
                 <Thermometer className="w-4 h-4 text-destructive" /> Oportunidades Frias (sem contato há 3+ dias)
                 <span className="ml-auto badge-error text-xs font-semibold px-2 py-0.5 rounded-md">
-                  {stats?.leadsFrios || 0}
+                  {stats?.coldOpportunities || 0}
                 </span>
               </CardTitle>
             </CardHeader>
@@ -322,18 +322,18 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <div className="space-y-2 max-h-72 overflow-y-auto pr-2 custom-scrollbar">
-                  {alerts.slice(0, 15).map((lead: any) => {
-                    const daysSince = lead.lastContactAt
-                      ? Math.floor((Date.now() - new Date(lead.lastContactAt).getTime()) / (1000 * 60 * 60 * 24))
+                  {alerts.slice(0, 15).map((opportunity: any) => {
+                    const daysSince = opportunity.lastContactAt
+                      ? Math.floor((Date.now() - new Date(opportunity.lastContactAt).getTime()) / (1000 * 60 * 60 * 24))
                       : null;
                     return (
                       <div
-                        key={lead.id}
+                        key={opportunity.id}
                         className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border hover:border-destructive/30 transition-colors"
                       >
                         <div className="flex-1 min-w-0">
-                          <p className="text-foreground font-medium text-sm truncate">{lead.companyName}</p>
-                          <p className="text-muted-foreground text-xs">{lead.contactName || "Sem contato"} • {lead.status}</p>
+                          <p className="text-foreground font-medium text-sm truncate">{opportunity.companyName}</p>
+                          <p className="text-muted-foreground text-xs">{opportunity.contactName || "Sem contato"} • {opportunity.status}</p>
                         </div>
                         <span className="badge-error text-xs font-medium px-2 py-1 rounded-md whitespace-nowrap ml-3">
                           {daysSince !== null ? `${daysSince}d atrás` : "Nunca"}

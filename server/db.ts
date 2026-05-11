@@ -107,18 +107,18 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
   const baseFilter = conditions.length > 0 ? and(...conditions) : undefined;
 
   const [totalRes] = await db.select({ c: drizzleCount() }).from(opportunities).where(baseFilter);
-  const totalLeads = totalRes?.c || 0;
+  const totalOpportunities = totalRes?.c || 0;
 
   // Count by status
   const statusRes = await db.select({ status: opportunities.status, c: drizzleCount() })
     .from(opportunities).where(baseFilter).groupBy(opportunities.status);
-  const countByStatus: Record<string, number> = {};
-  statusRes.forEach((r: any) => { countByStatus[r.status] = r.c; });
+  const opportunitiesByStatus: Record<string, number> = {};
+  statusRes.forEach((r: any) => { opportunitiesByStatus[r.status] = r.c; });
 
-  const ganhos = countByStatus["won"] || 0;
-  const perdidos = (countByStatus["lost"] || 0) + (countByStatus["abandoned"] || 0);
-  const taxaConversao = totalLeads > 0 ? ((ganhos / totalLeads) * 100) : 0;
-  const taxaDropout = totalLeads > 0 ? ((perdidos / totalLeads) * 100) : 0;
+  const wonOpportunities = opportunitiesByStatus["won"] || 0;
+  const lostOpportunities = (opportunitiesByStatus["lost"] || 0) + (opportunitiesByStatus["abandoned"] || 0);
+  const taxaConversao = totalOpportunities > 0 ? ((wonOpportunities / totalOpportunities) * 100) : 0;
+  const taxaDropout = totalOpportunities > 0 ? ((lostOpportunities / totalOpportunities) * 100) : 0;
 
   // Dinheiro na mesa (open opportunities)
   const [activeRes] = await db.select({
@@ -150,20 +150,20 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
   }).from(opportunities).where(timeFilter)
     .groupBy(sql`DATE_FORMAT(createdAt, '%Y-%m')`)
     .orderBy(sql`DATE_FORMAT(createdAt, '%Y-%m')`);
-  const leadsPorMes = monthlyRes.map((r: any) => ({ month: r.month, count: r.c }));
+  const opportunitiesByMonth = monthlyRes.map((r: any) => ({ month: r.month, count: r.c }));
 
   // Por segmento
   const segRes = await db.select({ segment: opportunities.segment, c: drizzleCount() })
     .from(opportunities).where(baseFilter).groupBy(opportunities.segment);
-  const leadsPorSegmento: Record<string, number> = {};
-  segRes.forEach((r: any) => { if (r.segment) leadsPorSegmento[r.segment] = r.c; });
+  const opportunitiesBySegment: Record<string, number> = {};
+  segRes.forEach((r: any) => { if (r.segment) opportunitiesBySegment[r.segment] = r.c; });
 
   // "Frios" = open opps created > 7 days ago (no contact field, use createdAt proxy)
   const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const [friosRes] = await db.select({ c: drizzleCount() }).from(opportunities).where(
     and(baseFilter, eq(opportunities.status, "open"), lte(opportunities.createdAt, cutoff))
   );
-  const leadsFrios = friosRes?.c || 0;
+  const coldOpportunities = friosRes?.c || 0;
 
   // Pipeline funnel by stage
   const stageRes = await db.select({ stageName: pipelineStages.name, c: drizzleCount() })
@@ -171,22 +171,23 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
     .innerJoin(pipelineStages, eq(opportunities.stageId, pipelineStages.id))
     .where(baseFilter)
     .groupBy(pipelineStages.name);
-  const countByStage: Record<string, number> = {};
-  stageRes.forEach((r: any) => { countByStage[r.stageName] = r.c; });
+  const opportunitiesByStage: Record<string, number> = {};
+  stageRes.forEach((r: any) => { opportunitiesByStage[r.stageName] = r.c; });
 
   return {
-    totalLeads,
-    countByStatus: countByStage,
+    totalOpportunities,
+    opportunitiesByStatus,
+    opportunitiesByStage,
     taxaConversao: Number(taxaConversao.toFixed(1)),
     taxaDropout: Number(taxaDropout.toFixed(1)),
     dinheiroNaMesa,
     valorTotalGanho,
     tempoMedioFunil: 0,
-    leadsPorSegmento,
-    leadsPorMes,
-    leadsFrios,
-    ganhos,
-    perdidos,
+    opportunitiesBySegment,
+    opportunitiesByMonth,
+    coldOpportunities,
+    wonOpportunities,
+    lostOpportunities,
   };
 }
 
