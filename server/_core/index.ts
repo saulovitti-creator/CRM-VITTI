@@ -80,6 +80,20 @@ async function getDatabaseCandidates(db: any): Promise<string[]> {
   return Array.from(candidates);
 }
 
+async function getCurrentDatabase(db: any): Promise<string | null> {
+  try {
+    const result = await db.execute(sql`SELECT DATABASE() AS currentDatabase`);
+    const rows = extractRows(result);
+    const currentDatabase = rows[0]?.currentDatabase;
+    if (typeof currentDatabase === "string" && currentDatabase.trim()) {
+      return currentDatabase.trim();
+    }
+  } catch {
+    // best effort only
+  }
+  return null;
+}
+
 async function tableExists(db: any, tableName: string): Promise<boolean> {
   const schemaCandidates = await getDatabaseCandidates(db);
   if (schemaCandidates.length === 0) {
@@ -141,6 +155,37 @@ async function applyPendingMigrations() {
   if (!db) return;
 
   try {
+    const currentDatabase = await getCurrentDatabase(db);
+    const schemaCandidates = await getDatabaseCandidates(db);
+    const pipelineTablesResult = await db.execute(
+      sql`
+        SELECT TABLE_SCHEMA AS tableSchema, TABLE_NAME AS tableName
+        FROM information_schema.TABLES
+        WHERE LOWER(TABLE_NAME) LIKE '%pipeline%'
+        ORDER BY TABLE_SCHEMA, TABLE_NAME
+        LIMIT 30
+      `
+    );
+    const activeColumnsResult = await db.execute(
+      sql`
+        SELECT TABLE_SCHEMA AS tableSchema, TABLE_NAME AS tableName, COLUMN_NAME AS columnName
+        FROM information_schema.COLUMNS
+        WHERE LOWER(COLUMN_NAME) LIKE '%active%'
+        ORDER BY TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME
+        LIMIT 50
+      `
+    );
+    console.log("[Migration][Debug] schema diagnostics", {
+      currentDatabase,
+      schemaCandidates,
+      pipelineTables: extractRows(pipelineTablesResult),
+      activeColumns: extractRows(activeColumnsResult),
+    });
+  } catch (error) {
+    console.warn("[Migration][Debug] schema diagnostics failed:", error);
+  }
+
+  try {
     const hasKanbanColumns = await tableExists(db, "kanban_columns");
     if (!hasKanbanColumns) {
       console.warn("[Migration] kanban_columns not found, skipping legacy migration.");
@@ -160,7 +205,24 @@ async function applyPendingMigrations() {
 
   try {
     const hasPipelineStages = await tableExists(db, "pipeline_stages");
-    if (!hasPipelineStages) {
+    let resolvedPipelineStagesExists = hasPipelineStages;
+
+    if (!resolvedPipelineStagesExists) {
+      // Fallback for managed environments where TABLE_SCHEMA filtering can diverge from active connection metadata.
+      const fallbackResult = await db.execute(
+        sql`
+          SELECT COUNT(*) AS count
+          FROM information_schema.TABLES
+          WHERE LOWER(TABLE_NAME) = 'pipeline_stages'
+        `
+      );
+      resolvedPipelineStagesExists = extractCount(fallbackResult) > 0;
+      if (resolvedPipelineStagesExists) {
+        console.log("[Migration] pipeline_stages found via schema-agnostic fallback.");
+      }
+    }
+
+    if (!resolvedPipelineStagesExists) {
       console.warn("[Migration] pipeline_stages not found, skipping migration.");
     } else {
       const hasIsActiveInFunnel = await columnExists(db, "pipeline_stages", "is_active_in_funnel");
