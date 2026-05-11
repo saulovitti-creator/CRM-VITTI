@@ -256,7 +256,23 @@ export function OpportunityFormDialog({
       if (pendingOutcome === "lost") toast.success("Oportunidade marcada como perdida.");
       if (pendingOutcome === "abandoned") toast.success("Oportunidade marcada como abandonada.");
 
+      const pipelineId = opportunity.pipelineId as number | undefined;
+      if (pipelineId) {
+        utils.opportunities.list.setData({ pipelineId, status: "open" }, (old: any) =>
+          old?.filter((opp: any) => opp.id !== opportunity.id)
+        );
+        utils.opportunities.list.setData({ pipelineId }, (old: any) =>
+          old?.filter((opp: any) => opp.id !== opportunity.id)
+        );
+      }
+
       await Promise.all([
+        pipelineId
+          ? utils.opportunities.list.invalidate({ pipelineId, status: "open" })
+          : utils.opportunities.list.invalidate(),
+        pipelineId
+          ? utils.opportunities.list.invalidate({ pipelineId })
+          : utils.opportunities.list.invalidate(),
         utils.opportunities.list.invalidate(),
         utils.opportunities.closedList.invalidate(),
         utils.opportunities.stats.invalidate(),

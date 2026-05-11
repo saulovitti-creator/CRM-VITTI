@@ -59,7 +59,10 @@ export function OpportunityKanban() {
   }, [activePipelineId, pipelines]);
 
   const { data: opportunities, isLoading: loadingOpps } = trpc.opportunities.list.useQuery(
-    { pipelineId: activePipelineId ? parseInt(activePipelineId) : undefined },
+    {
+      pipelineId: activePipelineId ? parseInt(activePipelineId) : undefined,
+      status: "open",
+    },
     { enabled: !!activePipelineId }
   );
 
