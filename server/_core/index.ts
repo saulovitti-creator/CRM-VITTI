@@ -30,28 +30,80 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 import { getDb } from "../db";
 import { sql } from "drizzle-orm";
 
+function extractCount(result: unknown): number {
+  const rows = Array.isArray(result)
+    ? result
+    : Array.isArray((result as any)?.rows)
+      ? (result as any).rows
+      : [];
+  const firstRow = rows[0] as Record<string, unknown> | undefined;
+  const rawCount = firstRow?.count ?? firstRow?.COUNT ?? 0;
+  return Number(rawCount) || 0;
+}
+
+async function tableExists(db: any, tableName: string): Promise<boolean> {
+  const result = await db.execute(
+    sql`
+      SELECT COUNT(*) AS count
+      FROM information_schema.TABLES
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = ${tableName}
+    `
+  );
+  return extractCount(result) > 0;
+}
+
+async function columnExists(db: any, tableName: string, columnName: string): Promise<boolean> {
+  const result = await db.execute(
+    sql`
+      SELECT COUNT(*) AS count
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = ${tableName}
+        AND COLUMN_NAME = ${columnName}
+    `
+  );
+  return extractCount(result) > 0;
+}
+
 async function applyPendingMigrations() {
   const db = await getDb();
   if (!db) return;
-  
+
   try {
-    await db.execute(sql`ALTER TABLE kanban_columns ADD COLUMN is_active_in_funnel BOOLEAN DEFAULT true`);
-    await db.execute(sql`UPDATE kanban_columns SET is_active_in_funnel = false WHERE name IN ('Ganho', 'Perdido', 'Abandonado')`);
-    console.log("[Migration] kanban_columns updated with is_active_in_funnel");
-  } catch (e: any) {
-    if (!e.message?.includes('Duplicate column name')) {
-      console.log("[Migration] kanban_columns alter error:", e.message);
+    const hasKanbanColumns = await tableExists(db, "kanban_columns");
+    if (!hasKanbanColumns) {
+      console.warn("[Migration] kanban_columns not found, skipping legacy migration.");
+    } else {
+      const hasIsActiveInFunnel = await columnExists(db, "kanban_columns", "is_active_in_funnel");
+      if (hasIsActiveInFunnel) {
+        console.log("[Migration] kanban_columns.is_active_in_funnel already exists, skipping.");
+      } else {
+        await db.execute(sql`ALTER TABLE kanban_columns ADD COLUMN is_active_in_funnel BOOLEAN DEFAULT true`);
+        await db.execute(sql`UPDATE kanban_columns SET is_active_in_funnel = false WHERE name IN ('Ganho', 'Perdido', 'Abandonado')`);
+        console.log("[Migration] kanban_columns.is_active_in_funnel created.");
+      }
     }
+  } catch (error) {
+    console.error("[Migration] kanban_columns migration failed:", error);
   }
 
   try {
-    await db.execute(sql`ALTER TABLE pipeline_stages ADD COLUMN is_active_in_funnel BOOLEAN DEFAULT true`);
-    await db.execute(sql`UPDATE pipeline_stages SET is_active_in_funnel = false WHERE name IN ('Ganho', 'Perdido', 'Abandonado')`);
-    console.log("[Migration] pipeline_stages updated with is_active_in_funnel");
-  } catch (e: any) {
-    if (!e.message?.includes('Duplicate column name')) {
-      console.log("[Migration] pipeline_stages alter error:", e.message);
+    const hasPipelineStages = await tableExists(db, "pipeline_stages");
+    if (!hasPipelineStages) {
+      console.warn("[Migration] pipeline_stages not found, skipping migration.");
+    } else {
+      const hasIsActiveInFunnel = await columnExists(db, "pipeline_stages", "is_active_in_funnel");
+      if (hasIsActiveInFunnel) {
+        console.log("[Migration] pipeline_stages.is_active_in_funnel already exists, skipping.");
+      } else {
+        await db.execute(sql`ALTER TABLE pipeline_stages ADD COLUMN is_active_in_funnel BOOLEAN DEFAULT true`);
+        await db.execute(sql`UPDATE pipeline_stages SET is_active_in_funnel = false WHERE name IN ('Ganho', 'Perdido', 'Abandonado')`);
+        console.log("[Migration] pipeline_stages.is_active_in_funnel created.");
+      }
     }
+  } catch (error) {
+    console.error("[Migration] pipeline_stages migration failed:", error);
   }
 }
 
