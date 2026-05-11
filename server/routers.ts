@@ -623,17 +623,7 @@ export const appRouter = router({
           observacoes: z.string().optional(),
         })).max(MAX_IMPORT_ROWS, `A importação aceita no máximo ${MAX_IMPORT_ROWS} linhas por arquivo.`),
       }))
-      .mutation(async ({ input, ctx }) => {
-        console.log("[Import] bulkImport called", {
-          mode: input.mode,
-          rows: input.rows.length,
-          user: ctx.user ? {
-            id: ctx.user.id,
-            username: ctx.user.username,
-            role: ctx.user.role,
-          } : null,
-        });
-
+      .mutation(async ({ input }) => {
         try {
         const db = await getDb();
         if (!db) {
@@ -1017,6 +1007,7 @@ export const appRouter = router({
         };
 
         console.log("[Import] bulkImport finished", {
+          rows: input.rows.length,
           contactsCreated: summary.contactsCreated,
           contactsReused: summary.contactsReused,
           opportunitiesCreated: summary.opportunitiesCreated,

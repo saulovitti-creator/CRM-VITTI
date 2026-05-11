@@ -44,7 +44,7 @@ const FIELD_TYPES = [
 const CUSTOM_FIELD_MODELS = {
   contact: "Contato",
   opportunity: "Oportunidade",
-  lead: "Contato (legado)",
+  lead: "Contato",
 } as const;
 
 function getModelLabel(model?: string | null): string {
