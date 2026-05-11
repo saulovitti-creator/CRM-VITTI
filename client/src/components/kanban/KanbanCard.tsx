@@ -104,6 +104,7 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
                     try {
                       await deleteMutation.mutateAsync({ id: opp.id });
                       utils.opportunities.list.invalidate();
+                      utils.opportunities.closedList.invalidate();
                       toast.success("Oportunidade excluída com sucesso");
                     } catch (error: any) {
                       toast.error("Erro ao excluir: " + error.message);
@@ -153,3 +154,4 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { eq, or, like, desc, sql, and, isNull, isNotNull, gte, lte, count as drizzleCount, sum, inArray } from "drizzle-orm";
+import { eq, or, like, desc, sql, and, isNull, isNotNull, gte, lte, count as drizzleCount, sum, inArray, asc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, passwordResetTokens, InsertPasswordResetToken, PasswordResetToken, tags, Tag, InsertTag, contactTags, ContactTag, customFieldDefinitions, customFieldValues, CustomFieldDefinition, InsertCustomFieldDefinition, CustomFieldValue, InsertCustomFieldValue, contacts, Contact, InsertContact, InsertContactTag, pipelines, Pipeline, InsertPipeline, pipelineStages, PipelineStage, InsertPipelineStage, opportunities, Opportunity, InsertOpportunity, opportunityNotes, OpportunityNote, InsertOpportunityNote, opportunityTasks, OpportunityTask, InsertOpportunityTask } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -970,6 +970,193 @@ export async function moveOpportunityToStage(id: number, stageId: number) {
   }
 
   await db.update(opportunities).set(updateData).where(eq(opportunities.id, id));
+}
+
+export async function setOpportunityOutcome(
+  id: number,
+  outcome: "won" | "lost" | "abandoned",
+  reason: string
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existing = await db.select({ id: opportunities.id }).from(opportunities).where(eq(opportunities.id, id)).limit(1);
+  if (existing.length === 0) {
+    throw new Error("Oportunidade nao encontrada.");
+  }
+
+  const normalizedReason = reason.trim();
+  if (!normalizedReason) {
+    throw new Error("Justificativa obrigatoria.");
+  }
+
+  const updateData: Partial<InsertOpportunity> = {
+    status: outcome,
+  };
+
+  if (outcome === "won") {
+    updateData.wonAt = new Date();
+    updateData.lostAt = null;
+    updateData.lostReason = null;
+  } else {
+    updateData.wonAt = null;
+    updateData.lostAt = new Date();
+    updateData.lostReason = normalizedReason;
+  }
+
+  await db.update(opportunities).set(updateData).where(eq(opportunities.id, id));
+
+  if (outcome === "won") {
+    try {
+      await db.insert(opportunityNotes).values({
+        opportunityId: id,
+        noteType: "outcome",
+        content: `Desfecho registrado como Ganho. Justificativa: ${normalizedReason}`,
+      });
+    } catch (noteError) {
+      // A nota automática é complementar; não deve impedir o desfecho comercial.
+      console.warn("[setOutcome] could not persist won note", noteError);
+    }
+  }
+
+  const updated = await db.select().from(opportunities).where(eq(opportunities.id, id)).limit(1);
+  return updated[0] || null;
+}
+
+export async function getClosedOpportunities(filters?: {
+  pipelineId?: number;
+  status?: "won" | "lost" | "abandoned";
+  search?: string;
+}) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const closedStatuses: Array<"won" | "lost" | "abandoned"> = ["won", "lost", "abandoned"];
+  const conditions: any[] = [inArray(opportunities.status, closedStatuses)];
+
+  if (filters?.pipelineId) conditions.push(eq(opportunities.pipelineId, filters.pipelineId));
+  if (filters?.status) conditions.push(eq(opportunities.status, filters.status));
+  if (filters?.search && filters.search.trim() !== "") {
+    const s = `%${filters.search.trim()}%`;
+    conditions.push(
+      or(
+        like(opportunities.title, s),
+        like(contacts.name, s),
+        like(contacts.company, s)
+      )
+    );
+  }
+
+  const rows = await db.select({
+    id: opportunities.id,
+    title: opportunities.title,
+    contactId: opportunities.contactId,
+    pipelineId: opportunities.pipelineId,
+    stageId: opportunities.stageId,
+    monetaryValue: opportunities.monetaryValue,
+    status: opportunities.status,
+    source: opportunities.source,
+    notes: opportunities.notes,
+    wonAt: opportunities.wonAt,
+    lostAt: opportunities.lostAt,
+    lostReason: opportunities.lostReason,
+    createdAt: opportunities.createdAt,
+    updatedAt: opportunities.updatedAt,
+    contactName: contacts.name,
+    contactCompany: contacts.company,
+    contactPhone: contacts.phone,
+    contactEmail: contacts.email,
+    stageName: pipelineStages.name,
+    stageColor: pipelineStages.color,
+    pipelineName: pipelines.name,
+  })
+    .from(opportunities)
+    .innerJoin(contacts, eq(opportunities.contactId, contacts.id))
+    .innerJoin(pipelineStages, eq(opportunities.stageId, pipelineStages.id))
+    .innerJoin(pipelines, eq(opportunities.pipelineId, pipelines.id))
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(desc(sql`COALESCE(${opportunities.wonAt}, ${opportunities.lostAt}, ${opportunities.updatedAt})`));
+
+  const wonOpportunityIds = rows
+    .filter((row: any) => row.status === "won")
+    .map((row: any) => row.id);
+
+  const outcomeNotesByOpportunityId = new Map<number, string>();
+  if (wonOpportunityIds.length > 0) {
+    const wonOutcomeNotes = await db.select({
+      opportunityId: opportunityNotes.opportunityId,
+      content: opportunityNotes.content,
+      createdAt: opportunityNotes.createdAt,
+    })
+      .from(opportunityNotes)
+      .where(and(
+        inArray(opportunityNotes.opportunityId, wonOpportunityIds),
+        eq(opportunityNotes.noteType, "outcome")
+      ))
+      .orderBy(desc(opportunityNotes.createdAt));
+
+    for (const note of wonOutcomeNotes) {
+      if (!outcomeNotesByOpportunityId.has(note.opportunityId)) {
+        const prefix = "Justificativa:";
+        const index = note.content.indexOf(prefix);
+        const extracted = index >= 0
+          ? note.content.slice(index + prefix.length).trim()
+          : note.content.trim();
+        outcomeNotesByOpportunityId.set(note.opportunityId, extracted);
+      }
+    }
+  }
+
+  return rows.map((row: any) => ({
+    ...row,
+    outcomeReason:
+      row.status === "won"
+        ? (outcomeNotesByOpportunityId.get(row.id) || null)
+        : (row.lostReason || null),
+  }));
+}
+
+export async function reopenOpportunity(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existing = await db.select().from(opportunities).where(eq(opportunities.id, id)).limit(1);
+  if (existing.length === 0) {
+    throw new Error("Oportunidade nao encontrada.");
+  }
+
+  const opportunity = existing[0];
+  let nextStageId = opportunity.stageId;
+
+  if (!nextStageId) {
+    const activeStages = await db.select({
+      id: pipelineStages.id,
+    })
+      .from(pipelineStages)
+      .where(and(
+        eq(pipelineStages.pipelineId, opportunity.pipelineId),
+        eq(pipelineStages.isActiveInFunnel, true)
+      ))
+      .orderBy(asc(pipelineStages.displayOrder))
+      .limit(1);
+
+    if (activeStages.length === 0) {
+      throw new Error("Nao foi possivel reabrir: oportunidade sem estagio valido e sem estagio ativo no pipeline.");
+    }
+    nextStageId = activeStages[0].id;
+  }
+
+  await db.update(opportunities).set({
+    status: "open",
+    wonAt: null,
+    lostAt: null,
+    lostReason: null,
+    stageId: nextStageId,
+    updatedAt: new Date(),
+  }).where(eq(opportunities.id, id));
+
+  const updated = await db.select().from(opportunities).where(eq(opportunities.id, id)).limit(1);
+  return updated[0] || null;
 }
 
 // ===================== SPRINT 3: OPPORTUNITY NOTES =====================

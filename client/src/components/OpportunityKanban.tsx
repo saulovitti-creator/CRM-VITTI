@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { OpportunityFormDialog } from "./OpportunityFormDialog";
 import { OpportunityListView } from "./OpportunityListView";
+import { OpportunityHistoryView } from "./OpportunityHistoryView";
 import { KanbanBoard } from "./kanban/KanbanBoard";
 import { FilterBar } from "./FilterBar";
 import { useOpportunityFilters } from "@/hooks/useOpportunityFilters";
@@ -48,6 +49,7 @@ function normalizeMoney(value?: string | number | null) {
 export function OpportunityKanban() {
   const { data: pipelines, isLoading: loadingPipes } = trpc.pipelines.list.useQuery();
   const [activePipelineId, setActivePipelineId] = useState<string>("");
+  const [activeView, setActiveView] = useState<"active" | "history">("active");
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
 
   useEffect(() => {
@@ -148,6 +150,32 @@ export function OpportunityKanban() {
 
           <div className="flex bg-muted/50 p-1 rounded-md border border-border">
             <button
+              onClick={() => setActiveView("active")}
+              className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${
+                activeView === "active"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+              title="Funil ativo"
+            >
+              Funil Ativo
+            </button>
+            <button
+              onClick={() => setActiveView("history")}
+              className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${
+                activeView === "history"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+              title="Historico de oportunidades finalizadas"
+            >
+              Historico
+            </button>
+          </div>
+
+          {activeView === "active" && (
+            <div className="flex bg-muted/50 p-1 rounded-md border border-border">
+            <button
               onClick={() => setViewMode("kanban")}
               className={`p-1.5 rounded-sm transition-colors ${
                 viewMode === "kanban"
@@ -170,51 +198,62 @@ export function OpportunityKanban() {
               <List className="w-4 h-4" />
             </button>
           </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportXlsx}
-            disabled={loadingOpps}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Exportar XLSX
-          </Button>
+          {activeView === "active" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportXlsx}
+              disabled={loadingOpps}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Exportar XLSX
+            </Button>
+          )}
           <OpportunityFormDialog defaultPipelineId={parseInt(activePipelineId)} />
         </div>
       </div>
 
-      <FilterBar
-        filters={filters}
-        updateFilter={updateFilter}
-        clearFilters={clearFilters}
-        removeFilter={removeFilter}
-        activeFilterCount={activeFilterCount}
-        isFiltered={isFiltered}
-        stages={stages}
-      />
+      {activeView === "active" ? (
+        <>
+          <FilterBar
+            filters={filters}
+            updateFilter={updateFilter}
+            clearFilters={clearFilters}
+            removeFilter={removeFilter}
+            activeFilterCount={activeFilterCount}
+            isFiltered={isFiltered}
+            stages={stages}
+          />
 
-      {viewMode === "list" ? (
-        <div className="flex-1 overflow-y-auto pr-1">
-          <OpportunityListView
-            opportunities={filteredOpportunities}
-            stages={stages}
-            isFiltered={isFiltered}
-            onClearFilters={clearFilters}
-          />
-        </div>
+          {viewMode === "list" ? (
+            <div className="flex-1 overflow-y-auto pr-1">
+              <OpportunityListView
+                opportunities={filteredOpportunities}
+                stages={stages}
+                isFiltered={isFiltered}
+                onClearFilters={clearFilters}
+              />
+            </div>
+          ) : (
+            <div className="flex-1 overflow-x-auto overflow-y-hidden kanban-container">
+              <KanbanBoard
+                stages={stages}
+                opportunities={filteredOpportunities}
+                isLoading={loadingOpps}
+                pipelineId={activePipelineId}
+                isFiltered={isFiltered}
+                onClearFilters={clearFilters}
+              />
+            </div>
+          )}
+        </>
       ) : (
-        <div className="flex-1 overflow-x-auto overflow-y-hidden kanban-container">
-          <KanbanBoard
-            stages={stages}
-            opportunities={filteredOpportunities}
-            isLoading={loadingOpps}
-            pipelineId={activePipelineId}
-            isFiltered={isFiltered}
-            onClearFilters={clearFilters}
-          />
+        <div className="flex-1 overflow-y-auto pr-1">
+          <OpportunityHistoryView pipelineId={activePipelineId ? parseInt(activePipelineId) : undefined} />
         </div>
       )}
     </div>

@@ -177,7 +177,10 @@ export function KanbanBoard({ stages, opportunities, isLoading, pipelineId, isFi
         setLoadingCardId(null);
         // Silently refresh to ensure consistency
         utils.opportunities.list.invalidate();
+        utils.opportunities.closedList.invalidate();
         utils.opportunities.stats.invalidate();
+        utils.dashboard.stats.invalidate();
+        utils.dashboard.followUpAlerts.invalidate();
       }
     } catch (error: any) {
       if (controller.signal.aborted) return;

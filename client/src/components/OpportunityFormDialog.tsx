@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -35,6 +35,9 @@ export function OpportunityFormDialog({
   trigger 
 }: OpportunityFormDialogProps) {
   const [open, setOpen] = useState(false);
+  const [outcomeDialogOpen, setOutcomeDialogOpen] = useState(false);
+  const [pendingOutcome, setPendingOutcome] = useState<"won" | "lost" | "abandoned" | null>(null);
+  const [outcomeReason, setOutcomeReason] = useState("");
   const [formData, setFormData] = useState({
     title: opportunity?.title || "",
     contactId: opportunity?.contactId?.toString() || defaultContactId?.toString() || "",
@@ -60,6 +63,7 @@ export function OpportunityFormDialog({
   const createMutation = trpc.opportunities.create.useMutation();
   const updateMutation = trpc.opportunities.update.useMutation();
   const deleteMutation = trpc.opportunities.delete.useMutation();
+  const setOutcomeMutation = trpc.opportunities.setOutcome.useMutation();
   const saveCustomValuesMutation = trpc.customFields.setValues.useMutation();
   const utils = trpc.useUtils();
 
@@ -170,11 +174,13 @@ export function OpportunityFormDialog({
           }
           toast.success("Oportunidade atualizada!");
           utils.opportunities.list.invalidate();
+          utils.opportunities.closedList.invalidate();
           utils.opportunities.stats.invalidate();
           utils.customFields.getValues.invalidate({ entityId: opportunity.id, entityType: "opportunity" });
         }).catch((error: any) => {
           toast.error(`Erro ao salvar oportunidade: ${error.message || error}`);
           utils.opportunities.list.invalidate();
+          utils.opportunities.closedList.invalidate();
         });
       } else {
         createMutation.mutateAsync(payload).then(async (newOpp) => {
@@ -190,6 +196,7 @@ export function OpportunityFormDialog({
           }
           toast.success("Oportunidade criada!");
           utils.opportunities.list.invalidate();
+          utils.opportunities.closedList.invalidate();
           utils.opportunities.stats.invalidate();
         }).catch((error: any) => {
           toast.error(`Erro ao salvar oportunidade: ${error.message || error}`);
@@ -205,7 +212,75 @@ export function OpportunityFormDialog({
 
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
+  const openOutcomeDialog = (outcome: "won" | "lost" | "abandoned") => {
+    setPendingOutcome(outcome);
+    setOutcomeReason("");
+    setOutcomeDialogOpen(true);
+  };
+
+  const cancelOutcomeDialog = () => {
+    setOutcomeDialogOpen(false);
+    setPendingOutcome(null);
+    setOutcomeReason("");
+    toast.info("Ação cancelada.");
+  };
+
+  const closeWithOutcome = async () => {
+    if (!opportunity?.id) return;
+    if (!pendingOutcome) return;
+    if (opportunity?.status && opportunity.status !== "open") {
+      toast.info("Esta oportunidade ja esta finalizada.");
+      return;
+    }
+
+    const normalizedReason = outcomeReason.trim();
+    if (!normalizedReason) {
+      toast.error("Informe uma justificativa para concluir o desfecho.");
+      return;
+    }
+
+    try {
+      console.log("[setOutcome] payload", {
+        id: opportunity.id,
+        outcome: pendingOutcome,
+        reason: normalizedReason,
+      });
+
+      await setOutcomeMutation.mutateAsync({
+        opportunityId: opportunity.id,
+        outcome: pendingOutcome,
+        reason: normalizedReason,
+      });
+
+      if (pendingOutcome === "won") toast.success("Oportunidade marcada como ganha.");
+      if (pendingOutcome === "lost") toast.success("Oportunidade marcada como perdida.");
+      if (pendingOutcome === "abandoned") toast.success("Oportunidade marcada como abandonada.");
+
+      await Promise.all([
+        utils.opportunities.list.invalidate(),
+        utils.opportunities.closedList.invalidate(),
+        utils.opportunities.stats.invalidate(),
+        utils.dashboard.stats.invalidate(),
+        utils.dashboard.followUpAlerts.invalidate(),
+        utils.opportunities.getById.invalidate({ id: opportunity.id }),
+      ]);
+      setOutcomeDialogOpen(false);
+      setPendingOutcome(null);
+      setOutcomeReason("");
+      setOpen(false);
+      onSuccess?.();
+    } catch (error: any) {
+      console.error("[setOutcome] failed", {
+        opportunityId: opportunity.id,
+        outcome: pendingOutcome,
+        error,
+      });
+      toast.error(`Erro ao finalizar oportunidade: ${error.message || error}`);
+    }
+  };
+
   return (
+    <>
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
@@ -372,9 +447,40 @@ export function OpportunityFormDialog({
             />
           </div>
 
-          <div className="flex justify-between items-center pt-2">
+          <div className="flex justify-between items-start pt-2">
             <div>
               {opportunity && (
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-emerald-600 text-emerald-700 hover:bg-emerald-50"
+                      onClick={() => openOutcomeDialog("won")}
+                      disabled={setOutcomeMutation.isPending || opportunity?.status !== "open"}
+                    >
+                      Marcar como Ganho
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-amber-600 text-amber-700 hover:bg-amber-50"
+                      onClick={() => openOutcomeDialog("lost")}
+                      disabled={setOutcomeMutation.isPending || opportunity?.status !== "open"}
+                    >
+                      Marcar como Perdido
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-violet-600 text-violet-700 hover:bg-violet-50"
+                      onClick={() => openOutcomeDialog("abandoned")}
+                      disabled={setOutcomeMutation.isPending || opportunity?.status !== "open"}
+                    >
+                      Marcar como Abandonado
+                    </Button>
+                  </div>
+
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button type="button" variant="destructive" className="bg-red-600 hover:bg-red-700 text-white">
@@ -395,6 +501,7 @@ export function OpportunityFormDialog({
                           try {
                             await deleteMutation.mutateAsync({ id: opportunity.id });
                             utils.opportunities.list.invalidate();
+          utils.opportunities.closedList.invalidate();
                             toast.success("Oportunidade excluída com sucesso");
                             setOpen(false);
                             if (onSuccess) onSuccess();
@@ -409,6 +516,7 @@ export function OpportunityFormDialog({
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
+                </div>
               )}
             </div>
             <div className="flex justify-end gap-2">
@@ -425,5 +533,54 @@ export function OpportunityFormDialog({
         </form>
       </DialogContent>
     </Dialog>
+
+    <Dialog open={outcomeDialogOpen}>
+      <DialogContent
+        className="max-w-md"
+        showCloseButton={false}
+        onEscapeKeyDown={(event) => event.preventDefault()}
+        onPointerDownOutside={(event) => event.preventDefault()}
+        onInteractOutside={(event) => event.preventDefault()}
+      >
+        <DialogHeader>
+          <DialogTitle className="text-foreground">Registrar desfecho</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
+            Informe a justificativa para concluir este desfecho comercial.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <Label className="text-foreground">Justificativa *</Label>
+          <Textarea
+            value={outcomeReason}
+            onChange={(e) => setOutcomeReason(e.target.value)}
+            className="mt-1 h-24 resize-y"
+            placeholder="Descreva o motivo deste desfecho..."
+            autoFocus
+          />
+        </div>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            className="border-border text-foreground"
+            onClick={cancelOutcomeDialog}
+            disabled={setOutcomeMutation.isPending}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            className="text-white"
+            onClick={closeWithOutcome}
+            disabled={setOutcomeMutation.isPending}
+          >
+            {setOutcomeMutation.isPending ? "Registrando..." : "Confirmar desfecho"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
+
+

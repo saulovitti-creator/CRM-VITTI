@@ -50,6 +50,9 @@ import {
   updateOpportunity,
   deleteOpportunity,
   moveOpportunityToStage,
+  setOpportunityOutcome,
+  getClosedOpportunities,
+  reopenOpportunity,
   getOpportunityNotes,
   createOpportunityNote,
   deleteOpportunityNote,
@@ -554,6 +557,65 @@ export const appRouter = router({
         stageId: z.number(),
       }))
       .mutation(({ input }) => moveOpportunityToStage(input.id, input.stageId)),
+
+    setOutcome: protectedProcedure
+      .input(z.object({
+        opportunityId: z.number(),
+        outcome: z.enum(["won", "lost", "abandoned"]),
+        reason: z.string().trim().min(1, "Justificativa obrigatoria.").max(500),
+      }))
+      .mutation(async ({ input }) => {
+        try {
+          return await setOpportunityOutcome(input.opportunityId, input.outcome, input.reason);
+        } catch (error: any) {
+          if (String(error?.message || "").includes("nao encontrada")) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "Oportunidade nao encontrada.",
+            });
+          }
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: error?.message || "Falha ao finalizar oportunidade.",
+          });
+        }
+      }),
+
+    closedList: protectedProcedure
+      .input(z.object({
+        pipelineId: z.number().optional(),
+        status: z.enum(["won", "lost", "abandoned"]).optional(),
+        search: z.string().optional(),
+      }).optional())
+      .query(({ input }) => getClosedOpportunities(input)),
+
+    reopen: protectedProcedure
+      .input(z.object({
+        opportunityId: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        try {
+          return await reopenOpportunity(input.opportunityId);
+        } catch (error: any) {
+          const message = String(error?.message || "");
+          if (message.includes("nao encontrada")) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "Oportunidade nao encontrada.",
+            });
+          }
+          if (message.includes("Nao foi possivel reabrir")) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message,
+            });
+          }
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: error?.message || "Falha ao reabrir oportunidade.",
+          });
+        }
+      }),
 
     stats: protectedProcedure
       .input(z.object({ pipelineId: z.number().optional() }).optional())

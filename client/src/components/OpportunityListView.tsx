@@ -111,6 +111,7 @@ export function OpportunityListView({ opportunities, stages, isFiltered, onClear
                               try {
                                 await deleteMutation.mutateAsync({ id: opp.id });
                                 utils.opportunities.list.invalidate();
+                                utils.opportunities.closedList.invalidate();
                                 toast.success("Oportunidade excluída com sucesso");
                               } catch (error: any) {
                                 toast.error("Erro ao excluir: " + error.message);
@@ -133,3 +134,4 @@ export function OpportunityListView({ opportunities, stages, isFiltered, onClear
     </div>
   );
 }
+
