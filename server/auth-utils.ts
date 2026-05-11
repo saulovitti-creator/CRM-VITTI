@@ -21,12 +21,3 @@ export function verifyPassword(password: string, hash: string): boolean {
     .toString("hex");
   return computedHash === storedHash;
 }
-
-/**
- * Check if authentication bypass is active
- */
-export function isAuthDisabled(): boolean {
-  const authDisabled = String(process.env.AUTH_DISABLED || "").trim().toLowerCase();
-  const viteAuthDisabled = String(process.env.VITE_AUTH_DISABLED || "").trim().toLowerCase();
-  return authDisabled === "true" || viteAuthDisabled === "true";
-}

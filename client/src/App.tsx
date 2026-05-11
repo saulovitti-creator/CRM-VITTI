@@ -14,9 +14,7 @@ import Dashboard from "./pages/Dashboard";
 function Router() {
   const { isAuthenticated, user, loading } = useAuth();
 
-  const isAuthDisabled = import.meta.env.VITE_AUTH_DISABLED === 'true';
-
-  if (loading && !isAuthDisabled) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -24,7 +22,7 @@ function Router() {
     );
   }
 
-  if (!isAuthDisabled && (!isAuthenticated || !user)) {
+  if (!isAuthenticated || !user) {
     return <Login />;
   }
 

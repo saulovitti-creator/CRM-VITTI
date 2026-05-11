@@ -239,7 +239,7 @@ export function KanbanBoard({ stages, opportunities, isLoading, pipelineId, isFi
           {isFiltered && opportunities?.length === 0 && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-card/60 backdrop-blur-[2px] rounded-xl border border-dashed m-1">
               <SearchX className="w-10 h-10 text-muted-foreground mb-3" />
-              <p className="text-muted-foreground font-medium mb-4">Nenhum lead encontrado com os filtros aplicados.</p>
+              <p className="text-muted-foreground font-medium mb-4">Nenhuma oportunidade encontrada com os filtros aplicados.</p>
               <Button variant="outline" onClick={onClearFilters}>Limpar Filtros</Button>
             </div>
           )}

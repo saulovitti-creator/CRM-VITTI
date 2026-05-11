@@ -49,6 +49,9 @@ interface MappedRow {
 type ImportMode = "contacts_only" | "contacts_and_opportunities";
 type WizardStep = "upload" | "preview" | "importing" | "report";
 
+const MAX_FILE_SIZE_MB = 5;
+const MAX_ROWS = 1000;
+
 // ── Map spreadsheet columns to backend fields ──
 function mapRow(row: SpreadsheetRow): MappedRow {
   return {
@@ -158,10 +161,6 @@ export function ImportXLSXDialog() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // ── Limites de importação ──
-  const MAX_FILE_SIZE_MB = 5;
-  const MAX_ROWS = 1000;
-
   // ── Step 1: File Upload ──
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -196,8 +195,7 @@ export function ImportXLSXDialog() {
       setRawRows(data.map(mapRow));
       setFileName(file.name);
       setStep("preview");
-    } catch (error) {
-      console.error("Erro ao ler planilha:", error);
+    } catch {
       toast.error("Erro ao ler o arquivo. Verifique se é um XLSX válido.");
     }
   };
@@ -226,7 +224,11 @@ export function ImportXLSXDialog() {
         toast.warning(`Importação parcial: ${result.summary.linesWithError} linha(s) com erro.`);
       }
     } catch (error: any) {
-      toast.error(error.message || "Erro na importação.");
+      console.error("[Import] mutation failed", error);
+      const message = error?.message === "Failed to fetch"
+        ? "Não foi possível conectar ao servidor durante a importação. Verifique se o serviço está ativo no Render e tente novamente."
+        : error?.message || "Erro na importação.";
+      toast.error(message);
       setStep("preview");
     }
   };

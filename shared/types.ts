@@ -7,14 +7,14 @@ export type * from "../drizzle/schema";
 export * from "./_core/errors";
 
 /**
- * Lead Segment type - now a free text field
+ * Commercial segment type - now a free text field.
  */
-export type LeadSegment = string;
+export type CommercialSegment = string;
 
 /**
- * Lead Status type
+ * Opportunity stage/status labels used by the legacy kanban helpers.
  */
-export type LeadStatus =
+export type OpportunityStageStatus =
   | "Entrar em contato"
   | "Contatado"
   | "Não Respondeu"
@@ -30,12 +30,10 @@ export type LeadStatus =
 export type FinalStatus = "perdido" | "abandonado" | "ganho";
 
 /**
- * Constants for lead categories and statuses
- * DEPRECATED: LEAD_CATEGORIES is deprecated. Use dynamic segments instead.
+ * Legacy status helpers.
+ * DEPRECATED: prefer pipeline stages from the database for new code.
  */
-export const LEAD_CATEGORIES: string[] = ["Clínica", "Bar", "Restaurante", "Empresa"];
-
-export const LEAD_STATUSES: LeadStatus[] = [
+export const OPPORTUNITY_STAGE_STATUSES: OpportunityStageStatus[] = [
   "Entrar em contato",
   "Contatado",
   "Não Respondeu",
@@ -51,7 +49,7 @@ export const FINAL_STATUSES: FinalStatus[] = ["perdido", "abandonado", "ganho"];
 /**
  * Kanban status columns (all statuses including final)
  */
-export const KANBAN_STATUSES: LeadStatus[] = [
+export const KANBAN_STATUSES: OpportunityStageStatus[] = [
   "Entrar em contato",
   "Contatado",
   "Não Respondeu",
@@ -65,7 +63,7 @@ export const KANBAN_STATUSES: LeadStatus[] = [
 /**
  * Status colors for UI (badges)
  */
-export const STATUS_COLORS: Record<LeadStatus, string> = {
+export const STATUS_COLORS: Record<OpportunityStageStatus, string> = {
   "Entrar em contato": "bg-blue-500/20 text-blue-400 border border-blue-500/30",
   "Contatado": "bg-amber-500/20 text-amber-400 border border-amber-500/30",
   "Não Respondeu": "bg-orange-500/20 text-orange-400 border border-orange-500/30",
@@ -79,7 +77,7 @@ export const STATUS_COLORS: Record<LeadStatus, string> = {
 /**
  * Kanban board colors for status columns
  */
-export const KANBAN_COLORS: Record<LeadStatus, { bg: string; text: string; border: string }> = {
+export const KANBAN_COLORS: Record<OpportunityStageStatus, { bg: string; text: string; border: string }> = {
   "Entrar em contato": { bg: "bg-blue-500", text: "text-white", border: "border-blue-600" },
   "Contatado": { bg: "bg-amber-500", text: "text-white", border: "border-amber-600" },
   "Não Respondeu": { bg: "bg-slate-500", text: "text-white", border: "border-slate-600" },
@@ -100,5 +98,9 @@ export const SEGMENT_COLORS: Record<string, string> = {
   "Empresa": "bg-blue-100 text-blue-900 border border-blue-300",
 };
 
-// Backward compatibility
+// Backward compatibility for older modules/scripts that still import the old names.
+export type LeadSegment = CommercialSegment;
+export type LeadStatus = OpportunityStageStatus;
+export const LEAD_CATEGORIES: string[] = ["Clínica", "Bar", "Restaurante", "Empresa"];
+export const LEAD_STATUSES = OPPORTUNITY_STAGE_STATUSES;
 export const CATEGORY_COLORS = SEGMENT_COLORS;

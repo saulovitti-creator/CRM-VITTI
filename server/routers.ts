@@ -1,7 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { adminProcedure, publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import {
   getDb,
@@ -63,6 +63,8 @@ import { hashPassword, verifyPassword } from "./auth-utils";
 import { tags, contacts, pipelines, pipelineStages, contactTags, opportunities } from "../drizzle/schema";
 import { TRPCError } from "@trpc/server";
 import { eq, inArray, or, and, asc } from "drizzle-orm";
+
+const MAX_IMPORT_ROWS = 1000;
 
 export const appRouter = router({
   system: systemRouter,
@@ -267,7 +269,7 @@ export const appRouter = router({
       .input(z.object({
         name: z.string().min(1).max(255),
         fieldType: z.enum(["text", "textarea", "number", "currency", "date", "dropdown", "checkbox", "url", "email", "phone"]),
-        model: z.string().default("contact"),
+        model: z.enum(["contact", "opportunity"]).default("contact"),
         groupName: z.string().max(100).optional(),
         placeholder: z.string().max(255).optional(),
         options: z.string().optional(), // JSON array as string
@@ -600,7 +602,7 @@ export const appRouter = router({
 
   // ===================== IMPORTAÇÃO COMERCIAL INTELIGENTE =====================
   import: router({
-    bulkImport: protectedProcedure
+    bulkImport: adminProcedure
       .input(z.object({
         mode: z.enum(["contacts_only", "contacts_and_opportunities"]),
         rows: z.array(z.object({
@@ -619,19 +621,27 @@ export const appRouter = router({
           origem: z.string().optional(),
           tags: z.string().optional(),
           observacoes: z.string().optional(),
-        })),
+        })).max(MAX_IMPORT_ROWS, `A importação aceita no máximo ${MAX_IMPORT_ROWS} linhas por arquivo.`),
       }))
       .mutation(async ({ input, ctx }) => {
-        // ── RBAC mínimo: apenas admin pode importar no MVP ──
-        if (!ctx.user || (ctx.user as any).role !== "admin") {
+        console.log("[Import] bulkImport called", {
+          mode: input.mode,
+          rows: input.rows.length,
+          user: ctx.user ? {
+            id: ctx.user.id,
+            username: ctx.user.username,
+            role: ctx.user.role,
+          } : null,
+        });
+
+        try {
+        const db = await getDb();
+        if (!db) {
           throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Apenas administradores podem importar dados.",
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Banco de dados indisponível para processar a importação.",
           });
         }
-
-        const db = await getDb();
-        if (!db) throw new Error("Database not available");
 
         const { mode, rows } = input;
 
@@ -995,19 +1005,40 @@ export const appRouter = router({
           }
         }
 
+        const summary = {
+          totalRows: rows.length,
+          linesProcessed: results.length,
+          linesSkipped,
+          linesWithError,
+          contactsCreated,
+          contactsReused,
+          opportunitiesCreated,
+          tagsIgnored,
+        };
+
+        console.log("[Import] bulkImport finished", {
+          contactsCreated: summary.contactsCreated,
+          contactsReused: summary.contactsReused,
+          opportunitiesCreated: summary.opportunitiesCreated,
+          linesWithError: summary.linesWithError,
+        });
+
         return {
-          summary: {
-            totalRows: rows.length,
-            linesProcessed: results.length,
-            linesSkipped,
-            linesWithError,
-            contactsCreated,
-            contactsReused,
-            opportunitiesCreated,
-            tagsIgnored,
-          },
+          summary,
           results,
         };
+        } catch (error) {
+          console.error("[Import] bulkImport unexpected error", error);
+
+          if (error instanceof TRPCError) {
+            throw error;
+          }
+
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Erro interno ao processar a importação. Verifique os logs do servidor.",
+          });
+        }
       }),
   }),
 });

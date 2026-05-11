@@ -14,27 +14,7 @@ export async function createContext(
   let user: User | null = null;
 
   try {
-    const { isAuthDisabled } = await import("../auth-utils");
-    
-    if (isAuthDisabled()) {
-      user = {
-        id: 1, // Simulated admin ID
-        username: "admin-teste",
-        passwordHash: "",
-        openId: "bypass_admin_001",
-        name: "Admin (Modo Teste)",
-        email: "admin@bypass.local",
-        loginMethod: "local",
-        role: "admin",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        lastSignedIn: new Date(),
-        passwordResetToken: null,
-        passwordResetExpires: null,
-      };
-    } else {
-      user = await sdk.authenticateRequest(opts.req);
-    }
+    user = await sdk.authenticateRequest(opts.req);
   } catch (error) {
     // Authentication is optional for public procedures.
     user = null;

@@ -17,7 +17,7 @@ export function OpportunityListView({ opportunities, stages, isFiltered, onClear
       return (
         <div className="flex flex-col items-center justify-center h-64 text-muted-foreground bg-card rounded-[10px] border border-dashed mt-4">
           <SearchX className="w-10 h-10 text-muted-foreground mb-3" />
-          <p className="font-medium mb-4">Nenhum lead encontrado com os filtros aplicados.</p>
+          <p className="font-medium mb-4">Nenhuma oportunidade encontrada com os filtros aplicados.</p>
           <Button variant="outline" onClick={onClearFilters}>Limpar Filtros</Button>
         </div>
       );

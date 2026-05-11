@@ -41,6 +41,16 @@ const FIELD_TYPES = [
   { value: "url", label: "Link/URL" },
 ];
 
+const CUSTOM_FIELD_MODELS = {
+  contact: "Contato",
+  opportunity: "Oportunidade",
+  lead: "Contato (legado)",
+} as const;
+
+function getModelLabel(model?: string | null): string {
+  return CUSTOM_FIELD_MODELS[model as keyof typeof CUSTOM_FIELD_MODELS] || model || "Contato";
+}
+
 export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFieldsManagementModalProps) {
   const utils = trpc.useUtils();
   const { data: fields = [], isLoading } = trpc.customFields.listDefinitions.useQuery(
@@ -54,7 +64,7 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
   // Form State
   const [name, setName] = useState("");
   const [fieldType, setFieldType] = useState<string>("text");
-  const [modelType, setModelType] = useState<string>("lead");
+  const [modelType, setModelType] = useState<string>("contact");
   const [groupName, setGroupName] = useState("");
   const [placeholder, setPlaceholder] = useState("");
   const [optionsStr, setOptionsStr] = useState(""); // Comma separated for dropdown
@@ -91,7 +101,7 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
     setEditingId(null);
     setName("");
     setFieldType("text");
-    setModelType("lead");
+    setModelType("contact");
     setGroupName("");
     setPlaceholder("");
     setOptionsStr("");
@@ -102,7 +112,7 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
     setEditingId(field.id);
     setName(field.name);
     setFieldType(field.fieldType);
-    setModelType(field.model || "lead");
+    setModelType(field.model || "contact");
     setGroupName(field.groupName || "");
     setPlaceholder(field.placeholder || "");
     setIsRequired(field.isRequired || false);
@@ -140,7 +150,7 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
     const payload = {
       name: name.trim(),
       fieldType: fieldType as any,
-      model: modelType,
+      model: modelType === "opportunity" ? "opportunity" as const : "contact" as const,
       groupName: groupName.trim() || undefined,
       placeholder: placeholder.trim() || undefined,
       options: optionsJson,
@@ -155,7 +165,7 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
   };
 
   const handleDelete = (id: number) => {
-    if (confirm("ATENÇÃO: Remover este campo apagará todos os dados salvos nele para TODOS os leads. Deseja continuar?")) {
+    if (confirm("ATENÇÃO: Remover este campo apagará todos os dados salvos nele para TODOS os registros vinculados. Deseja continuar?")) {
       deleteMutation.mutate({ id });
     }
   };
@@ -215,8 +225,8 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-muted border-border text-foreground">
-                      <SelectItem value="lead">Leads (Pipeline)</SelectItem>
-                      <SelectItem value="opportunity">Oportunidades (Sprint 3)</SelectItem>
+                      <SelectItem value="contact">Contatos</SelectItem>
+                      <SelectItem value="opportunity">Oportunidades</SelectItem>
                     </SelectContent>
                   </Select>
                   {!!editingId && <p className="text-[10px] text-muted-foreground mt-1">Não é possível mudar o vínculo após a criação.</p>}
@@ -267,7 +277,7 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
                   className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                 />
                 <Label htmlFor="isRequired" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-foreground">
-                  Tornar este campo obrigatório ao salvar o lead
+                  Tornar este campo obrigatório ao salvar o registro
                 </Label>
               </div>
 
@@ -320,7 +330,7 @@ export function CustomFieldsManagementModal({ open, onOpenChange }: CustomFields
                             {FIELD_TYPES.find(t => t.value === field.fieldType)?.label || field.fieldType}
                           </span>
                           <span className={`px-1.5 py-0.5 rounded border text-[10px] uppercase font-bold ${field.model === 'opportunity' ? 'bg-purple-900/30 text-purple-400 border-purple-800' : 'bg-blue-900/30 text-blue-400 border-blue-800'}`}>
-                            {field.model === 'opportunity' ? 'Oportunidade' : 'Lead'}
+                            {getModelLabel(field.model)}
                           </span>
                           {field.groupName && (
                             <span className="text-primary/70">Grupo: {field.groupName}</span>
