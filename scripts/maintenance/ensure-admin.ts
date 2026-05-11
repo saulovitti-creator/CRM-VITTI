@@ -1,8 +1,8 @@
 import "dotenv/config";
-import { getDb } from "../server/db";
-import { users } from "../drizzle/schema";
+import { getDb } from "../../server/db";
+import { users } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
-import { hashPassword } from "../server/auth-utils";
+import { hashPassword } from "../../server/auth-utils";
 
 async function ensureAdmin() {
   const db = await getDb();

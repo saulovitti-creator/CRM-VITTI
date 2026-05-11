@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { registerUser } from "./server/db.js"; // Requires transpilation or using tsx
+import { registerUser } from "../../server/db.js"; // Requires transpilation or using tsx
 
 async function test() {
   try {

@@ -10,7 +10,7 @@ async function run() {
   console.log("Connecting to", url);
   const connection = await mysql.createConnection(url);
 
-  const sqlContent = fs.readFileSync('./drizzle/0003_careless_cassandra_nova.sql', 'utf-8');
+  const sqlContent = fs.readFileSync('../../drizzle/0003_careless_cassandra_nova.sql', 'utf-8');
   const statements = sqlContent.split('--> statement-breakpoint');
   
   for (let stmt of statements) {

@@ -1,4 +1,4 @@
-import { getDb, getLeads } from "./server/db.ts";
+import { getDb, getLeads } from "../../server/db.ts";
 
 async function testSQL() {
   // First, initialize DB if possible (might not work without DATABASE_URL, but we just want to see the sql builder)

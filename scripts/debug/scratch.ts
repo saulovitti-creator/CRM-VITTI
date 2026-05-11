@@ -1,5 +1,5 @@
-import { getDb } from "./server/db";
-import { opportunities } from "./drizzle/schema";
+import { getDb } from "../../server/db";
+import { opportunities } from "../../drizzle/schema";
 
 async function run() {
   const db = await getDb();

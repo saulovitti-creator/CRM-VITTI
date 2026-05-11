@@ -1,5 +1,5 @@
-import { getDb } from "./server/db";
-import { leads } from "./drizzle/schema";
+import { getDb } from "../../server/db";
+import { leads } from "../../drizzle/schema";
 
 const LEADS_CRM = [
   {

@@ -1,6 +1,6 @@
 import { config } from 'dotenv';
 config();
-import { getDb } from './server/db';
+import { getDb } from '../../server/db';
 import { sql } from 'drizzle-orm';
 
 async function main() {

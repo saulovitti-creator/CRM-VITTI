@@ -8,7 +8,7 @@ async function run() {
   const connection = await mysql.createConnection(url);
 
   console.log("Reading migration file...");
-  const sqlContent = fs.readFileSync('./drizzle/0003_careless_cassandra_nova.sql', 'utf-8');
+  const sqlContent = fs.readFileSync('../../drizzle/0003_careless_cassandra_nova.sql', 'utf-8');
   const statements = sqlContent.split('--> statement-breakpoint');
   
   for (let stmt of statements) {

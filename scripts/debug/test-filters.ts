@@ -1,4 +1,4 @@
-import { getLeads } from "./server/db.js";
+import { getLeads } from "../../server/db.js";
 
 async function test() {
   const result = await getLeads({

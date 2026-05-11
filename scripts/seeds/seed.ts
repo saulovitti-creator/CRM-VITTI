@@ -1,6 +1,6 @@
-﻿import { db } from "./server/db.js";
-import { users } from "./drizzle/schema.js";
-import { hashPassword } from "./server/_core/auth.js";
+import { db } from "../../server/db.js";
+import { users } from "../../drizzle/schema.js";
+import { hashPassword } from "../../server/_core/auth.js";
 async function run() {
   const hash = await hashPassword("admin123");
   await db.insert(users).values({

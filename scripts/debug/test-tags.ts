@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { getLeads, getAllTags, createTag, assignTagToLead } from "./server/db.js";
+import { getLeads, getAllTags, createTag, assignTagToLead } from "../../server/db.js";
 
 async function testTags() {
   try {

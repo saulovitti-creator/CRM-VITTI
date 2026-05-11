@@ -1,4 +1,4 @@
-import { getUserByUsername } from './server/db.js';
+import { getUserByUsername } from '../../server/db.js';
 
 async function testDrizzle() {
   try {

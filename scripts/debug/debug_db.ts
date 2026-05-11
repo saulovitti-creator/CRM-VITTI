@@ -1,6 +1,6 @@
 import { config } from 'dotenv';
 config();
-import { getDb, createLead, getLeads, getDashboardStats } from './server/db';
+import { getDb, createLead, getLeads, getDashboardStats } from '../../server/db';
 import { sql } from 'drizzle-orm';
 
 async function test() {
