@@ -163,45 +163,6 @@ async function applyPendingMigrations() {
   if (!db) return;
 
   try {
-    const currentDatabase = await getCurrentDatabase(db);
-    const schemaCandidates = await getDatabaseCandidates(db);
-    const pipelineTablesResult = await db.execute(
-      sql`
-        SELECT TABLE_SCHEMA AS tableSchema, TABLE_NAME AS tableName
-        FROM information_schema.TABLES
-        WHERE LOWER(TABLE_NAME) LIKE '%pipeline%'
-        ORDER BY TABLE_SCHEMA, TABLE_NAME
-        LIMIT 30
-      `
-    );
-    const activeColumnsResult = await db.execute(
-      sql`
-        SELECT TABLE_SCHEMA AS tableSchema, TABLE_NAME AS tableName, COLUMN_NAME AS columnName
-        FROM information_schema.COLUMNS
-        WHERE LOWER(COLUMN_NAME) LIKE '%active%'
-        ORDER BY TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME
-        LIMIT 50
-      `
-    );
-    console.log(
-      "[Migration][Debug] schema diagnostics",
-      JSON.stringify(
-        {
-          currentDatabase,
-          schemaCandidates,
-          extractedDatabaseFromUrl: parseDatabaseNameFromUrl(process.env.DATABASE_URL),
-          pipelineTables: normalizeRows(pipelineTablesResult),
-          activeColumns: normalizeRows(activeColumnsResult),
-        },
-        null,
-        2
-      )
-    );
-  } catch (error) {
-    console.warn("[Migration][Debug] schema diagnostics failed:", error);
-  }
-
-  try {
     const hasKanbanColumns = await tableExists(db, "kanban_columns");
     if (!hasKanbanColumns) {
       console.warn("[Migration] kanban_columns not found, skipping legacy migration.");
