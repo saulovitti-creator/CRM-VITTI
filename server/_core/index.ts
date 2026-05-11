@@ -41,26 +41,96 @@ function extractCount(result: unknown): number {
   return Number(rawCount) || 0;
 }
 
+function extractRows(result: unknown): Array<Record<string, unknown>> {
+  if (Array.isArray(result)) return result as Array<Record<string, unknown>>;
+  if (Array.isArray((result as any)?.rows)) return (result as any).rows as Array<Record<string, unknown>>;
+  return [];
+}
+
+function parseDatabaseNameFromUrl(connectionString?: string): string | null {
+  if (!connectionString) return null;
+  try {
+    const url = new URL(connectionString);
+    const dbName = url.pathname.replace(/^\/+/, "").trim();
+    return dbName || null;
+  } catch {
+    return null;
+  }
+}
+
+async function getDatabaseCandidates(db: any): Promise<string[]> {
+  const candidates = new Set<string>();
+
+  try {
+    const result = await db.execute(sql`SELECT DATABASE() AS currentDatabase`);
+    const rows = extractRows(result);
+    const currentDatabase = rows[0]?.currentDatabase;
+    if (typeof currentDatabase === "string" && currentDatabase.trim()) {
+      candidates.add(currentDatabase.trim().toLowerCase());
+    }
+  } catch {
+    // Best effort only. Fallback is DATABASE_URL parsing below.
+  }
+
+  const urlDatabase = parseDatabaseNameFromUrl(process.env.DATABASE_URL);
+  if (urlDatabase) {
+    candidates.add(urlDatabase.toLowerCase());
+  }
+
+  return Array.from(candidates);
+}
+
 async function tableExists(db: any, tableName: string): Promise<boolean> {
+  const schemaCandidates = await getDatabaseCandidates(db);
+  if (schemaCandidates.length === 0) {
+    const result = await db.execute(
+      sql`
+        SELECT COUNT(*) AS count
+        FROM information_schema.TABLES
+        WHERE LOWER(TABLE_NAME) = LOWER(${tableName})
+      `
+    );
+    return extractCount(result) > 0;
+  }
+
   const result = await db.execute(
     sql`
       SELECT COUNT(*) AS count
       FROM information_schema.TABLES
-      WHERE TABLE_SCHEMA = DATABASE()
-        AND TABLE_NAME = ${tableName}
+      WHERE LOWER(TABLE_NAME) = LOWER(${tableName})
+        AND LOWER(TABLE_SCHEMA) IN (${sql.join(
+          schemaCandidates.map(schema => sql`${schema}`),
+          sql`, `
+        )})
     `
   );
   return extractCount(result) > 0;
 }
 
 async function columnExists(db: any, tableName: string, columnName: string): Promise<boolean> {
+  const schemaCandidates = await getDatabaseCandidates(db);
+  if (schemaCandidates.length === 0) {
+    const result = await db.execute(
+      sql`
+        SELECT COUNT(*) AS count
+        FROM information_schema.COLUMNS
+        WHERE LOWER(TABLE_NAME) = LOWER(${tableName})
+          AND LOWER(COLUMN_NAME) = LOWER(${columnName})
+      `
+    );
+    return extractCount(result) > 0;
+  }
+
   const result = await db.execute(
     sql`
       SELECT COUNT(*) AS count
       FROM information_schema.COLUMNS
-      WHERE TABLE_SCHEMA = DATABASE()
-        AND TABLE_NAME = ${tableName}
-        AND COLUMN_NAME = ${columnName}
+      WHERE LOWER(TABLE_NAME) = LOWER(${tableName})
+        AND LOWER(COLUMN_NAME) = LOWER(${columnName})
+        AND LOWER(TABLE_SCHEMA) IN (${sql.join(
+          schemaCandidates.map(schema => sql`${schema}`),
+          sql`, `
+        )})
     `
   );
   return extractCount(result) > 0;
