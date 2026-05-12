@@ -76,47 +76,35 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
   return (
     <div
       ref={setNodeRef}
-      style={style}
-      className={`${cardClasses} select-none`}
+      style={{ ...style, touchAction: "none" }}
+      className={`${cardClasses} select-none cursor-grab active:cursor-grabbing`}
+      {...attributes}
+      {...listeners}
       role="listitem"
       aria-roledescription="Cartão arrastável"
       aria-label={`Oportunidade: ${opp.title}`}
+      onPointerDownCapture={(event) => {
+        dndDebug("root pointerdown capture", {
+          opportunityId: opp.id,
+          typeOfId: typeof opp.id,
+          sortableId: String(opp.id),
+          pointerType: event.pointerType,
+          button: event.button,
+          isPrimary: event.isPrimary,
+          targetTag: (event.target as HTMLElement)?.tagName,
+          currentTargetTag: (event.currentTarget as HTMLElement)?.tagName,
+          listenersKeys: listeners ? Object.keys(listeners) : "NO_LISTENERS",
+          attributesKeys: attributes ? Object.keys(attributes) : "NO_ATTRIBUTES",
+        });
+      }}
     >
       {/* Title + Delete */}
       <div className="flex justify-between items-start gap-2 mb-1.5">
         <div className="flex items-start gap-1.5 min-w-0">
           {!isOverlay && (
-            <button
-              ref={setActivatorNodeRef}
-              type="button"
-              className="mt-0.5 cursor-grab rounded p-0.5 text-muted-foreground/70 hover:bg-muted hover:text-foreground active:cursor-grabbing select-none"
-              style={{ touchAction: "none" }}
-              aria-label="Arrastar oportunidade"
-              {...attributes}
-              {...listeners}
-              onPointerDownCapture={(event) => {
-                dndDebug("grip pointerdown capture", {
-                  opportunityId: opp.id,
-                  typeOfId: typeof opp.id,
-                  sortableId: String(opp.id),
-                  pointerType: event.pointerType,
-                  button: event.button,
-                  isPrimary: event.isPrimary,
-                  targetTag: (event.target as HTMLElement)?.tagName,
-                  currentTargetTag: (event.currentTarget as HTMLElement)?.tagName,
-                  listenersKeys: listeners ? Object.keys(listeners) : "NO_LISTENERS",
-                  attributesKeys: attributes ? Object.keys(attributes) : "NO_ATTRIBUTES",
-                });
-              }}
-              onMouseDownCapture={(event) => {
-                dndDebug("grip mousedown capture", {
-                  opportunityId: opp.id,
-                  button: event.button,
-                });
-              }}
-            >
+            <div className="mt-0.5 rounded p-0.5 text-muted-foreground/70">
               <GripVertical className="w-3.5 h-3.5 pointer-events-none" />
-            </button>
+            </div>
           )}
           <h4 className="text-card-title leading-snug pr-2 min-w-0">{opp.title}</h4>
         </div>
