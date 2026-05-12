@@ -35,48 +35,10 @@ export default function Dashboard() {
   const alerts = alertsQuery.data || [];
 
   useEffect(() => {
-    console.log("[dashboard.stats] input", {
-      isActive: dateFilter.isActive,
-      dataInicial: dashboardStatsInput.dataInicial?.toISOString(),
-      dataFinal: dashboardStatsInput.dataFinal?.toISOString(),
-    });
-  }, [dashboardStatsInput.dataFinal, dashboardStatsInput.dataInicial, dateFilter.isActive]);
-
-  useEffect(() => {
     if (statsQuery.error) {
       console.error("[dashboard.stats] error", statsQuery.error);
     }
   }, [statsQuery.error]);
-
-  useEffect(() => {
-    if (!statsQuery.data) return;
-    console.log("[dashboard.stats] data summary", {
-      openOpportunities: statsQuery.data.openOpportunities,
-      openValue: statsQuery.data.openValue,
-      totalCreatedOpportunities: statsQuery.data.totalCreatedOpportunities,
-      stageKeys: Object.keys(statsQuery.data.opportunitiesByStage || {}),
-    });
-
-    [
-      "openOpportunities",
-      "openValue",
-      "wonOpportunities",
-      "lostOpportunities",
-      "abandonedOpportunities",
-      "totalCreatedOpportunities",
-      "conversionRate",
-      "lossRate",
-      "abandonmentRate",
-      "opportunitiesByStage",
-      "opportunitiesCreatedByMonth",
-      "opportunitiesBySegment",
-      "coldOpportunities",
-    ].forEach((field) => {
-      if ((statsQuery.data as any)[field] === undefined) {
-        console.warn("[dashboard.stats] missing field", field);
-      }
-    });
-  }, [statsQuery.data]);
 
   const monthNames: Record<string, string> = {
     "01": "Jan", "02": "Fev", "03": "Mar", "04": "Abr",

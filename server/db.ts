@@ -331,13 +331,6 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
     console.error("[dashboard.stats] stage metrics failed", error);
   }
 
-  console.log("[dashboard.stats] result summary", {
-    openOpportunities: result.openOpportunities,
-    openValue: result.openValue,
-    totalCreatedOpportunities: result.totalCreatedOpportunities,
-    stageCount: Object.keys(result.opportunitiesByStage).length,
-    hasDateFilter: Boolean(dataInicial || dataFinal),
-  });
   if (ENABLE_PERF_LOGS) {
     console.log("[PERF] getDashboardStats", { elapsedMs: Date.now() - start });
   }
