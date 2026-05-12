@@ -248,8 +248,8 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
       month: createdMonthExpr,
       c: drizzleCount(),
     }).from(opportunities).where(createdMonthlyFilter)
-      .groupBy(createdMonthExpr)
-      .orderBy(createdMonthExpr);
+      .groupBy(sql`1`)
+      .orderBy(sql`1`);
     result.opportunitiesCreatedByMonth = monthlyRes.map((r: any) => ({ month: r.month, count: toNumber(r.c) }));
     result.opportunitiesByMonth = result.opportunitiesCreatedByMonth;
   } catch (error) {
@@ -278,14 +278,14 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
         month: wonMonthExpr,
         c: drizzleCount(),
       }).from(opportunities).where(wonMonthlyFilter)
-        .groupBy(wonMonthExpr)
-        .orderBy(wonMonthExpr),
+        .groupBy(sql`1`)
+        .orderBy(sql`1`),
       db.select({
         month: lostMonthExpr,
         c: drizzleCount(),
       }).from(opportunities).where(lostMonthlyFilter)
-        .groupBy(lostMonthExpr)
-        .orderBy(lostMonthExpr),
+        .groupBy(sql`1`)
+        .orderBy(sql`1`),
     ]);
     const closedByMonth = new Map<string, number>();
     [...wonMonthlyRes, ...lostMonthlyRes].forEach((r: any) => {
