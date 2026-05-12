@@ -1,7 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { DateFilterDropdown } from "@/components/DateFilterDropdown";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -17,21 +17,66 @@ import {
   Trophy,
   Thermometer,
 } from "lucide-react";
-import { useMemo } from "react";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [dateFilter, setDateFilter] = useState<{ dataInicial?: Date; dataFinal?: Date; isActive: boolean }>({ isActive: false });
 
-  const statsQuery = trpc.dashboard.stats.useQuery({ 
+  const dashboardStatsInput = useMemo(() => ({
     pipelineId: undefined,
-    dataInicial: dateFilter.dataInicial,
-    dataFinal: dateFilter.dataFinal
-  });
+    dataInicial: dateFilter.isActive ? dateFilter.dataInicial : undefined,
+    dataFinal: dateFilter.isActive ? dateFilter.dataFinal : undefined,
+  }), [dateFilter.dataFinal, dateFilter.dataInicial, dateFilter.isActive]);
+
+  const statsQuery = trpc.dashboard.stats.useQuery(dashboardStatsInput);
   const alertsQuery = trpc.dashboard.followUpAlerts.useQuery({ days: 3 });
 
   const stats = statsQuery.data;
   const alerts = alertsQuery.data || [];
+
+  useEffect(() => {
+    console.log("[dashboard.stats] input", {
+      isActive: dateFilter.isActive,
+      dataInicial: dashboardStatsInput.dataInicial?.toISOString(),
+      dataFinal: dashboardStatsInput.dataFinal?.toISOString(),
+    });
+  }, [dashboardStatsInput.dataFinal, dashboardStatsInput.dataInicial, dateFilter.isActive]);
+
+  useEffect(() => {
+    if (statsQuery.error) {
+      console.error("[dashboard.stats] error", statsQuery.error);
+    }
+  }, [statsQuery.error]);
+
+  useEffect(() => {
+    if (!statsQuery.data) return;
+    console.log("[dashboard.stats] data summary", {
+      openOpportunities: statsQuery.data.openOpportunities,
+      openValue: statsQuery.data.openValue,
+      totalCreatedOpportunities: statsQuery.data.totalCreatedOpportunities,
+      stageKeys: Object.keys(statsQuery.data.opportunitiesByStage || {}),
+    });
+
+    [
+      "openOpportunities",
+      "openValue",
+      "wonOpportunities",
+      "lostOpportunities",
+      "abandonedOpportunities",
+      "totalCreatedOpportunities",
+      "conversionRate",
+      "lossRate",
+      "abandonmentRate",
+      "opportunitiesByStage",
+      "opportunitiesCreatedByMonth",
+      "opportunitiesBySegment",
+      "coldOpportunities",
+    ].forEach((field) => {
+      if ((statsQuery.data as any)[field] === undefined) {
+        console.warn("[dashboard.stats] missing field", field);
+      }
+    });
+  }, [statsQuery.data]);
 
   const monthNames: Record<string, string> = {
     "01": "Jan", "02": "Fev", "03": "Mar", "04": "Abr",
@@ -97,6 +142,14 @@ export default function Dashboard() {
           </div>
           <DateFilterDropdown onFilterChange={setDateFilter} initialFilter={dateFilter} />
         </div>
+
+        {statsQuery.error && (
+          <Card className="border-destructive/40 bg-destructive/10">
+            <CardContent className="py-3 px-4">
+              <p className="text-sm font-medium text-destructive">Erro ao carregar métricas do Dashboard. Verifique os logs.</p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* KPI Cards Row 1 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

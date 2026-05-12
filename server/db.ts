@@ -101,10 +101,17 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
   const db = await getDb();
   if (!db) return null;
 
+  const toNumber = (value: unknown): number => {
+    if (typeof value === "bigint") return Number(value);
+    const parsed = Number(value ?? 0);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
   const whereFor = (...conditions: any[]) => {
-    const active = conditions.filter(Boolean);
+    const active = conditions.filter((condition) => condition !== undefined && condition !== null);
     return active.length > 0 ? and(...active) : undefined;
   };
+
   const pipelineCondition = pipelineId ? eq(opportunities.pipelineId, pipelineId) : undefined;
   const createdPeriodFilter = whereFor(
     pipelineCondition,
@@ -131,41 +138,101 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
     dataFinal ? lte(opportunities.lostAt, dataFinal) : undefined
   );
 
-  const [createdRes] = await db.select({ c: drizzleCount() }).from(opportunities).where(createdPeriodFilter);
-  const totalCreatedOpportunities = createdRes?.c || 0;
-
-  const [openRes] = await db.select({ c: drizzleCount(), totalVal: sum(opportunities.monetaryValue) })
-    .from(opportunities)
-    .where(openFilter);
-  const openOpportunities = openRes?.c || 0;
-  const openValue = parseFloat(String(openRes?.totalVal || 0));
-
-  const [wonRes] = await db.select({ c: drizzleCount(), totalVal: sum(opportunities.monetaryValue) })
-    .from(opportunities)
-    .where(wonFilter);
-  const wonOpportunities = wonRes?.c || 0;
-  const wonValue = parseFloat(String(wonRes?.totalVal || 0));
-
-  const [lostRes] = await db.select({ c: drizzleCount() })
-    .from(opportunities)
-    .where(lostFilter);
-  const lostOpportunities = lostRes?.c || 0;
-
-  const [abandonedRes] = await db.select({ c: drizzleCount() })
-    .from(opportunities)
-    .where(abandonedFilter);
-  const abandonedOpportunities = abandonedRes?.c || 0;
-
-  const closedOpportunities = wonOpportunities + lostOpportunities + abandonedOpportunities;
-  const conversionRate = closedOpportunities > 0 ? (wonOpportunities / closedOpportunities) * 100 : 0;
-  const lossRate = closedOpportunities > 0 ? (lostOpportunities / closedOpportunities) * 100 : 0;
-  const abandonmentRate = closedOpportunities > 0 ? (abandonedOpportunities / closedOpportunities) * 100 : 0;
-  const dropoutRate = closedOpportunities > 0 ? ((lostOpportunities + abandonedOpportunities) / closedOpportunities) * 100 : 0;
-
-  const dinheiroNaMesa = {
-    implementacao: openValue,
-    recorrencia: 0,
+  const result: any = {
+    openOpportunities: 0,
+    wonOpportunities: 0,
+    lostOpportunities: 0,
+    abandonedOpportunities: 0,
+    closedOpportunities: 0,
+    totalCreatedOpportunities: 0,
+    openValue: 0,
+    wonValue: 0,
+    conversionRate: 0,
+    lossRate: 0,
+    abandonmentRate: 0,
+    dropoutRate: 0,
+    opportunitiesByStatus: {
+      open: 0,
+      won: 0,
+      lost: 0,
+      abandoned: 0,
+    },
+    opportunitiesByStage: {},
+    opportunitiesCreatedByMonth: [],
+    opportunitiesClosedByMonth: [],
+    dinheiroNaMesa: {
+      implementacao: 0,
+      recorrencia: 0,
+    },
+    valorTotalGanho: 0,
+    tempoMedioFunil: 0,
+    opportunitiesBySegment: {},
+    opportunitiesByMonth: [],
+    coldOpportunities: 0,
+    totalOpportunities: 0,
+    taxaConversao: 0,
+    taxaDropout: 0,
   };
+
+  try {
+    const [createdRes] = await db.select({ c: drizzleCount() }).from(opportunities).where(createdPeriodFilter);
+    result.totalCreatedOpportunities = toNumber(createdRes?.c);
+    result.totalOpportunities = result.totalCreatedOpportunities;
+
+    const [openRes] = await db.select({ c: drizzleCount(), totalVal: sum(opportunities.monetaryValue) })
+      .from(opportunities)
+      .where(openFilter);
+    result.openOpportunities = toNumber(openRes?.c);
+    result.openValue = toNumber(openRes?.totalVal);
+    result.dinheiroNaMesa.implementacao = result.openValue;
+
+    const statusRes = await db.select({ status: opportunities.status, c: drizzleCount() })
+      .from(opportunities)
+      .where(createdPeriodFilter)
+      .groupBy(opportunities.status);
+    statusRes.forEach((r: any) => {
+      if (r.status) result.opportunitiesByStatus[r.status] = toNumber(r.c);
+    });
+  } catch (error) {
+    console.error("[dashboard.stats] core metrics failed", error);
+    console.error("[dashboard.stats] failed", error);
+    throw error;
+  }
+
+  try {
+    const [wonRes] = await db.select({ c: drizzleCount(), totalVal: sum(opportunities.monetaryValue) })
+      .from(opportunities)
+      .where(wonFilter);
+    result.wonOpportunities = toNumber(wonRes?.c);
+    result.wonValue = toNumber(wonRes?.totalVal);
+    result.valorTotalGanho = result.wonValue;
+
+    const [lostRes] = await db.select({ c: drizzleCount() })
+      .from(opportunities)
+      .where(lostFilter);
+    result.lostOpportunities = toNumber(lostRes?.c);
+
+    const [abandonedRes] = await db.select({ c: drizzleCount() })
+      .from(opportunities)
+      .where(abandonedFilter);
+    result.abandonedOpportunities = toNumber(abandonedRes?.c);
+
+    result.closedOpportunities = result.wonOpportunities + result.lostOpportunities + result.abandonedOpportunities;
+    result.conversionRate = result.closedOpportunities > 0 ? Number(((result.wonOpportunities / result.closedOpportunities) * 100).toFixed(1)) : 0;
+    result.lossRate = result.closedOpportunities > 0 ? Number(((result.lostOpportunities / result.closedOpportunities) * 100).toFixed(1)) : 0;
+    result.abandonmentRate = result.closedOpportunities > 0 ? Number(((result.abandonedOpportunities / result.closedOpportunities) * 100).toFixed(1)) : 0;
+    result.dropoutRate = result.closedOpportunities > 0 ? Number((((result.lostOpportunities + result.abandonedOpportunities) / result.closedOpportunities) * 100).toFixed(1)) : 0;
+    result.taxaConversao = result.conversionRate;
+    result.taxaDropout = result.dropoutRate;
+    result.opportunitiesByStatus = {
+      open: result.openOpportunities,
+      won: result.wonOpportunities,
+      lost: result.lostOpportunities,
+      abandoned: result.abandonedOpportunities,
+    };
+  } catch (error) {
+    console.error("[dashboard.stats] outcome metrics failed", error);
+  }
 
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -174,85 +241,100 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
     dataInicial ? gte(opportunities.createdAt, dataInicial) : gte(opportunities.createdAt, sixMonthsAgo),
     dataFinal ? lte(opportunities.createdAt, dataFinal) : undefined
   );
-  const monthlyRes = await db.select({
-    month: sql<string>`DATE_FORMAT(${opportunities.createdAt}, '%Y-%m')`,
-    c: drizzleCount(),
-  }).from(opportunities).where(createdMonthlyFilter)
-    .groupBy(sql`DATE_FORMAT(${opportunities.createdAt}, '%Y-%m')`)
-    .orderBy(sql`DATE_FORMAT(${opportunities.createdAt}, '%Y-%m')`);
-  const opportunitiesCreatedByMonth = monthlyRes.map((r: any) => ({ month: r.month, count: r.c }));
 
-  const closedDateExpr = sql`COALESCE(${opportunities.wonAt}, ${opportunities.lostAt})`;
-  const closedMonthlyFilter = whereFor(
-    pipelineCondition,
-    inArray(opportunities.status, ["won", "lost", "abandoned"]),
-    dataInicial ? sql`${closedDateExpr} >= ${dataInicial}` : sql`${closedDateExpr} >= ${sixMonthsAgo}`,
-    dataFinal ? sql`${closedDateExpr} <= ${dataFinal}` : undefined
-  );
-  const closedMonthlyRes = await db.select({
-    month: sql<string>`DATE_FORMAT(${closedDateExpr}, '%Y-%m')`,
-    c: drizzleCount(),
-  }).from(opportunities).where(closedMonthlyFilter)
-    .groupBy(sql`DATE_FORMAT(${closedDateExpr}, '%Y-%m')`)
-    .orderBy(sql`DATE_FORMAT(${closedDateExpr}, '%Y-%m')`);
-  const opportunitiesClosedByMonth = closedMonthlyRes.map((r: any) => ({ month: r.month, count: r.c }));
+  try {
+    const monthlyRes = await db.select({
+      month: sql<string>`DATE_FORMAT(${opportunities.createdAt}, '%Y-%m')`,
+      c: drizzleCount(),
+    }).from(opportunities).where(createdMonthlyFilter)
+      .groupBy(sql`DATE_FORMAT(${opportunities.createdAt}, '%Y-%m')`)
+      .orderBy(sql`DATE_FORMAT(${opportunities.createdAt}, '%Y-%m')`);
+    result.opportunitiesCreatedByMonth = monthlyRes.map((r: any) => ({ month: r.month, count: toNumber(r.c) }));
+    result.opportunitiesByMonth = result.opportunitiesCreatedByMonth;
+  } catch (error) {
+    console.error("[dashboard.stats] created monthly metrics failed", error);
+  }
 
-  const segRes = await db.select({ segment: opportunities.segment, c: drizzleCount() })
-    .from(opportunities).where(createdPeriodFilter).groupBy(opportunities.segment);
-  const opportunitiesBySegment: Record<string, number> = {};
-  segRes.forEach((r: any) => { if (r.segment) opportunitiesBySegment[r.segment] = r.c; });
+  try {
+    const wonMonthlyFilter = whereFor(
+      pipelineCondition,
+      eq(opportunities.status, "won"),
+      isNotNull(opportunities.wonAt),
+      dataInicial ? gte(opportunities.wonAt, dataInicial) : gte(opportunities.wonAt, sixMonthsAgo),
+      dataFinal ? lte(opportunities.wonAt, dataFinal) : undefined
+    );
+    const lostMonthlyFilter = whereFor(
+      pipelineCondition,
+      inArray(opportunities.status, ["lost", "abandoned"]),
+      isNotNull(opportunities.lostAt),
+      dataInicial ? gte(opportunities.lostAt, dataInicial) : gte(opportunities.lostAt, sixMonthsAgo),
+      dataFinal ? lte(opportunities.lostAt, dataFinal) : undefined
+    );
+    const [wonMonthlyRes, lostMonthlyRes] = await Promise.all([
+      db.select({
+        month: sql<string>`DATE_FORMAT(${opportunities.wonAt}, '%Y-%m')`,
+        c: drizzleCount(),
+      }).from(opportunities).where(wonMonthlyFilter)
+        .groupBy(sql`DATE_FORMAT(${opportunities.wonAt}, '%Y-%m')`)
+        .orderBy(sql`DATE_FORMAT(${opportunities.wonAt}, '%Y-%m')`),
+      db.select({
+        month: sql<string>`DATE_FORMAT(${opportunities.lostAt}, '%Y-%m')`,
+        c: drizzleCount(),
+      }).from(opportunities).where(lostMonthlyFilter)
+        .groupBy(sql`DATE_FORMAT(${opportunities.lostAt}, '%Y-%m')`)
+        .orderBy(sql`DATE_FORMAT(${opportunities.lostAt}, '%Y-%m')`),
+    ]);
+    const closedByMonth = new Map<string, number>();
+    [...wonMonthlyRes, ...lostMonthlyRes].forEach((r: any) => {
+      if (!r.month) return;
+      closedByMonth.set(r.month, (closedByMonth.get(r.month) || 0) + toNumber(r.c));
+    });
+    result.opportunitiesClosedByMonth = Array.from(closedByMonth.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, count]) => ({ month, count }));
+  } catch (error) {
+    console.error("[dashboard.stats] closed monthly metrics failed", error);
+  }
 
-  // "Frios" = open opps created > 7 days ago (no contact field, use createdAt proxy)
-  const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const [friosRes] = await db.select({ c: drizzleCount() }).from(opportunities).where(
-    whereFor(openFilter, lte(opportunities.createdAt, cutoff))
-  );
-  const coldOpportunities = friosRes?.c || 0;
+  try {
+    const segRes = await db.select({ segment: opportunities.segment, c: drizzleCount() })
+      .from(opportunities).where(createdPeriodFilter).groupBy(opportunities.segment);
+    segRes.forEach((r: any) => { if (r.segment) result.opportunitiesBySegment[r.segment] = toNumber(r.c); });
+  } catch (error) {
+    console.error("[dashboard.stats] segment metrics failed", error);
+  }
 
-  // Active funnel by stage: only open opportunities in active operational stages.
-  const stageRes = await db.select({ stageName: pipelineStages.name, c: drizzleCount() })
-    .from(opportunities)
-    .innerJoin(pipelineStages, eq(opportunities.stageId, pipelineStages.id))
-    .where(whereFor(openFilter, or(eq(pipelineStages.isActiveInFunnel, true), isNull(pipelineStages.isActiveInFunnel))))
-    .groupBy(pipelineStages.id, pipelineStages.name, pipelineStages.displayOrder)
-    .orderBy(asc(pipelineStages.displayOrder));
-  const opportunitiesByStage: Record<string, number> = {};
-  stageRes.forEach((r: any) => { opportunitiesByStage[r.stageName] = r.c; });
+  try {
+    // "Frios" = open opps created > 7 days ago (no contact field, use createdAt proxy)
+    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const [friosRes] = await db.select({ c: drizzleCount() }).from(opportunities).where(
+      whereFor(openFilter, lte(opportunities.createdAt, cutoff))
+    );
+    result.coldOpportunities = toNumber(friosRes?.c);
+  } catch (error) {
+    console.error("[dashboard.stats] cold opportunities failed", error);
+  }
 
-  const opportunitiesByStatus: Record<string, number> = {
-    open: openOpportunities,
-    won: wonOpportunities,
-    lost: lostOpportunities,
-    abandoned: abandonedOpportunities,
-  };
+  try {
+    // Active funnel by stage: only open opportunities in active operational stages.
+    const stageRes = await db.select({ stageName: pipelineStages.name, c: drizzleCount() })
+      .from(opportunities)
+      .innerJoin(pipelineStages, eq(opportunities.stageId, pipelineStages.id))
+      .where(whereFor(openFilter, or(eq(pipelineStages.isActiveInFunnel, true), isNull(pipelineStages.isActiveInFunnel))))
+      .groupBy(pipelineStages.id, pipelineStages.name, pipelineStages.displayOrder)
+      .orderBy(asc(pipelineStages.displayOrder));
+    stageRes.forEach((r: any) => { if (r.stageName) result.opportunitiesByStage[r.stageName] = toNumber(r.c); });
+  } catch (error) {
+    console.error("[dashboard.stats] stage metrics failed", error);
+  }
 
-  const result = {
-    openOpportunities,
-    wonOpportunities,
-    lostOpportunities,
-    abandonedOpportunities,
-    closedOpportunities,
-    totalCreatedOpportunities,
-    openValue,
-    wonValue,
-    conversionRate: Number(conversionRate.toFixed(1)),
-    lossRate: Number(lossRate.toFixed(1)),
-    abandonmentRate: Number(abandonmentRate.toFixed(1)),
-    dropoutRate: Number(dropoutRate.toFixed(1)),
-    opportunitiesByStatus,
-    opportunitiesByStage,
-    opportunitiesCreatedByMonth,
-    opportunitiesClosedByMonth,
-    dinheiroNaMesa,
-    valorTotalGanho: wonValue,
-    tempoMedioFunil: 0,
-    opportunitiesBySegment,
-    opportunitiesByMonth: opportunitiesCreatedByMonth,
-    coldOpportunities,
-    totalOpportunities: totalCreatedOpportunities,
-    taxaConversao: Number(conversionRate.toFixed(1)),
-    taxaDropout: Number(dropoutRate.toFixed(1)),
-  };
+  console.log("[dashboard.stats] result summary", {
+    openOpportunities: result.openOpportunities,
+    openValue: result.openValue,
+    totalCreatedOpportunities: result.totalCreatedOpportunities,
+    stageCount: Object.keys(result.opportunitiesByStage).length,
+    hasDateFilter: Boolean(dataInicial || dataFinal),
+  });
   if (ENABLE_PERF_LOGS) {
     console.log("[PERF] getDashboardStats", { elapsedMs: Date.now() - start });
   }
