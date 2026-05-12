@@ -32,6 +32,7 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
     attributes,
     listeners,
     setNodeRef,
+    setActivatorNodeRef,
     transform,
     transition,
     isDragging,
@@ -79,6 +80,7 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
         <div className="flex items-start gap-1.5 min-w-0">
           {!isOverlay && (
             <button
+              ref={setActivatorNodeRef}
               type="button"
               className="mt-0.5 cursor-grab rounded p-0.5 text-muted-foreground/70 hover:bg-muted hover:text-foreground active:cursor-grabbing"
               aria-label="Arrastar oportunidade"
@@ -171,4 +173,3 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
     </div>
   );
 }
-
