@@ -243,12 +243,13 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
   );
 
   try {
+    const createdMonthExpr = sql<string>`DATE_FORMAT(${opportunities.createdAt}, '%Y-%m')`;
     const monthlyRes = await db.select({
-      month: sql<string>`DATE_FORMAT(${opportunities.createdAt}, '%Y-%m')`,
+      month: createdMonthExpr,
       c: drizzleCount(),
     }).from(opportunities).where(createdMonthlyFilter)
-      .groupBy(sql`DATE_FORMAT(${opportunities.createdAt}, '%Y-%m')`)
-      .orderBy(sql`DATE_FORMAT(${opportunities.createdAt}, '%Y-%m')`);
+      .groupBy(createdMonthExpr)
+      .orderBy(createdMonthExpr);
     result.opportunitiesCreatedByMonth = monthlyRes.map((r: any) => ({ month: r.month, count: toNumber(r.c) }));
     result.opportunitiesByMonth = result.opportunitiesCreatedByMonth;
   } catch (error) {
@@ -270,19 +271,21 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
       dataInicial ? gte(opportunities.lostAt, dataInicial) : gte(opportunities.lostAt, sixMonthsAgo),
       dataFinal ? lte(opportunities.lostAt, dataFinal) : undefined
     );
+    const wonMonthExpr = sql<string>`DATE_FORMAT(${opportunities.wonAt}, '%Y-%m')`;
+    const lostMonthExpr = sql<string>`DATE_FORMAT(${opportunities.lostAt}, '%Y-%m')`;
     const [wonMonthlyRes, lostMonthlyRes] = await Promise.all([
       db.select({
-        month: sql<string>`DATE_FORMAT(${opportunities.wonAt}, '%Y-%m')`,
+        month: wonMonthExpr,
         c: drizzleCount(),
       }).from(opportunities).where(wonMonthlyFilter)
-        .groupBy(sql`DATE_FORMAT(${opportunities.wonAt}, '%Y-%m')`)
-        .orderBy(sql`DATE_FORMAT(${opportunities.wonAt}, '%Y-%m')`),
+        .groupBy(wonMonthExpr)
+        .orderBy(wonMonthExpr),
       db.select({
-        month: sql<string>`DATE_FORMAT(${opportunities.lostAt}, '%Y-%m')`,
+        month: lostMonthExpr,
         c: drizzleCount(),
       }).from(opportunities).where(lostMonthlyFilter)
-        .groupBy(sql`DATE_FORMAT(${opportunities.lostAt}, '%Y-%m')`)
-        .orderBy(sql`DATE_FORMAT(${opportunities.lostAt}, '%Y-%m')`),
+        .groupBy(lostMonthExpr)
+        .orderBy(lostMonthExpr),
     ]);
     const closedByMonth = new Map<string, number>();
     [...wonMonthlyRes, ...lostMonthlyRes].forEach((r: any) => {
