@@ -931,7 +931,16 @@ export async function updateOpportunity(id: number, data: Partial<InsertOpportun
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.update(opportunities).set(data).where(eq(opportunities.id, id));
+  const result = await db.update(opportunities).set(data).where(eq(opportunities.id, id));
+  const affectedRows =
+    (result as any)?.affectedRows ??
+    (Array.isArray(result) ? (result as any)[0]?.affectedRows : undefined);
+  if (affectedRows !== undefined && affectedRows === 0) {
+    throw new Error("Oportunidade nao encontrada para atualizacao.");
+  }
+
+  const updated = await db.select().from(opportunities).where(eq(opportunities.id, id)).limit(1);
+  return updated[0] || null;
 }
 
 export async function deleteOpportunity(id: number) {

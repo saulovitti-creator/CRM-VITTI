@@ -16,6 +16,7 @@ import { CurrencyInput } from "./ui/currency-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useActiveFunnelStages } from "@/hooks/useActiveFunnelStages";
 import { DynamicFieldRenderer } from "./DynamicFieldRenderer";
+import { parseCurrency } from "@/lib/currency";
 
 interface OpportunityFormDialogProps {
   opportunity?: any;
@@ -91,43 +92,47 @@ export function OpportunityFormDialog({
   }, [existingValues, opportunity, open]);
 
   useEffect(() => {
-    if (open) {
-      if (opportunity) {
-        setFormData({
-          title: opportunity.title || "",
-          contactId: opportunity.contactId?.toString() || defaultContactId?.toString() || "",
-          pipelineId: opportunity.pipelineId?.toString() || defaultPipelineId?.toString() || "",
-          stageId: opportunity.stageId?.toString() || defaultStageId?.toString() || "",
-          monetaryValue: opportunity.monetaryValue || "",
-          segment: opportunity.segment || "",
-          source: opportunity.source || "",
-          notes: opportunity.notes || "",
-        });
-      } else {
-        // Auto-select first pipeline and its first stage if not provided
-        let initialPipelineId = defaultPipelineId?.toString() || "";
-        let initialStageId = defaultStageId?.toString() || "";
+    if (!open) return;
+    if (opportunity?.id) {
+      // Em modo de edicao, inicializa o form apenas por id da oportunidade para evitar reset
+      // durante refetches de query enquanto o usuario esta digitando.
+      setFormData({
+        title: opportunity.title || "",
+        contactId: opportunity.contactId?.toString() || defaultContactId?.toString() || "",
+        pipelineId: opportunity.pipelineId?.toString() || defaultPipelineId?.toString() || "",
+        stageId: opportunity.stageId?.toString() || defaultStageId?.toString() || "",
+        monetaryValue: opportunity.monetaryValue || "",
+        segment: opportunity.segment || "",
+        source: opportunity.source || "",
+        notes: opportunity.notes || "",
+      });
+    }
+  }, [open, opportunity?.id, defaultContactId, defaultPipelineId, defaultStageId]);
 
-        if (!initialPipelineId && pipelines && pipelines.length > 0) {
-          initialPipelineId = pipelines[0].id.toString();
-          if (pipelines[0].stages && pipelines[0].stages.length > 0) {
-            initialStageId = pipelines[0].stages[0].id.toString();
-          }
-        }
+  useEffect(() => {
+    if (!open || opportunity?.id) return;
+    // Modo criacao: permite usar defaults e pipeline inicial.
+    let initialPipelineId = defaultPipelineId?.toString() || "";
+    let initialStageId = defaultStageId?.toString() || "";
 
-        setFormData({
-          title: "", 
-          contactId: defaultContactId?.toString() || "", 
-          pipelineId: initialPipelineId, 
-          stageId: initialStageId, 
-          monetaryValue: "", 
-          segment: "", 
-          source: "", 
-          notes: "",
-        });
+    if (!initialPipelineId && pipelines && pipelines.length > 0) {
+      initialPipelineId = pipelines[0].id.toString();
+      if (pipelines[0].stages && pipelines[0].stages.length > 0) {
+        initialStageId = pipelines[0].stages[0].id.toString();
       }
     }
-  }, [open, opportunity, pipelines, defaultContactId, defaultPipelineId, defaultStageId]);
+
+    setFormData({
+      title: "",
+      contactId: defaultContactId?.toString() || "",
+      pipelineId: initialPipelineId,
+      stageId: initialStageId,
+      monetaryValue: "",
+      segment: "",
+      source: "",
+      notes: "",
+    });
+  }, [open, opportunity?.id, pipelines, defaultContactId, defaultPipelineId, defaultStageId]);
 
   // Find currently selected pipeline to get its stages (kept for other logic if needed, or can be removed if activeStages replaces it everywhere)
   const selectedPipeline = pipelines?.find(p => p.id.toString() === formData.pipelineId);
@@ -146,67 +151,127 @@ export function OpportunityFormDialog({
         contactId: parseInt(formData.contactId),
         pipelineId: parseInt(formData.pipelineId),
         stageId: parseInt(formData.stageId),
+        title: formData.title.trim(),
       };
 
-      if (payload.monetaryValue === "") {
+      const normalizedMonetary = parseCurrency(formData.monetaryValue || "");
+      if (normalizedMonetary === "") {
         payload.monetaryValue = null;
+      } else {
+        payload.monetaryValue = normalizedMonetary;
       }
 
-      const queryKeyArgs = { pipelineId: payload.pipelineId };
+      if (!payload.title) {
+        toast.error("Informe um titulo para a oportunidade.");
+        return;
+      }
+
+      const queryKeyArgs = { pipelineId: payload.pipelineId, status: "open" as const };
+      const previousPipelineId = opportunity?.pipelineId as number | undefined;
+      const previousQueryKeyArgs = previousPipelineId
+        ? { pipelineId: previousPipelineId, status: "open" as const }
+        : undefined;
+      const updateOpenOpportunityCache = (args: any, cacheOpportunity: any) => {
+        if (!args) return;
+        utils.opportunities.list.setData(args, (old: any) => {
+          if (!old) return old;
+          const shouldRemainInList =
+            cacheOpportunity.status === "open" &&
+            cacheOpportunity.pipelineId === args.pipelineId;
+
+          if (!shouldRemainInList) {
+            return old.filter((opp: any) => opp.id !== cacheOpportunity.id);
+          }
+
+          return old.map((opp: any) =>
+            opp.id === cacheOpportunity.id ? { ...opp, ...cacheOpportunity } : opp
+          );
+        });
+      };
 
       if (opportunity?.id) {
-        // Optimistic update
-        utils.opportunities.list.setData(queryKeyArgs, (old: any) => {
-          if (!old) return old;
-          return old.map((o: any) => o.id === opportunity.id ? { ...o, ...payload } : o);
-        });
+        const pendingCacheOpportunity = {
+          ...opportunity,
+          ...payload,
+          id: opportunity.id,
+          status: opportunity.status || "open",
+        };
+        updateOpenOpportunityCache(previousQueryKeyArgs, pendingCacheOpportunity);
+        if (previousPipelineId !== payload.pipelineId) {
+          updateOpenOpportunityCache(queryKeyArgs, pendingCacheOpportunity);
+        }
 
-        updateMutation.mutateAsync({ id: opportunity.id, ...payload }).then(async () => {
-          if (Object.keys(customValues).length > 0) {
-            await saveCustomValuesMutation.mutateAsync({
-              entityId: opportunity.id,
-              entityType: "opportunity",
-              values: Object.entries(customValues).map(([k, v]) => ({
-                definitionId: parseInt(k),
-                value: v,
-              })),
-            });
-          }
-          toast.success("Oportunidade atualizada!");
-          utils.opportunities.list.invalidate();
-          utils.opportunities.closedList.invalidate();
-          utils.opportunities.stats.invalidate();
-          utils.customFields.getValues.invalidate({ entityId: opportunity.id, entityType: "opportunity" });
-        }).catch((error: any) => {
-          toast.error(`Erro ao salvar oportunidade: ${error.message || error}`);
-          utils.opportunities.list.invalidate();
-          utils.opportunities.closedList.invalidate();
-        });
+        const updatedOpportunity = await updateMutation.mutateAsync({ id: opportunity.id, ...payload });
+        const updatedCacheOpportunity = {
+          ...pendingCacheOpportunity,
+          ...(updatedOpportunity || {}),
+        };
+        updateOpenOpportunityCache(previousQueryKeyArgs, updatedCacheOpportunity);
+        if (previousPipelineId !== payload.pipelineId) {
+          updateOpenOpportunityCache(queryKeyArgs, updatedCacheOpportunity);
+        }
+        if (Object.keys(customValues).length > 0) {
+          await saveCustomValuesMutation.mutateAsync({
+            entityId: opportunity.id,
+            entityType: "opportunity",
+            values: Object.entries(customValues).map(([k, v]) => ({
+              definitionId: parseInt(k),
+              value: v,
+            })),
+          });
+        }
+
+        await Promise.all([
+          utils.opportunities.list.invalidate({ pipelineId: payload.pipelineId, status: "open" }),
+          utils.opportunities.list.invalidate({ pipelineId: payload.pipelineId }),
+          utils.opportunities.list.invalidate(),
+          utils.opportunities.closedList.invalidate(),
+          utils.opportunities.getById.invalidate({ id: opportunity.id }),
+          utils.opportunities.stats.invalidate(),
+          utils.dashboard.stats.invalidate(),
+          utils.dashboard.followUpAlerts.invalidate(),
+          utils.customFields.getValues.invalidate({ entityId: opportunity.id, entityType: "opportunity" }),
+        ]);
+
+        toast.success("Oportunidade atualizada!");
       } else {
-        createMutation.mutateAsync(payload).then(async (newOpp) => {
-          if (Object.keys(customValues).length > 0) {
-            await saveCustomValuesMutation.mutateAsync({
-              entityId: newOpp.id,
-              entityType: "opportunity",
-              values: Object.entries(customValues).map(([k, v]) => ({
-                definitionId: parseInt(k),
-                value: v,
-              })),
-            });
-          }
-          toast.success("Oportunidade criada!");
-          utils.opportunities.list.invalidate();
-          utils.opportunities.closedList.invalidate();
-          utils.opportunities.stats.invalidate();
-        }).catch((error: any) => {
-          toast.error(`Erro ao salvar oportunidade: ${error.message || error}`);
-        });
+        const newOpp = await createMutation.mutateAsync(payload);
+        if (Object.keys(customValues).length > 0) {
+          await saveCustomValuesMutation.mutateAsync({
+            entityId: newOpp.id,
+            entityType: "opportunity",
+            values: Object.entries(customValues).map(([k, v]) => ({
+              definitionId: parseInt(k),
+              value: v,
+            })),
+          });
+        }
+
+        await Promise.all([
+          utils.opportunities.list.invalidate({ pipelineId: payload.pipelineId, status: "open" }),
+          utils.opportunities.list.invalidate({ pipelineId: payload.pipelineId }),
+          utils.opportunities.list.invalidate(),
+          utils.opportunities.closedList.invalidate(),
+          utils.opportunities.stats.invalidate(),
+          utils.dashboard.stats.invalidate(),
+          utils.dashboard.followUpAlerts.invalidate(),
+        ]);
+
+        toast.success("Oportunidade criada!");
       }
       
       setOpen(false);
       onSuccess?.();
     } catch (error: any) {
+      console.error("[opportunity.update] failed", {
+        opportunityId: opportunity?.id,
+        error,
+      });
       toast.error(`Erro inesperado: ${error.message || error}`);
+      await Promise.all([
+        utils.opportunities.list.invalidate(),
+        utils.opportunities.closedList.invalidate(),
+      ]);
     }
   };
 

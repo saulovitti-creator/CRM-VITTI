@@ -1,6 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Building, Trash2 } from "lucide-react";
+import { Building, GripVertical, Trash2 } from "lucide-react";
 import { OpportunityFormDialog } from "../OpportunityFormDialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -38,6 +38,7 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
   } = useSortable({
     id: opp.id,
     data: { type: "card", opp },
+    disabled: isOverlay,
   });
 
   const deleteMutation = trpc.opportunities.delete.useMutation();
@@ -69,23 +70,37 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
       ref={setNodeRef}
       style={style}
       className={cardClasses}
-      {...attributes}
-      {...listeners}
       role="listitem"
       aria-roledescription="Cartão arrastável"
       aria-label={`Oportunidade: ${opp.title}`}
     >
       {/* Title + Delete */}
-      <div className="flex justify-between items-start mb-1.5">
-        <h4 className="text-card-title leading-snug pr-2">{opp.title}</h4>
+      <div className="flex justify-between items-start gap-2 mb-1.5">
+        <div className="flex items-start gap-1.5 min-w-0">
+          {!isOverlay && (
+            <button
+              type="button"
+              className="mt-0.5 cursor-grab rounded p-0.5 text-muted-foreground/70 hover:bg-muted hover:text-foreground active:cursor-grabbing"
+              aria-label="Arrastar oportunidade"
+              {...attributes}
+              {...listeners}
+            >
+              <GripVertical className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <h4 className="text-card-title leading-snug pr-2 min-w-0">{opp.title}</h4>
+        </div>
 
         {/* Delete — only visible on hover, not during drag */}
         {!isDragging && !isOverlay && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <button
+                type="button"
                 className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded"
                 onPointerDown={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -144,6 +159,8 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
               <span
                 className="text-xs text-primary hover:text-primary/80 font-medium cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
                 onPointerDown={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
               >
                 Editar
               </span>

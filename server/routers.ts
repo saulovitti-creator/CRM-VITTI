@@ -69,6 +69,63 @@ import { eq, inArray, or, and, asc } from "drizzle-orm";
 
 const MAX_IMPORT_ROWS = 1000;
 
+function normalizeMonetaryInput(value: string | null | undefined): string | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const cleaned = trimmed.replace(/[^\d,.-]/g, "");
+  if (!cleaned) return null;
+
+  const hasComma = cleaned.includes(",");
+  const hasDot = cleaned.includes(".");
+
+  let normalized = cleaned;
+
+  // Casos BR comuns:
+  // - "1.500,00" => "1500.00"
+  // - "1500,00" => "1500.00"
+  // - "1500.00" => "1500.00"
+  if (hasComma && hasDot) {
+    if (cleaned.lastIndexOf(",") > cleaned.lastIndexOf(".")) {
+      normalized = cleaned.replace(/\./g, "").replace(",", ".");
+    } else {
+      normalized = cleaned.replace(/,/g, "");
+    }
+  } else if (hasComma) {
+    normalized = cleaned.replace(/\./g, "").replace(",", ".");
+  } else if (hasDot) {
+    const dotCount = (cleaned.match(/\./g) || []).length;
+    if (dotCount > 1) {
+      normalized = cleaned.replace(/\./g, "");
+    } else {
+      const [intPart, decPart] = cleaned.split(".");
+      if (decPart && decPart.length === 3) {
+        normalized = `${intPart}${decPart}`;
+      }
+    }
+  }
+
+  // Mantem apenas digitos, um ponto decimal e sinal negativo inicial opcional.
+  let sign = "";
+  let body = normalized;
+  if (body.startsWith("-")) {
+    sign = "-";
+    body = body.slice(1);
+  }
+  body = body.replace(/[^0-9.]/g, "");
+  const firstDot = body.indexOf(".");
+  if (firstDot >= 0) {
+    body = body.slice(0, firstDot + 1) + body.slice(firstDot + 1).replace(/\./g, "");
+  }
+
+  const finalValue = `${sign}${body}`;
+  if (!finalValue || finalValue === "-" || finalValue === ".") return null;
+  return finalValue;
+}
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -511,11 +568,12 @@ export const appRouter = router({
           contactId: input.contactId,
           pipelineId: input.pipelineId,
           stageId: input.stageId,
-          title: input.title,
+          title: input.title.trim(),
         };
-        // monetaryValue: string vazia → undefined (campo DECIMAL não aceita "")
-        if (input.monetaryValue && input.monetaryValue.trim() !== "") {
-          sanitized.monetaryValue = input.monetaryValue;
+        // monetaryValue normalizado para formato decimal compatível com DECIMAL
+        const normalizedMonetary = normalizeMonetaryInput(input.monetaryValue);
+        if (normalizedMonetary !== undefined && normalizedMonetary !== null) {
+          sanitized.monetaryValue = normalizedMonetary;
         }
         // Campos opcionais: string vazia → undefined
         if (input.segment && input.segment.trim() !== "") sanitized.segment = input.segment;
@@ -540,9 +598,11 @@ export const appRouter = router({
       }))
       .mutation(({ input }) => {
         const { id, ...data } = input;
-        // Sanitizar monetaryValue: string vazia → null
-        if (data.monetaryValue !== undefined && data.monetaryValue !== null && data.monetaryValue.trim() === "") {
-          data.monetaryValue = null;
+        if (data.title !== undefined) {
+          data.title = data.title.trim();
+        }
+        if (data.monetaryValue !== undefined) {
+          data.monetaryValue = normalizeMonetaryInput(data.monetaryValue);
         }
         return updateOpportunity(id, data);
       }),

@@ -142,7 +142,7 @@ export function KanbanBoard({ stages, opportunities, isLoading, pipelineId, isFi
     if (!opp || opp.stageId === newStageId) return;
 
     // --- Optimistic Update with Snapshot ---
-    const queryKeyArgs = pipelineId ? { pipelineId: parseInt(pipelineId) } : undefined;
+    const queryKeyArgs = pipelineId ? { pipelineId: parseInt(pipelineId), status: "open" as const } : undefined;
 
     // 1. Take snapshot for rollback
     const previousData = utils.opportunities.list.getData(queryKeyArgs);
@@ -176,6 +176,9 @@ export function KanbanBoard({ stages, opportunities, isLoading, pipelineId, isFi
       if (!controller.signal.aborted) {
         setLoadingCardId(null);
         // Silently refresh to ensure consistency
+        if (queryKeyArgs) {
+          utils.opportunities.list.invalidate(queryKeyArgs);
+        }
         utils.opportunities.list.invalidate();
         utils.opportunities.closedList.invalidate();
         utils.opportunities.stats.invalidate();
@@ -214,6 +217,7 @@ export function KanbanBoard({ stages, opportunities, isLoading, pipelineId, isFi
   const handleDragCancel = useCallback(() => {
     setActiveId(null);
     setActiveOverId(null);
+    setLoadingCardId(null);
     setLiveMessage("Arraste cancelado");
   }, []);
 
@@ -269,7 +273,7 @@ export function KanbanBoard({ stages, opportunities, isLoading, pipelineId, isFi
             easing: "cubic-bezier(0.25, 1, 0.5, 1)",
           }}
         >
-          {activeOpp ? (
+          {activeId !== null && activeOpp ? (
             <KanbanCard opp={activeOpp} isOverlay />
           ) : null}
         </DragOverlay>
