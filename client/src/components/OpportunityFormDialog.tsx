@@ -218,8 +218,6 @@ export function OpportunityFormDialog({
           status: opportunity.status || "open",
           updatedAt: new Date(),
         };
-        console.log("[opportunity.update] optimistic queryKey", currentListKey);
-        console.log("[opportunity.update] optimistic payload", payload);
         uniqueCacheKeys.forEach((key) => updateOpenOpportunityCache(key, pendingCacheOpportunity));
         utils.opportunities.getById.setData({ id: opportunity.id }, (old: any) =>
           old ? { ...old, ...pendingCacheOpportunity } : old
@@ -337,12 +335,6 @@ export function OpportunityFormDialog({
     }
 
     try {
-      console.log("[setOutcome] payload", {
-        id: opportunity.id,
-        outcome: pendingOutcome,
-        reason: normalizedReason,
-      });
-
       await setOutcomeMutation.mutateAsync({
         opportunityId: opportunity.id,
         outcome: pendingOutcome,

@@ -4,6 +4,7 @@ import { InsertUser, users, passwordResetTokens, InsertPasswordResetToken, Passw
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
+const ENABLE_PERF_LOGS = process.env.ENABLE_PERF_LOGS === "true";
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
@@ -96,6 +97,7 @@ export async function getUserByOpenId(openId: string) {
 // ===================== DASHBOARD (Opportunities-based) =====================
 
 export async function getDashboardStats(pipelineId?: number, dataInicial?: Date, dataFinal?: Date) {
+  const start = Date.now();
   const db = await getDb();
   if (!db) return null;
 
@@ -174,7 +176,7 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
   const opportunitiesByStage: Record<string, number> = {};
   stageRes.forEach((r: any) => { opportunitiesByStage[r.stageName] = r.c; });
 
-  return {
+  const result = {
     totalOpportunities,
     opportunitiesByStatus,
     opportunitiesByStage,
@@ -189,6 +191,10 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
     wonOpportunities,
     lostOpportunities,
   };
+  if (ENABLE_PERF_LOGS) {
+    console.log("[PERF] getDashboardStats", { elapsedMs: Date.now() - start });
+  }
+  return result;
 }
 
 export async function getFollowUpAlerts(daysSinceContact: number = 7) {
@@ -567,6 +573,7 @@ export async function getContacts(filters?: {
   segment?: string;
   tagIds?: number[];
 }) {
+  const start = Date.now();
   const db = await getDb();
   if (!db) return [];
 
@@ -590,37 +597,56 @@ export async function getContacts(filters?: {
 
   // Filter by tags if provided
   if (filters?.tagIds && filters.tagIds.length > 0) {
-    const taggedContactIds: number[] = [];
-    for (const tagId of filters.tagIds) {
-      const rows = await db.select({ contactId: contactTags.contactId })
-        .from(contactTags)
-        .where(eq(contactTags.tagId, tagId));
-      const ids = rows.map(r => r.contactId);
-      if (taggedContactIds.length === 0) {
-        taggedContactIds.push(...ids);
-      } else {
-        // AND logic: keep only IDs present in both
-        const idSet = new Set(ids);
-        taggedContactIds.splice(0, taggedContactIds.length, ...taggedContactIds.filter(id => idSet.has(id)));
-      }
+    const requestedTagIds = Array.from(new Set(filters.tagIds));
+    const tagRows = await db.select({
+      contactId: contactTags.contactId,
+      tagId: contactTags.tagId,
+    })
+      .from(contactTags)
+      .where(inArray(contactTags.tagId, requestedTagIds));
+
+    const tagIdsByContactId = new Map<number, Set<number>>();
+    for (const row of tagRows) {
+      const existing = tagIdsByContactId.get(row.contactId) || new Set<number>();
+      existing.add(row.tagId);
+      tagIdsByContactId.set(row.contactId, existing);
     }
-    results = results.filter(c => taggedContactIds.includes(c.id));
+
+    results = results.filter(contact => {
+      const contactTagIds = tagIdsByContactId.get(contact.id);
+      return !!contactTagIds && requestedTagIds.every(tagId => contactTagIds.has(tagId));
+    });
   }
 
   // Attach tags for each contact
-  const enriched = [];
-  for (const contact of results) {
-    const tagRows = await db.select({
+  const contactIds = results.map(contact => contact.id);
+  const tagsByContactId = new Map<number, Array<{ id: number; name: string; color: string }>>();
+
+  if (contactIds.length > 0) {
+    const allTagRows = await db.select({
+      contactId: contactTags.contactId,
       id: tags.id,
       name: tags.name,
       color: tags.color,
     }).from(contactTags)
       .innerJoin(tags, eq(contactTags.tagId, tags.id))
-      .where(eq(contactTags.contactId, contact.id));
+      .where(inArray(contactTags.contactId, contactIds));
 
-    enriched.push({ ...contact, tags: tagRows });
+    for (const row of allTagRows) {
+      const existing = tagsByContactId.get(row.contactId) || [];
+      existing.push({ id: row.id, name: row.name, color: row.color });
+      tagsByContactId.set(row.contactId, existing);
+    }
   }
 
+  const enriched = results.map(contact => ({
+    ...contact,
+    tags: tagsByContactId.get(contact.id) || [],
+  }));
+
+  if (ENABLE_PERF_LOGS) {
+    console.log("[PERF] getContacts", { count: enriched.length, elapsedMs: Date.now() - start });
+  }
   return enriched;
 }
 
@@ -849,6 +875,7 @@ export async function getOpportunities(filters?: {
   status?: string;
   search?: string;
 }) {
+  const start = Date.now();
   const db = await getDb();
   if (!db) return [];
 
@@ -863,29 +890,47 @@ export async function getOpportunities(filters?: {
     conditions.push(like(opportunities.title, s));
   }
 
-  const results = await db.select().from(opportunities)
+  const results = await db.select({
+    id: opportunities.id,
+    contactId: opportunities.contactId,
+    pipelineId: opportunities.pipelineId,
+    stageId: opportunities.stageId,
+    title: opportunities.title,
+    monetaryValue: opportunities.monetaryValue,
+    status: opportunities.status,
+    segment: opportunities.segment,
+    source: opportunities.source,
+    notes: opportunities.notes,
+    wonAt: opportunities.wonAt,
+    lostAt: opportunities.lostAt,
+    lostReason: opportunities.lostReason,
+    createdAt: opportunities.createdAt,
+    updatedAt: opportunities.updatedAt,
+    contactName: contacts.name,
+    contactCompany: contacts.company,
+    contactPhone: contacts.phone,
+    contactEmail: contacts.email,
+    stageName: pipelineStages.name,
+    stageColor: pipelineStages.color,
+  }).from(opportunities)
+    .innerJoin(contacts, eq(opportunities.contactId, contacts.id))
+    .innerJoin(pipelineStages, eq(opportunities.stageId, pipelineStages.id))
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(desc(opportunities.createdAt));
 
-  // Enrich with contact name, phone, email, stage info
-  const enriched = [];
-  for (const opp of results) {
-    const [contact] = await db.select({ name: contacts.name, company: contacts.company, phone: contacts.phone, email: contacts.email })
-      .from(contacts).where(eq(contacts.id, opp.contactId));
-    const [stage] = await db.select({ name: pipelineStages.name, color: pipelineStages.color })
-      .from(pipelineStages).where(eq(pipelineStages.id, opp.stageId));
+  const enriched = results.map(opp => ({
+    ...opp,
+    contactName: opp.contactName || "Desconhecido",
+    contactCompany: opp.contactCompany || "",
+    contactPhone: opp.contactPhone || "",
+    contactEmail: opp.contactEmail || "",
+    stageName: opp.stageName || "",
+    stageColor: opp.stageColor || "",
+  }));
 
-    enriched.push({
-      ...opp,
-      contactName: contact?.name || "Desconhecido",
-      contactCompany: contact?.company || "",
-      contactPhone: contact?.phone || "",
-      contactEmail: contact?.email || "",
-      stageName: stage?.name || "",
-      stageColor: stage?.color || "",
-    });
+  if (ENABLE_PERF_LOGS) {
+    console.log("[PERF] getOpportunities", { count: enriched.length, elapsedMs: Date.now() - start });
   }
-
   return enriched;
 }
 
