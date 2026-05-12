@@ -9,13 +9,6 @@ import {
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
-// --- Temporary DnD debug helper (activate: localStorage.setItem("DEBUG_DND","true")) ---
-const dndDebug = (...args: unknown[]) => {
-  if (typeof window !== "undefined" && localStorage.getItem("DEBUG_DND") === "true") {
-    console.log("[DND DEBUG][KanbanCard]", ...args);
-  }
-};
-
 interface KanbanCardProps {
   opp: any;
   isOverlay?: boolean;
@@ -83,20 +76,6 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
       role="listitem"
       aria-roledescription="Cartão arrastável"
       aria-label={`Oportunidade: ${opp.title}`}
-      onPointerDownCapture={(event) => {
-        dndDebug("root pointerdown capture", {
-          opportunityId: opp.id,
-          typeOfId: typeof opp.id,
-          sortableId: String(opp.id),
-          pointerType: event.pointerType,
-          button: event.button,
-          isPrimary: event.isPrimary,
-          targetTag: (event.target as HTMLElement)?.tagName,
-          currentTargetTag: (event.currentTarget as HTMLElement)?.tagName,
-          listenersKeys: listeners ? Object.keys(listeners) : "NO_LISTENERS",
-          attributesKeys: attributes ? Object.keys(attributes) : "NO_ATTRIBUTES",
-        });
-      }}
     >
       {/* Title + Delete */}
       <div className="flex justify-between items-start gap-2 mb-1.5">

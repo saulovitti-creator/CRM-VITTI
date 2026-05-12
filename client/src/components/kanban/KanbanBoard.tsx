@@ -240,7 +240,6 @@ export function KanbanBoard({ stages, opportunities, isLoading, pipelineId, isFi
   }, [opportunities, pipelineId, stages, moveMutation, utils]);
 
   const handleDragCancel = useCallback(() => {
-    dndDebug("handleDragCancel", { activeId });
     setActiveId(null);
     setActiveOverId(null);
     setLoadingCardId(null);
