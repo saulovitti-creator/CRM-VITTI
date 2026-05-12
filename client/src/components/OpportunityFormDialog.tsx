@@ -167,9 +167,13 @@ export function OpportunityFormDialog({
       }
 
       const queryKeyArgs = { pipelineId: payload.pipelineId, status: "open" as const };
+      const queryKeyArgsWithoutStatus = { pipelineId: payload.pipelineId };
       const previousPipelineId = opportunity?.pipelineId as number | undefined;
       const previousQueryKeyArgs = previousPipelineId
         ? { pipelineId: previousPipelineId, status: "open" as const }
+        : undefined;
+      const previousQueryKeyArgsWithoutStatus = previousPipelineId
+        ? { pipelineId: previousPipelineId }
         : undefined;
       const updateOpenOpportunityCache = (args: any, cacheOpportunity: any) => {
         if (!args) return;
@@ -197,8 +201,10 @@ export function OpportunityFormDialog({
           status: opportunity.status || "open",
         };
         updateOpenOpportunityCache(previousQueryKeyArgs, pendingCacheOpportunity);
+        updateOpenOpportunityCache(previousQueryKeyArgsWithoutStatus, pendingCacheOpportunity);
         if (previousPipelineId !== payload.pipelineId) {
           updateOpenOpportunityCache(queryKeyArgs, pendingCacheOpportunity);
+          updateOpenOpportunityCache(queryKeyArgsWithoutStatus, pendingCacheOpportunity);
         }
 
         const updatedOpportunity = await updateMutation.mutateAsync({ id: opportunity.id, ...payload });
@@ -207,8 +213,10 @@ export function OpportunityFormDialog({
           ...(updatedOpportunity || {}),
         };
         updateOpenOpportunityCache(previousQueryKeyArgs, updatedCacheOpportunity);
+        updateOpenOpportunityCache(previousQueryKeyArgsWithoutStatus, updatedCacheOpportunity);
         if (previousPipelineId !== payload.pipelineId) {
           updateOpenOpportunityCache(queryKeyArgs, updatedCacheOpportunity);
+          updateOpenOpportunityCache(queryKeyArgsWithoutStatus, updatedCacheOpportunity);
         }
         if (Object.keys(customValues).length > 0) {
           await saveCustomValuesMutation.mutateAsync({
@@ -221,7 +229,7 @@ export function OpportunityFormDialog({
           });
         }
 
-        await Promise.all([
+        void Promise.all([
           utils.opportunities.list.invalidate({ pipelineId: payload.pipelineId, status: "open" }),
           utils.opportunities.list.invalidate({ pipelineId: payload.pipelineId }),
           utils.opportunities.list.invalidate(),
@@ -247,7 +255,7 @@ export function OpportunityFormDialog({
           });
         }
 
-        await Promise.all([
+        void Promise.all([
           utils.opportunities.list.invalidate({ pipelineId: payload.pipelineId, status: "open" }),
           utils.opportunities.list.invalidate({ pipelineId: payload.pipelineId }),
           utils.opportunities.list.invalidate(),
