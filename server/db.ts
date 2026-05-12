@@ -101,95 +101,157 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
   const db = await getDb();
   if (!db) return null;
 
-  const conditions: any[] = [];
-  if (pipelineId) conditions.push(eq(opportunities.pipelineId, pipelineId));
-  if (dataInicial) conditions.push(gte(opportunities.createdAt, dataInicial));
-  if (dataFinal) conditions.push(lte(opportunities.createdAt, dataFinal));
-
-  const baseFilter = conditions.length > 0 ? and(...conditions) : undefined;
-
-  const [totalRes] = await db.select({ c: drizzleCount() }).from(opportunities).where(baseFilter);
-  const totalOpportunities = totalRes?.c || 0;
-
-  // Count by status
-  const statusRes = await db.select({ status: opportunities.status, c: drizzleCount() })
-    .from(opportunities).where(baseFilter).groupBy(opportunities.status);
-  const opportunitiesByStatus: Record<string, number> = {};
-  statusRes.forEach((r: any) => { opportunitiesByStatus[r.status] = r.c; });
-
-  const wonOpportunities = opportunitiesByStatus["won"] || 0;
-  const lostOpportunities = (opportunitiesByStatus["lost"] || 0) + (opportunitiesByStatus["abandoned"] || 0);
-  const taxaConversao = totalOpportunities > 0 ? ((wonOpportunities / totalOpportunities) * 100) : 0;
-  const taxaDropout = totalOpportunities > 0 ? ((lostOpportunities / totalOpportunities) * 100) : 0;
-
-  // Dinheiro na mesa (open opportunities)
-  const [activeRes] = await db.select({
-    totalVal: sum(opportunities.monetaryValue),
-  }).from(opportunities).where(
-    baseFilter ? and(baseFilter, eq(opportunities.status, "open")) : eq(opportunities.status, "open")
+  const whereFor = (...conditions: any[]) => {
+    const active = conditions.filter(Boolean);
+    return active.length > 0 ? and(...active) : undefined;
+  };
+  const pipelineCondition = pipelineId ? eq(opportunities.pipelineId, pipelineId) : undefined;
+  const createdPeriodFilter = whereFor(
+    pipelineCondition,
+    dataInicial ? gte(opportunities.createdAt, dataInicial) : undefined,
+    dataFinal ? lte(opportunities.createdAt, dataFinal) : undefined
   );
+  const openFilter = whereFor(createdPeriodFilter, eq(opportunities.status, "open"));
+  const wonFilter = whereFor(
+    pipelineCondition,
+    eq(opportunities.status, "won"),
+    dataInicial ? gte(opportunities.wonAt, dataInicial) : undefined,
+    dataFinal ? lte(opportunities.wonAt, dataFinal) : undefined
+  );
+  const lostFilter = whereFor(
+    pipelineCondition,
+    eq(opportunities.status, "lost"),
+    dataInicial ? gte(opportunities.lostAt, dataInicial) : undefined,
+    dataFinal ? lte(opportunities.lostAt, dataFinal) : undefined
+  );
+  const abandonedFilter = whereFor(
+    pipelineCondition,
+    eq(opportunities.status, "abandoned"),
+    dataInicial ? gte(opportunities.lostAt, dataInicial) : undefined,
+    dataFinal ? lte(opportunities.lostAt, dataFinal) : undefined
+  );
+
+  const [createdRes] = await db.select({ c: drizzleCount() }).from(opportunities).where(createdPeriodFilter);
+  const totalCreatedOpportunities = createdRes?.c || 0;
+
+  const [openRes] = await db.select({ c: drizzleCount(), totalVal: sum(opportunities.monetaryValue) })
+    .from(opportunities)
+    .where(openFilter);
+  const openOpportunities = openRes?.c || 0;
+  const openValue = parseFloat(String(openRes?.totalVal || 0));
+
+  const [wonRes] = await db.select({ c: drizzleCount(), totalVal: sum(opportunities.monetaryValue) })
+    .from(opportunities)
+    .where(wonFilter);
+  const wonOpportunities = wonRes?.c || 0;
+  const wonValue = parseFloat(String(wonRes?.totalVal || 0));
+
+  const [lostRes] = await db.select({ c: drizzleCount() })
+    .from(opportunities)
+    .where(lostFilter);
+  const lostOpportunities = lostRes?.c || 0;
+
+  const [abandonedRes] = await db.select({ c: drizzleCount() })
+    .from(opportunities)
+    .where(abandonedFilter);
+  const abandonedOpportunities = abandonedRes?.c || 0;
+
+  const closedOpportunities = wonOpportunities + lostOpportunities + abandonedOpportunities;
+  const conversionRate = closedOpportunities > 0 ? (wonOpportunities / closedOpportunities) * 100 : 0;
+  const lossRate = closedOpportunities > 0 ? (lostOpportunities / closedOpportunities) * 100 : 0;
+  const abandonmentRate = closedOpportunities > 0 ? (abandonedOpportunities / closedOpportunities) * 100 : 0;
+  const dropoutRate = closedOpportunities > 0 ? ((lostOpportunities + abandonedOpportunities) / closedOpportunities) * 100 : 0;
+
   const dinheiroNaMesa = {
-    implementacao: parseFloat(String(activeRes?.totalVal || 0)),
+    implementacao: openValue,
     recorrencia: 0,
   };
 
-  // Valor ganho
-  const [wonVal] = await db.select({ total: sum(opportunities.monetaryValue) })
-    .from(opportunities)
-    .where(baseFilter ? and(baseFilter, eq(opportunities.status, "won")) : eq(opportunities.status, "won"));
-  const valorTotalGanho = parseFloat(String(wonVal?.total || 0));
-
-  // Monthly (by createdAt)
-  let timeFilter = baseFilter;
-  if (!dataInicial) {
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    timeFilter = baseFilter ? and(baseFilter, gte(opportunities.createdAt, sixMonthsAgo)) : gte(opportunities.createdAt, sixMonthsAgo);
-  }
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  const createdMonthlyFilter = whereFor(
+    pipelineCondition,
+    dataInicial ? gte(opportunities.createdAt, dataInicial) : gte(opportunities.createdAt, sixMonthsAgo),
+    dataFinal ? lte(opportunities.createdAt, dataFinal) : undefined
+  );
   const monthlyRes = await db.select({
-    month: sql<string>`DATE_FORMAT(createdAt, '%Y-%m')`,
+    month: sql<string>`DATE_FORMAT(${opportunities.createdAt}, '%Y-%m')`,
     c: drizzleCount(),
-  }).from(opportunities).where(timeFilter)
-    .groupBy(sql`DATE_FORMAT(createdAt, '%Y-%m')`)
-    .orderBy(sql`DATE_FORMAT(createdAt, '%Y-%m')`);
-  const opportunitiesByMonth = monthlyRes.map((r: any) => ({ month: r.month, count: r.c }));
+  }).from(opportunities).where(createdMonthlyFilter)
+    .groupBy(sql`DATE_FORMAT(${opportunities.createdAt}, '%Y-%m')`)
+    .orderBy(sql`DATE_FORMAT(${opportunities.createdAt}, '%Y-%m')`);
+  const opportunitiesCreatedByMonth = monthlyRes.map((r: any) => ({ month: r.month, count: r.c }));
 
-  // Por segmento
+  const closedDateExpr = sql`COALESCE(${opportunities.wonAt}, ${opportunities.lostAt})`;
+  const closedMonthlyFilter = whereFor(
+    pipelineCondition,
+    inArray(opportunities.status, ["won", "lost", "abandoned"]),
+    dataInicial ? sql`${closedDateExpr} >= ${dataInicial}` : sql`${closedDateExpr} >= ${sixMonthsAgo}`,
+    dataFinal ? sql`${closedDateExpr} <= ${dataFinal}` : undefined
+  );
+  const closedMonthlyRes = await db.select({
+    month: sql<string>`DATE_FORMAT(${closedDateExpr}, '%Y-%m')`,
+    c: drizzleCount(),
+  }).from(opportunities).where(closedMonthlyFilter)
+    .groupBy(sql`DATE_FORMAT(${closedDateExpr}, '%Y-%m')`)
+    .orderBy(sql`DATE_FORMAT(${closedDateExpr}, '%Y-%m')`);
+  const opportunitiesClosedByMonth = closedMonthlyRes.map((r: any) => ({ month: r.month, count: r.c }));
+
   const segRes = await db.select({ segment: opportunities.segment, c: drizzleCount() })
-    .from(opportunities).where(baseFilter).groupBy(opportunities.segment);
+    .from(opportunities).where(createdPeriodFilter).groupBy(opportunities.segment);
   const opportunitiesBySegment: Record<string, number> = {};
   segRes.forEach((r: any) => { if (r.segment) opportunitiesBySegment[r.segment] = r.c; });
 
   // "Frios" = open opps created > 7 days ago (no contact field, use createdAt proxy)
   const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const [friosRes] = await db.select({ c: drizzleCount() }).from(opportunities).where(
-    and(baseFilter, eq(opportunities.status, "open"), lte(opportunities.createdAt, cutoff))
+    whereFor(openFilter, lte(opportunities.createdAt, cutoff))
   );
   const coldOpportunities = friosRes?.c || 0;
 
-  // Pipeline funnel by stage
+  // Active funnel by stage: only open opportunities in active operational stages.
   const stageRes = await db.select({ stageName: pipelineStages.name, c: drizzleCount() })
     .from(opportunities)
     .innerJoin(pipelineStages, eq(opportunities.stageId, pipelineStages.id))
-    .where(baseFilter)
-    .groupBy(pipelineStages.name);
+    .where(whereFor(openFilter, eq(pipelineStages.isActiveInFunnel, true)))
+    .groupBy(pipelineStages.id, pipelineStages.name, pipelineStages.displayOrder)
+    .orderBy(asc(pipelineStages.displayOrder));
   const opportunitiesByStage: Record<string, number> = {};
   stageRes.forEach((r: any) => { opportunitiesByStage[r.stageName] = r.c; });
 
+  const opportunitiesByStatus: Record<string, number> = {
+    open: openOpportunities,
+    won: wonOpportunities,
+    lost: lostOpportunities,
+    abandoned: abandonedOpportunities,
+  };
+
   const result = {
-    totalOpportunities,
-    opportunitiesByStatus,
-    opportunitiesByStage,
-    taxaConversao: Number(taxaConversao.toFixed(1)),
-    taxaDropout: Number(taxaDropout.toFixed(1)),
-    dinheiroNaMesa,
-    valorTotalGanho,
-    tempoMedioFunil: 0,
-    opportunitiesBySegment,
-    opportunitiesByMonth,
-    coldOpportunities,
+    openOpportunities,
     wonOpportunities,
     lostOpportunities,
+    abandonedOpportunities,
+    closedOpportunities,
+    totalCreatedOpportunities,
+    openValue,
+    wonValue,
+    conversionRate: Number(conversionRate.toFixed(1)),
+    lossRate: Number(lossRate.toFixed(1)),
+    abandonmentRate: Number(abandonmentRate.toFixed(1)),
+    dropoutRate: Number(dropoutRate.toFixed(1)),
+    opportunitiesByStatus,
+    opportunitiesByStage,
+    opportunitiesCreatedByMonth,
+    opportunitiesClosedByMonth,
+    dinheiroNaMesa,
+    valorTotalGanho: wonValue,
+    tempoMedioFunil: 0,
+    opportunitiesBySegment,
+    opportunitiesByMonth: opportunitiesCreatedByMonth,
+    coldOpportunities,
+    totalOpportunities: totalCreatedOpportunities,
+    taxaConversao: Number(conversionRate.toFixed(1)),
+    taxaDropout: Number(dropoutRate.toFixed(1)),
   };
   if (ENABLE_PERF_LOGS) {
     console.log("[PERF] getDashboardStats", { elapsedMs: Date.now() - start });

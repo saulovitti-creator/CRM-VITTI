@@ -34,6 +34,11 @@ export function DateFilterDropdown({ onFilterChange, initialFilter }: DateFilter
           dataInicial: parsed.dataInicial ? new Date(parsed.dataInicial) : undefined,
           dataFinal: parsed.dataFinal ? new Date(parsed.dataFinal) : undefined,
         });
+        onFilterChange({
+          ...parsed,
+          dataInicial: parsed.dataInicial ? new Date(parsed.dataInicial) : undefined,
+          dataFinal: parsed.dataFinal ? new Date(parsed.dataFinal) : undefined,
+        });
       } catch (e) {
         console.error("Erro ao restaurar filtro de data:", e);
       }
@@ -43,6 +48,13 @@ export function DateFilterDropdown({ onFilterChange, initialFilter }: DateFilter
   const formatDate = (date: Date | undefined): string => {
     if (!date) return "";
     return date.toLocaleDateString("pt-BR");
+  };
+
+  const parseLocalInputDate = (value: string, endOfDay = false): Date => {
+    const [year, month, day] = value.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
+    date.setHours(endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0);
+    return date;
   };
 
   const handleAtalhoRapido = (tipo: string) => {
@@ -87,9 +99,8 @@ export function DateFilterDropdown({ onFilterChange, initialFilter }: DateFilter
       return;
     }
 
-    const inicio = new Date(dataInicial);
-    const fim = new Date(dataFinal);
-    fim.setHours(23, 59, 59, 999);
+    const inicio = parseLocalInputDate(dataInicial);
+    const fim = parseLocalInputDate(dataFinal, true);
 
     const newFilter = { dataInicial: inicio, dataFinal: fim, isActive: true };
     setActiveFilter(newFilter);
@@ -104,10 +115,8 @@ export function DateFilterDropdown({ onFilterChange, initialFilter }: DateFilter
       return;
     }
 
-    const data = new Date(dataEspecifica);
-    data.setHours(0, 0, 0, 0);
-    const dataFim = new Date(data);
-    dataFim.setHours(23, 59, 59, 999);
+    const data = parseLocalInputDate(dataEspecifica);
+    const dataFim = parseLocalInputDate(dataEspecifica, true);
 
     const newFilter = { dataInicial: data, dataFinal: dataFim, isActive: true };
     setActiveFilter(newFilter);

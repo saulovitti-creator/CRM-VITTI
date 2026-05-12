@@ -40,12 +40,13 @@ export default function Dashboard() {
   };
 
   const chartData = useMemo(() => {
-    if (!stats?.opportunitiesByMonth) return [];
-    return stats.opportunitiesByMonth.map((m: any) => {
+    const monthly = stats?.opportunitiesCreatedByMonth || stats?.opportunitiesByMonth;
+    if (!monthly) return [];
+    return monthly.map((m: any) => {
       const [year, month] = m.month.split("-");
       return { label: `${monthNames[month]}/${year.slice(2)}`, count: m.count };
     });
-  }, [stats?.opportunitiesByMonth]);
+  }, [stats?.opportunitiesCreatedByMonth, stats?.opportunitiesByMonth]);
 
   const maxChart = useMemo(() => Math.max(...chartData.map((d: any) => d.count), 1), [chartData]);
 
@@ -58,16 +59,14 @@ export default function Dashboard() {
 
   const segmentMax = useMemo(() => Math.max(...segmentData.map(([, v]) => v as number), 1), [segmentData]);
 
-  const stageMetrics = [
-    { key: "Entrar em contato", color: "bg-blue-500" },
-    { key: "Contatado", color: "bg-amber-500" },
-    { key: "Não Respondeu", color: "bg-orange-500" },
-    { key: "Interessado", color: "bg-green-500" },
-    { key: "Não possui Interesse", color: "bg-slate-500" },
-    { key: "Ganho", color: "bg-emerald-500" },
-    { key: "Perdido", color: "bg-red-500" },
-    { key: "Abandonado", color: "bg-gray-500" },
-  ];
+  const stageColors = ["bg-blue-500", "bg-amber-500", "bg-orange-500", "bg-green-500", "bg-slate-500", "bg-cyan-500"];
+  const stageMetrics = useMemo(() => {
+    const byStage = stats?.opportunitiesByStage || {};
+    return Object.entries(byStage).map(([key], index) => ({
+      key,
+      color: stageColors[index % stageColors.length],
+    }));
+  }, [stats?.opportunitiesByStage]);
 
   const funnelMax = useMemo(() => {
     if (!stats?.opportunitiesByStage) return 1;
@@ -93,8 +92,8 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-page-title">Dashboard Analítico</h1>
-            <p className="text-sm text-muted-foreground mt-1">Visão geral — Saúde do Funil de Vendas</p>
+            <h1 className="text-page-title">Dashboard AnalÃ­tico</h1>
+            <p className="text-sm text-muted-foreground mt-1">Visao comercial - funil ativo e desfechos</p>
           </div>
           <DateFilterDropdown onFilterChange={setDateFilter} initialFilter={dateFilter} />
         </div>
@@ -106,8 +105,9 @@ export default function Dashboard() {
             <CardContent className="py-5 px-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-label">Total de Oportunidades</p>
-                  <p className="text-3xl font-bold text-foreground mt-1 tabular-nums">{stats?.totalOpportunities || 0}</p>
+                  <p className="text-label">Oportunidades Abertas</p>
+                  <p className="text-3xl font-bold text-foreground mt-1 tabular-nums">{stats?.openOpportunities || 0}</p>
+                  <p className="text-metadata mt-1">No funil ativo</p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Users className="w-5 h-5 text-primary" />
@@ -116,14 +116,14 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Taxa de Conversão */}
+          {/* Taxa de ConversÃ£o */}
           <Card>
             <CardContent className="py-5 px-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-label">Taxa de Conversão</p>
-                  <p className="text-3xl font-bold text-foreground mt-1 tabular-nums">{stats?.taxaConversao || 0}%</p>
-                  <p className="text-metadata mt-1">{stats?.wonOpportunities || 0} ganhos</p>
+                  <p className="text-label">Taxa de ConversÃ£o</p>
+                  <p className="text-3xl font-bold text-foreground mt-1 tabular-nums">{stats?.conversionRate ?? stats?.taxaConversao ?? 0}%</p>
+                  <p className="text-metadata mt-1">{stats?.wonOpportunities || 0} de {stats?.closedOpportunities || 0} finalizadas</p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-[var(--success-light)] flex items-center justify-center">
                   <TrendingUp className="w-5 h-5 text-[var(--success)]" />
@@ -137,9 +137,9 @@ export default function Dashboard() {
             <CardContent className="py-5 px-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-label">Taxa Dropout</p>
-                  <p className="text-3xl font-bold text-foreground mt-1 tabular-nums">{stats?.taxaDropout || 0}%</p>
-                  <p className="text-metadata mt-1">{stats?.lostOpportunities || 0} perdidos</p>
+                  <p className="text-label">Taxa de Perda</p>
+                  <p className="text-3xl font-bold text-foreground mt-1 tabular-nums">{stats?.lossRate || 0}%</p>
+                  <p className="text-metadata mt-1">{stats?.lostOpportunities || 0} perdidas</p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-[var(--error-light)] flex items-center justify-center">
                   <TrendingDown className="w-5 h-5 text-destructive" />
@@ -148,13 +148,14 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Tempo Médio */}
+          {/* Taxa de Abandono */}
           <Card>
             <CardContent className="py-5 px-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-label">Tempo Médio no Funil</p>
-                  <p className="text-3xl font-bold text-foreground mt-1 tabular-nums">{stats?.tempoMedioFunil || 0}<span className="text-base font-medium ml-1 text-muted-foreground">dias</span></p>
+                  <p className="text-label">Taxa de Abandono</p>
+                  <p className="text-3xl font-bold text-foreground mt-1 tabular-nums">{stats?.abandonmentRate || 0}%</p>
+                  <p className="text-metadata mt-1">{stats?.abandonedOpportunities || 0} abandonadas</p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Clock className="w-5 h-5 text-primary" />
@@ -164,17 +165,17 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* KPI Cards Row 2 — Financeiro */}
+        {/* KPI Cards Row 2 â€” Financeiro */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardContent className="py-5 px-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-label">Dinheiro na Mesa (Setup)</p>
+                  <p className="text-label">Valor em Aberto</p>
                   <p className="text-2xl font-bold text-foreground mt-1 tabular-nums">
-                    {formatCurrency(stats?.dinheiroNaMesa?.implementacao || 0)}
+                    {formatCurrency(stats?.openValue ?? stats?.dinheiroNaMesa?.implementacao ?? 0)}
                   </p>
-                  <p className="text-metadata mt-1">Implantação de oportunidades ativas</p>
+                  <p className="text-metadata mt-1">Soma das oportunidades abertas</p>
                 </div>
                 <DollarSign className="w-6 h-6 text-[var(--success)] opacity-40" />
               </div>
@@ -185,11 +186,11 @@ export default function Dashboard() {
             <CardContent className="py-5 px-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-label">Dinheiro na Mesa (MRR)</p>
+                  <p className="text-label">Receita Ganha</p>
                   <p className="text-2xl font-bold text-foreground mt-1 tabular-nums">
-                    {formatCurrency(stats?.dinheiroNaMesa?.recorrencia || 0)}
+                    {formatCurrency(stats?.wonValue ?? stats?.valorTotalGanho ?? 0)}
                   </p>
-                  <p className="text-metadata mt-1">Recorrência mensal projetada</p>
+                  <p className="text-metadata mt-1">{stats?.wonOpportunities || 0} oportunidades ganhas</p>
                 </div>
                 <Target className="w-6 h-6 text-primary opacity-40" />
               </div>
@@ -200,11 +201,11 @@ export default function Dashboard() {
             <CardContent className="py-5 px-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-label">Receita Fechada</p>
+                  <p className="text-label">Oportunidades Criadas</p>
                   <p className="text-2xl font-bold text-foreground mt-1 tabular-nums">
-                    {formatCurrency(stats?.valorTotalGanho || 0)}
+                    {stats?.totalCreatedOpportunities ?? stats?.totalOpportunities ?? 0}
                   </p>
-                  <p className="text-metadata mt-1">Valor fechado em contratos ganhos</p>
+                  <p className="text-metadata mt-1">Criadas no periodo filtrado</p>
                 </div>
                 <Trophy className="w-6 h-6 text-[var(--warning)] opacity-40" />
               </div>
@@ -214,15 +215,17 @@ export default function Dashboard() {
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Funil de Vendas */}
+          {/* Funil Ativo */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-primary" /> Funil de Vendas
+                <BarChart3 className="w-4 h-4 text-primary" /> Funil Ativo
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {stageMetrics.map((s) => {
+              {stageMetrics.length === 0 ? (
+                <p className="text-muted-foreground text-sm text-center py-10">Sem oportunidades abertas no funil ativo</p>
+              ) : stageMetrics.map((s) => {
                 const count = stats?.opportunitiesByStage?.[s.key] || 0;
                 const pct = funnelMax > 0 ? (count / funnelMax) * 100 : 0;
                 return (
@@ -243,11 +246,11 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Oportunidades por Mês */}
+          {/* Oportunidades por MÃªs */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-primary" /> Evolução Mensal de Oportunidades
+                <TrendingUp className="w-4 h-4 text-primary" /> Oportunidades Criadas por Mes
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -277,7 +280,7 @@ export default function Dashboard() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Target className="w-4 h-4 text-primary" /> Distribuição por Segmento
+                <Target className="w-4 h-4 text-primary" /> DistribuiÃ§Ã£o por Segmento
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -309,7 +312,7 @@ export default function Dashboard() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Thermometer className="w-4 h-4 text-destructive" /> Oportunidades Frias (sem contato há 3+ dias)
+                <Thermometer className="w-4 h-4 text-destructive" /> Oportunidades Frias (sem contato hÃ¡ 3+ dias)
                 <span className="ml-auto badge-error text-xs font-semibold px-2 py-0.5 rounded-md">
                   {stats?.coldOpportunities || 0}
                 </span>
@@ -318,7 +321,7 @@ export default function Dashboard() {
             <CardContent>
               {alerts.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-[var(--success)] text-sm font-medium">✅ Nenhuma oportunidade fria! Todas contatadas recentemente.</p>
+                  <p className="text-[var(--success)] text-sm font-medium">âœ… Nenhuma oportunidade fria! Todas contatadas recentemente.</p>
                 </div>
               ) : (
                 <div className="space-y-2 max-h-72 overflow-y-auto pr-2 custom-scrollbar">
@@ -333,10 +336,10 @@ export default function Dashboard() {
                       >
                         <div className="flex-1 min-w-0">
                           <p className="text-foreground font-medium text-sm truncate">{opportunity.companyName}</p>
-                          <p className="text-muted-foreground text-xs">{opportunity.contactName || "Sem contato"} • {opportunity.status}</p>
+                          <p className="text-muted-foreground text-xs">{opportunity.contactName || "Sem contato"} â€¢ {opportunity.status}</p>
                         </div>
                         <span className="badge-error text-xs font-medium px-2 py-1 rounded-md whitespace-nowrap ml-3">
-                          {daysSince !== null ? `${daysSince}d atrás` : "Nunca"}
+                          {daysSince !== null ? `${daysSince}d atrÃ¡s` : "Nunca"}
                         </span>
                       </div>
                     );
