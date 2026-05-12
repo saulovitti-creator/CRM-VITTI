@@ -21,6 +21,13 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { SearchX } from "lucide-react";
 
+// --- Temporary DnD debug helper (activate: localStorage.setItem("DEBUG_DND","true")) ---
+const dndDebug = (...args: unknown[]) => {
+  if (typeof window !== "undefined" && localStorage.getItem("DEBUG_DND") === "true") {
+    console.log("[DND DEBUG][KanbanBoard]", ...args);
+  }
+};
+
 interface KanbanBoardProps {
   stages: Array<{ id: number; name: string; color?: string | null }>;
   opportunities: any[] | undefined;
@@ -79,10 +86,20 @@ export function KanbanBoard({ stages, opportunities, isLoading, pipelineId, isFi
     ? opportunities?.find((o) => o.id === activeId)
     : null;
 
+  if (activeId && !activeOpp) {
+    dndDebug("activeOpp NOT FOUND", { activeId, activeIdType: typeof activeId, opportunitiesCount: opportunities?.length, firstOppId: opportunities?.[0]?.id, firstOppIdType: typeof opportunities?.[0]?.id });
+  }
+
   // --- Event Handlers ---
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const id = Number(event.active.id);
+    dndDebug("handleDragStart", {
+      rawActiveId: event.active.id,
+      rawActiveIdType: typeof event.active.id,
+      convertedId: id,
+      activeData: event.active.data.current,
+    });
     setActiveId(id);
     setErrorCardId(null);
 
@@ -94,6 +111,11 @@ export function KanbanBoard({ stages, opportunities, isLoading, pipelineId, isFi
 
   const handleDragOver = useCallback((event: DragOverEvent) => {
     const { over } = event;
+    dndDebug("handleDragOver", {
+      activeId: event.active.id,
+      overId: over?.id,
+      overIdType: typeof over?.id,
+    });
     if (over) {
       const overId = String(over.id);
       // Track which column is being hovered
@@ -118,7 +140,10 @@ export function KanbanBoard({ stages, opportunities, isLoading, pipelineId, isFi
     setActiveId(null);
     setActiveOverId(null);
 
-    if (!over || !opportunities) return;
+    if (!over || !opportunities) {
+      dndDebug("drag ended without valid over", { activeId: event.active.id, hasOver: !!over, hasOpps: !!opportunities });
+      return;
+    }
 
     const oppId = Number(active.id);
     const overId = String(over.id);
@@ -215,11 +240,12 @@ export function KanbanBoard({ stages, opportunities, isLoading, pipelineId, isFi
   }, [opportunities, pipelineId, stages, moveMutation, utils]);
 
   const handleDragCancel = useCallback(() => {
+    dndDebug("handleDragCancel", { activeId });
     setActiveId(null);
     setActiveOverId(null);
     setLoadingCardId(null);
     setLiveMessage("Arraste cancelado");
-  }, []);
+  }, [activeId]);
 
   return (
     <>

@@ -9,6 +9,13 @@ import {
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
+// --- Temporary DnD debug helper (activate: localStorage.setItem("DEBUG_DND","true")) ---
+const dndDebug = (...args: unknown[]) => {
+  if (typeof window !== "undefined" && localStorage.getItem("DEBUG_DND") === "true") {
+    console.log("[DND DEBUG][KanbanCard]", ...args);
+  }
+};
+
 interface KanbanCardProps {
   opp: any;
   isOverlay?: boolean;
@@ -70,7 +77,7 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
     <div
       ref={setNodeRef}
       style={style}
-      className={cardClasses}
+      className={`${cardClasses} select-none`}
       role="listitem"
       aria-roledescription="Cartão arrastável"
       aria-label={`Oportunidade: ${opp.title}`}
@@ -82,12 +89,33 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
             <button
               ref={setActivatorNodeRef}
               type="button"
-              className="mt-0.5 cursor-grab rounded p-0.5 text-muted-foreground/70 hover:bg-muted hover:text-foreground active:cursor-grabbing"
+              className="mt-0.5 cursor-grab rounded p-0.5 text-muted-foreground/70 hover:bg-muted hover:text-foreground active:cursor-grabbing select-none"
+              style={{ touchAction: "none" }}
               aria-label="Arrastar oportunidade"
               {...attributes}
               {...listeners}
+              onPointerDownCapture={(event) => {
+                dndDebug("grip pointerdown capture", {
+                  opportunityId: opp.id,
+                  typeOfId: typeof opp.id,
+                  sortableId: String(opp.id),
+                  pointerType: event.pointerType,
+                  button: event.button,
+                  isPrimary: event.isPrimary,
+                  targetTag: (event.target as HTMLElement)?.tagName,
+                  currentTargetTag: (event.currentTarget as HTMLElement)?.tagName,
+                  listenersKeys: listeners ? Object.keys(listeners) : "NO_LISTENERS",
+                  attributesKeys: attributes ? Object.keys(attributes) : "NO_ATTRIBUTES",
+                });
+              }}
+              onMouseDownCapture={(event) => {
+                dndDebug("grip mousedown capture", {
+                  opportunityId: opp.id,
+                  button: event.button,
+                });
+              }}
             >
-              <GripVertical className="w-3.5 h-3.5" />
+              <GripVertical className="w-3.5 h-3.5 pointer-events-none" />
             </button>
           )}
           <h4 className="text-card-title leading-snug pr-2 min-w-0">{opp.title}</h4>

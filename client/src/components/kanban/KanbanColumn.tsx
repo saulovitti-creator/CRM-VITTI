@@ -2,6 +2,14 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { KanbanCard } from "./KanbanCard";
 import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
+
+// --- Temporary DnD debug helper (activate: localStorage.setItem("DEBUG_DND","true")) ---
+const dndDebug = (...args: unknown[]) => {
+  if (typeof window !== "undefined" && localStorage.getItem("DEBUG_DND") === "true") {
+    console.log("[DND DEBUG][KanbanColumn]", ...args);
+  }
+};
 
 interface KanbanColumnProps {
   stage: {
@@ -38,6 +46,18 @@ export function KanbanColumn({ stage, opportunities, isLoading, loadingCardId, e
   );
 
   const cardIds = opportunities.map((o) => String(o.id));
+
+  // Diagnostic: log column items on mount/change (debounced by key)
+  useEffect(() => {
+    dndDebug("column render", {
+      droppableId: `stage-${stage.id}`,
+      stageName: stage.name,
+      cardIds,
+      cardIdsTypes: cardIds.length > 0 ? typeof cardIds[0] : "empty",
+      count: cardIds.length,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cardIds.join()]);
 
   return (
     <div
