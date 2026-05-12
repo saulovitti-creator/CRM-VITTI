@@ -82,7 +82,7 @@ export function KanbanBoard({ stages, opportunities, isLoading, pipelineId, isFi
   // --- Event Handlers ---
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
-    const id = event.active.id as number;
+    const id = Number(event.active.id);
     setActiveId(id);
     setErrorCardId(null);
 
@@ -101,7 +101,7 @@ export function KanbanBoard({ stages, opportunities, isLoading, pipelineId, isFi
         setActiveOverId(overId);
       } else {
         // Card is being hovered — find its parent column
-        const overOpp = opportunities?.find((o) => o.id === over.id);
+        const overOpp = opportunities?.find((o) => String(o.id) === String(over.id));
         if (overOpp) {
           setActiveOverId(`stage-${overOpp.stageId}`);
         }
@@ -120,7 +120,7 @@ export function KanbanBoard({ stages, opportunities, isLoading, pipelineId, isFi
 
     if (!over || !opportunities) return;
 
-    const oppId = active.id as number;
+    const oppId = Number(active.id);
     const overId = String(over.id);
 
     // Determine target stage ID
@@ -130,7 +130,7 @@ export function KanbanBoard({ stages, opportunities, isLoading, pipelineId, isFi
       newStageId = parseInt(overId.replace("stage-", ""));
     } else {
       // Dropped on another card — use that card's stage
-      const overOpp = opportunities.find((o) => o.id === over.id);
+      const overOpp = opportunities.find((o) => String(o.id) === String(over.id));
       if (overOpp) {
         newStageId = overOpp.stageId;
       }

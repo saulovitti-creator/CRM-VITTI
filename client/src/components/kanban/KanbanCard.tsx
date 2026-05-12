@@ -37,7 +37,7 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
     transition,
     isDragging,
   } = useSortable({
-    id: opp.id,
+    id: String(opp.id),
     data: { type: "card", opp },
     disabled: isOverlay,
   });

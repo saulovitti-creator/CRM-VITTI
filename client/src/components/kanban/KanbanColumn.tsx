@@ -37,7 +37,7 @@ export function KanbanColumn({ stage, opportunities, isLoading, loadingCardId, e
     0
   );
 
-  const cardIds = opportunities.map((o) => o.id);
+  const cardIds = opportunities.map((o) => String(o.id));
 
   return (
     <div
