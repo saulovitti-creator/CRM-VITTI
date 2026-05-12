@@ -213,7 +213,7 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
   const stageRes = await db.select({ stageName: pipelineStages.name, c: drizzleCount() })
     .from(opportunities)
     .innerJoin(pipelineStages, eq(opportunities.stageId, pipelineStages.id))
-    .where(whereFor(openFilter, eq(pipelineStages.isActiveInFunnel, true)))
+    .where(whereFor(openFilter, or(eq(pipelineStages.isActiveInFunnel, true), isNull(pipelineStages.isActiveInFunnel))))
     .groupBy(pipelineStages.id, pipelineStages.name, pipelineStages.displayOrder)
     .orderBy(asc(pipelineStages.displayOrder));
   const opportunitiesByStage: Record<string, number> = {};

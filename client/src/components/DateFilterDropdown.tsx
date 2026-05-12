@@ -23,26 +23,10 @@ export function DateFilterDropdown({ onFilterChange, initialFilter }: DateFilter
   const [dataEspecifica, setDataEspecifica] = useState<string>("");
   const [activeFilter, setActiveFilter] = useState<DateFilterState>(initialFilter || { isActive: false });
 
-  // Restaurar filtro do localStorage ao montar
+  // Limpa filtros antigos salvos antes de restaurar automaticamente. O Dashboard
+  // deve abrir sem filtro, para nao esconder dados reais do funil por engano.
   useEffect(() => {
-    const savedFilter = localStorage.getItem("dateFilter");
-    if (savedFilter) {
-      try {
-        const parsed = JSON.parse(savedFilter);
-        setActiveFilter({
-          ...parsed,
-          dataInicial: parsed.dataInicial ? new Date(parsed.dataInicial) : undefined,
-          dataFinal: parsed.dataFinal ? new Date(parsed.dataFinal) : undefined,
-        });
-        onFilterChange({
-          ...parsed,
-          dataInicial: parsed.dataInicial ? new Date(parsed.dataInicial) : undefined,
-          dataFinal: parsed.dataFinal ? new Date(parsed.dataFinal) : undefined,
-        });
-      } catch (e) {
-        console.error("Erro ao restaurar filtro de data:", e);
-      }
-    }
+    localStorage.removeItem("dateFilter");
   }, []);
 
   const formatDate = (date: Date | undefined): string => {

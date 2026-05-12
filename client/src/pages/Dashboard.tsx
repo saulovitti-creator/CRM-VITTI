@@ -92,8 +92,8 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-page-title">Dashboard AnalÃ­tico</h1>
-            <p className="text-sm text-muted-foreground mt-1">Visao comercial - funil ativo e desfechos</p>
+            <h1 className="text-page-title">Dashboard Analítico</h1>
+            <p className="text-sm text-muted-foreground mt-1">Visão comercial - funil ativo e desfechos</p>
           </div>
           <DateFilterDropdown onFilterChange={setDateFilter} initialFilter={dateFilter} />
         </div>
@@ -116,12 +116,12 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Taxa de ConversÃ£o */}
+          {/* Taxa de Conversão */}
           <Card>
             <CardContent className="py-5 px-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-label">Taxa de ConversÃ£o</p>
+                  <p className="text-label">Taxa de Conversão</p>
                   <p className="text-3xl font-bold text-foreground mt-1 tabular-nums">{stats?.conversionRate ?? stats?.taxaConversao ?? 0}%</p>
                   <p className="text-metadata mt-1">{stats?.wonOpportunities || 0} de {stats?.closedOpportunities || 0} finalizadas</p>
                 </div>
@@ -165,7 +165,7 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* KPI Cards Row 2 â€” Financeiro */}
+        {/* KPI Cards Row 2 - Financeiro */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardContent className="py-5 px-5">
@@ -205,7 +205,7 @@ export default function Dashboard() {
                   <p className="text-2xl font-bold text-foreground mt-1 tabular-nums">
                     {stats?.totalCreatedOpportunities ?? stats?.totalOpportunities ?? 0}
                   </p>
-                  <p className="text-metadata mt-1">Criadas no periodo filtrado</p>
+                  <p className="text-metadata mt-1">Criadas no período filtrado</p>
                 </div>
                 <Trophy className="w-6 h-6 text-[var(--warning)] opacity-40" />
               </div>
@@ -246,11 +246,11 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Oportunidades por MÃªs */}
+          {/* Oportunidades por Mês */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-primary" /> Oportunidades Criadas por Mes
+                <TrendingUp className="w-4 h-4 text-primary" /> Oportunidades Criadas por Mês
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -280,7 +280,7 @@ export default function Dashboard() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Target className="w-4 h-4 text-primary" /> DistribuiÃ§Ã£o por Segmento
+                <Target className="w-4 h-4 text-primary" /> Distribuição por Segmento
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -312,7 +312,7 @@ export default function Dashboard() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Thermometer className="w-4 h-4 text-destructive" /> Oportunidades Frias (sem contato hÃ¡ 3+ dias)
+                <Thermometer className="w-4 h-4 text-destructive" /> Oportunidades Frias (sem contato há 3+ dias)
                 <span className="ml-auto badge-error text-xs font-semibold px-2 py-0.5 rounded-md">
                   {stats?.coldOpportunities || 0}
                 </span>
@@ -321,7 +321,7 @@ export default function Dashboard() {
             <CardContent>
               {alerts.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-[var(--success)] text-sm font-medium">âœ… Nenhuma oportunidade fria! Todas contatadas recentemente.</p>
+                  <p className="text-[var(--success)] text-sm font-medium">Nenhuma oportunidade fria! Todas contatadas recentemente.</p>
                 </div>
               ) : (
                 <div className="space-y-2 max-h-72 overflow-y-auto pr-2 custom-scrollbar">
@@ -336,10 +336,10 @@ export default function Dashboard() {
                       >
                         <div className="flex-1 min-w-0">
                           <p className="text-foreground font-medium text-sm truncate">{opportunity.companyName}</p>
-                          <p className="text-muted-foreground text-xs">{opportunity.contactName || "Sem contato"} â€¢ {opportunity.status}</p>
+                          <p className="text-muted-foreground text-xs">{opportunity.contactName || "Sem contato"} - {opportunity.status}</p>
                         </div>
                         <span className="badge-error text-xs font-medium px-2 py-1 rounded-md whitespace-nowrap ml-3">
-                          {daysSince !== null ? `${daysSince}d atrÃ¡s` : "Nunca"}
+                          {daysSince !== null ? `${daysSince}d atrás` : "Nunca"}
                         </span>
                       </div>
                     );
