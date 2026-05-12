@@ -790,6 +790,37 @@ export async function getContacts(filters?: {
   return enriched;
 }
 
+export async function searchContactsForSelect(input: { query: string; limit?: number }) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const query = input.query.trim();
+  if (query.length < 2) return [];
+
+  const safeLimit = Math.min(Math.max(input.limit ?? 20, 1), 30);
+  const searchTerm = `%${query}%`;
+
+  return db
+    .select({
+      id: contacts.id,
+      name: contacts.name,
+      company: contacts.company,
+      phone: contacts.phone,
+      email: contacts.email,
+    })
+    .from(contacts)
+    .where(
+      or(
+        like(contacts.name, searchTerm),
+        like(contacts.company, searchTerm),
+        like(contacts.phone, searchTerm),
+        like(contacts.email, searchTerm),
+      )
+    )
+    .orderBy(asc(contacts.name))
+    .limit(safeLimit);
+}
+
 export async function getContactById(id: number) {
   const db = await getDb();
   if (!db) return null;

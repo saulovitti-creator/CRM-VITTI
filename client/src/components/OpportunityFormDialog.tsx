@@ -9,7 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Briefcase, Plus } from "lucide-react";
+import { Briefcase } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { CurrencyInput } from "./ui/currency-input";
@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useActiveFunnelStages } from "@/hooks/useActiveFunnelStages";
 import { DynamicFieldRenderer } from "./DynamicFieldRenderer";
 import { parseCurrency } from "@/lib/currency";
+import { ContactAutocomplete, type ContactAutocompleteOption } from "./ContactAutocomplete";
 
 interface OpportunityFormDialogProps {
   opportunity?: any;
@@ -51,8 +52,29 @@ export function OpportunityFormDialog({
   });
 
   // Data fetching
-  const { data: contacts } = trpc.contacts.list.useQuery();
   const { data: pipelines } = trpc.pipelines.list.useQuery();
+  const [selectedContact, setSelectedContact] = useState<ContactAutocompleteOption | null>(
+    opportunity?.contactId
+      ? {
+          id: opportunity.contactId,
+          name: opportunity.contactName || opportunity.contact?.name || "Contato",
+          company: opportunity.contactCompany || opportunity.contact?.company || null,
+          phone: opportunity.contactPhone || opportunity.contact?.phone || null,
+          email: opportunity.contactEmail || opportunity.contact?.email || null,
+        }
+      : null
+  );
+  const selectedContactId = formData.contactId ? Number(formData.contactId) : null;
+  const hasContactDataFromOpportunity = Boolean(
+    opportunity?.contactId && (opportunity?.contactName || opportunity?.contact?.name)
+  );
+  const { data: selectedContactById } = trpc.contacts.getById.useQuery(
+    { id: selectedContactId as number },
+    {
+      enabled: open && !!selectedContactId && !hasContactDataFromOpportunity,
+      staleTime: 60_000,
+    }
+  );
   
   // Dynamic Funnel Stages Hook
   const { stages: activeStages, isLoading: loadingStages, error: stagesError } = useActiveFunnelStages({
@@ -90,6 +112,36 @@ export function OpportunityFormDialog({
       setCustomValues({});
     }
   }, [existingValues, opportunity, open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    if (!formData.contactId) {
+      setSelectedContact(null);
+      return;
+    }
+
+    if (opportunity?.contactId && Number(formData.contactId) === Number(opportunity.contactId)) {
+      setSelectedContact({
+        id: Number(opportunity.contactId),
+        name: opportunity.contactName || opportunity.contact?.name || "Contato",
+        company: opportunity.contactCompany || opportunity.contact?.company || null,
+        phone: opportunity.contactPhone || opportunity.contact?.phone || null,
+        email: opportunity.contactEmail || opportunity.contact?.email || null,
+      });
+      return;
+    }
+
+    if (selectedContactById && Number(formData.contactId) === Number(selectedContactById.id)) {
+      setSelectedContact({
+        id: selectedContactById.id,
+        name: selectedContactById.name,
+        company: selectedContactById.company || null,
+        phone: selectedContactById.phone || null,
+        email: selectedContactById.email || null,
+      });
+    }
+  }, [open, formData.contactId, opportunity, selectedContactById]);
 
   useEffect(() => {
     if (!open) return;
@@ -216,6 +268,11 @@ export function OpportunityFormDialog({
           ...payload,
           id: opportunity.id,
           status: opportunity.status || "open",
+          contactId: payload.contactId,
+          contactName: selectedContact?.name || opportunity.contactName || opportunity.contact?.name || "",
+          contactCompany: selectedContact?.company || opportunity.contactCompany || opportunity.contact?.company || "",
+          contactPhone: selectedContact?.phone || opportunity.contactPhone || opportunity.contact?.phone || "",
+          contactEmail: selectedContact?.email || opportunity.contactEmail || opportunity.contact?.email || "",
           updatedAt: new Date(),
         };
         uniqueCacheKeys.forEach((key) => updateOpenOpportunityCache(key, pendingCacheOpportunity));
@@ -420,22 +477,14 @@ export function OpportunityFormDialog({
 
           <div>
             <Label className="text-foreground">Contato Vinculado *</Label>
-            <Select 
-              value={formData.contactId} 
+            <ContactAutocomplete
+              value={formData.contactId}
               onValueChange={(val) => setFormData({ ...formData, contactId: val })}
-              disabled={!!defaultContactId} // Se veio preenchido, trava
-            >
-              <SelectTrigger className=" mt-1">
-                <SelectValue placeholder="Selecione o contato..." />
-              </SelectTrigger>
-              <SelectContent className="">
-                {contacts?.map(contact => (
-                  <SelectItem key={contact.id} value={contact.id.toString()}>
-                    {contact.name} {contact.company ? `(${contact.company})` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              disabled={!!defaultContactId}
+              initialContact={selectedContact}
+              onContactSelected={setSelectedContact}
+              placeholder="Selecione o contato..."
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

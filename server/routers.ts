@@ -29,6 +29,7 @@ import {
   setCustomFieldValues,
   deleteCustomFieldValuesForEntity,
   getContacts,
+  searchContactsForSelect,
   getContactById,
   createContact,
   updateContact,
@@ -391,6 +392,16 @@ export const appRouter = router({
         tagIds: z.array(z.number()).optional(),
       }).optional())
       .query(({ input }) => getContacts(input)),
+
+    search: protectedProcedure
+      .input(z.object({
+        query: z.string().trim(),
+        limit: z.number().int().min(1).max(30).optional(),
+      }))
+      .query(({ input }) => {
+        if (input.query.length < 2) return [];
+        return searchContactsForSelect(input);
+      }),
 
     getById: protectedProcedure
       .input(z.object({ id: z.number() }))
