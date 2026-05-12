@@ -166,15 +166,25 @@ export function OpportunityFormDialog({
         return;
       }
 
-      const queryKeyArgs = { pipelineId: payload.pipelineId, status: "open" as const };
-      const queryKeyArgsWithoutStatus = { pipelineId: payload.pipelineId };
       const previousPipelineId = opportunity?.pipelineId as number | undefined;
-      const previousQueryKeyArgs = previousPipelineId
+      const currentListKey = previousPipelineId
         ? { pipelineId: previousPipelineId, status: "open" as const }
-        : undefined;
-      const previousQueryKeyArgsWithoutStatus = previousPipelineId
+        : { pipelineId: payload.pipelineId, status: "open" as const };
+      const targetListKey = { pipelineId: payload.pipelineId, status: "open" as const };
+      const currentListKeyWithoutStatus = previousPipelineId
         ? { pipelineId: previousPipelineId }
-        : undefined;
+        : { pipelineId: payload.pipelineId };
+      const targetListKeyWithoutStatus = { pipelineId: payload.pipelineId };
+      const cacheKeys = [
+        currentListKey,
+        targetListKey,
+        currentListKeyWithoutStatus,
+        targetListKeyWithoutStatus,
+      ];
+      const uniqueCacheKeys = cacheKeys.filter(
+        (key, index, list) =>
+          list.findIndex((candidate) => JSON.stringify(candidate) === JSON.stringify(key)) === index
+      );
       const updateOpenOpportunityCache = (args: any, cacheOpportunity: any) => {
         if (!args) return;
         utils.opportunities.list.setData(args, (old: any) => {
@@ -187,61 +197,75 @@ export function OpportunityFormDialog({
             return old.filter((opp: any) => opp.id !== cacheOpportunity.id);
           }
 
-          return old.map((opp: any) =>
-            opp.id === cacheOpportunity.id ? { ...opp, ...cacheOpportunity } : opp
-          );
+          const exists = old.some((opp: any) => opp.id === cacheOpportunity.id);
+          if (!exists) return [...old, cacheOpportunity];
+          return old.map((opp: any) => (opp.id === cacheOpportunity.id ? { ...opp, ...cacheOpportunity } : opp));
         });
       };
 
       if (opportunity?.id) {
+        await Promise.all(uniqueCacheKeys.map((key) => utils.opportunities.list.cancel(key)));
+        await utils.opportunities.getById.cancel({ id: opportunity.id });
+        const previousCaches = uniqueCacheKeys.map((key) => ({
+          key,
+          data: utils.opportunities.list.getData(key),
+        }));
+        const previousById = utils.opportunities.getById.getData({ id: opportunity.id });
         const pendingCacheOpportunity = {
           ...opportunity,
           ...payload,
           id: opportunity.id,
           status: opportunity.status || "open",
+          updatedAt: new Date(),
         };
-        updateOpenOpportunityCache(previousQueryKeyArgs, pendingCacheOpportunity);
-        updateOpenOpportunityCache(previousQueryKeyArgsWithoutStatus, pendingCacheOpportunity);
-        if (previousPipelineId !== payload.pipelineId) {
-          updateOpenOpportunityCache(queryKeyArgs, pendingCacheOpportunity);
-          updateOpenOpportunityCache(queryKeyArgsWithoutStatus, pendingCacheOpportunity);
-        }
+        console.log("[opportunity.update] optimistic queryKey", currentListKey);
+        console.log("[opportunity.update] optimistic payload", payload);
+        uniqueCacheKeys.forEach((key) => updateOpenOpportunityCache(key, pendingCacheOpportunity));
+        utils.opportunities.getById.setData({ id: opportunity.id }, (old: any) =>
+          old ? { ...old, ...pendingCacheOpportunity } : old
+        );
 
-        const updatedOpportunity = await updateMutation.mutateAsync({ id: opportunity.id, ...payload });
-        const updatedCacheOpportunity = {
-          ...pendingCacheOpportunity,
-          ...(updatedOpportunity || {}),
-        };
-        updateOpenOpportunityCache(previousQueryKeyArgs, updatedCacheOpportunity);
-        updateOpenOpportunityCache(previousQueryKeyArgsWithoutStatus, updatedCacheOpportunity);
-        if (previousPipelineId !== payload.pipelineId) {
-          updateOpenOpportunityCache(queryKeyArgs, updatedCacheOpportunity);
-          updateOpenOpportunityCache(queryKeyArgsWithoutStatus, updatedCacheOpportunity);
-        }
-        if (Object.keys(customValues).length > 0) {
-          await saveCustomValuesMutation.mutateAsync({
-            entityId: opportunity.id,
-            entityType: "opportunity",
-            values: Object.entries(customValues).map(([k, v]) => ({
-              definitionId: parseInt(k),
-              value: v,
-            })),
+        try {
+          const updatedOpportunity = await updateMutation.mutateAsync({ id: opportunity.id, ...payload });
+          const updatedCacheOpportunity = {
+            ...pendingCacheOpportunity,
+            ...(updatedOpportunity || {}),
+          };
+          uniqueCacheKeys.forEach((key) => updateOpenOpportunityCache(key, updatedCacheOpportunity));
+          utils.opportunities.getById.setData({ id: opportunity.id }, (old: any) =>
+            old ? { ...old, ...updatedCacheOpportunity } : updatedCacheOpportunity
+          );
+          if (Object.keys(customValues).length > 0) {
+            await saveCustomValuesMutation.mutateAsync({
+              entityId: opportunity.id,
+              entityType: "opportunity",
+              values: Object.entries(customValues).map(([k, v]) => ({
+                definitionId: parseInt(k),
+                value: v,
+              })),
+            });
+          }
+
+          void Promise.all([
+            utils.opportunities.list.invalidate({ pipelineId: payload.pipelineId, status: "open" }),
+            utils.opportunities.list.invalidate({ pipelineId: payload.pipelineId }),
+            utils.opportunities.list.invalidate(),
+            utils.opportunities.closedList.invalidate(),
+            utils.opportunities.getById.invalidate({ id: opportunity.id }),
+            utils.opportunities.stats.invalidate(),
+            utils.dashboard.stats.invalidate(),
+            utils.dashboard.followUpAlerts.invalidate(),
+            utils.customFields.getValues.invalidate({ entityId: opportunity.id, entityType: "opportunity" }),
+          ]);
+
+          toast.success("Oportunidade atualizada!");
+        } catch (error) {
+          previousCaches.forEach(({ key, data }) => {
+            utils.opportunities.list.setData(key, data);
           });
+          utils.opportunities.getById.setData({ id: opportunity.id }, previousById);
+          throw error;
         }
-
-        void Promise.all([
-          utils.opportunities.list.invalidate({ pipelineId: payload.pipelineId, status: "open" }),
-          utils.opportunities.list.invalidate({ pipelineId: payload.pipelineId }),
-          utils.opportunities.list.invalidate(),
-          utils.opportunities.closedList.invalidate(),
-          utils.opportunities.getById.invalidate({ id: opportunity.id }),
-          utils.opportunities.stats.invalidate(),
-          utils.dashboard.stats.invalidate(),
-          utils.dashboard.followUpAlerts.invalidate(),
-          utils.customFields.getValues.invalidate({ entityId: opportunity.id, entityType: "opportunity" }),
-        ]);
-
-        toast.success("Oportunidade atualizada!");
       } else {
         const newOpp = await createMutation.mutateAsync(payload);
         if (Object.keys(customValues).length > 0) {
