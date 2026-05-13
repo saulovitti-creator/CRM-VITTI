@@ -7,6 +7,8 @@
  * - display: formatted BRL, e.g. "R$ 10.000,00"
  */
 
+export const OPPORTUNITY_MONETARY_MAX = 99_999_999.99;
+
 function sanitizeCurrencyText(value: string | number): string {
   return String(value).trim().replace(/[^\d,.-]/g, "");
 }
@@ -117,6 +119,14 @@ export function formatCurrencyBRL(value: string | number | null | undefined): st
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(numericValue);
+}
+
+export function exceedsOpportunityCurrencyLimit(value: string | number | null | undefined): boolean {
+  const normalized = normalizeDatabaseCurrencyToDecimal(value);
+  if (!normalized) return false;
+
+  const numericValue = Number(normalized);
+  return Number.isFinite(numericValue) && Math.abs(numericValue) > OPPORTUNITY_MONETARY_MAX;
 }
 
 /**
