@@ -1,4 +1,4 @@
-import { mysqlTable, datetime, int, boolean as mysqlBoolean, varchar as mysqlVarchar, text as mysqlText, decimal as mysqlDecimal } from "drizzle-orm/mysql-core";
+import { mysqlTable, datetime, int, boolean as mysqlBoolean, varchar as mysqlVarchar, text as mysqlText, decimal as mysqlDecimal, index } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
 
 export const users = mysqlTable("users", {
@@ -56,7 +56,9 @@ export const customFieldValues = mysqlTable("custom_field_values", {
   value: mysqlText("value"),
   createdAt: datetime("createdAt").notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime("updatedAt").notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
-});
+}, (table) => ({
+  idx_cfv_entity_type_id: index("idx_cfv_entity_type_id").on(table.entityType, table.entityId),
+}));
 
 // ===================== CONTACTS =====================
 export const contacts = mysqlTable("contacts", {
@@ -119,7 +121,10 @@ export const opportunities = mysqlTable("opportunities", {
   lostReason: mysqlText("lostReason"),
   createdAt: datetime("createdAt").notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime("updatedAt").notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
-});
+}, (table) => ({
+  idx_opp_pipeline_status: index("idx_opp_pipeline_status").on(table.pipelineId, table.status),
+  idx_opp_contact_id: index("idx_opp_contact_id").on(table.contactId),
+}));
 
 export const opportunityNotes = mysqlTable("opportunity_notes", {
   id: int("id").primaryKey().autoincrement(),
