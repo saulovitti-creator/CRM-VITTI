@@ -37,6 +37,7 @@ export function OpportunityFormDialog({
   trigger 
 }: OpportunityFormDialogProps) {
   const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [outcomeDialogOpen, setOutcomeDialogOpen] = useState(false);
   const [pendingOutcome, setPendingOutcome] = useState<"won" | "lost" | "abandoned" | null>(null);
   const [outcomeReason, setOutcomeReason] = useState("");
@@ -191,13 +192,19 @@ export function OpportunityFormDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.contactId || !formData.pipelineId || !formData.stageId) {
-      toast.error("Por favor, selecione Contato, Pipeline e Estágio.");
+
+    if (isSubmitting) {
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
+      if (!formData.contactId || !formData.pipelineId || !formData.stageId) {
+        toast.error("Por favor, selecione Contato, Pipeline e Estágio.");
+        return;
+      }
+
       const payload: any = {
         ...formData,
         contactId: parseInt(formData.contactId),
@@ -217,6 +224,33 @@ export function OpportunityFormDialog({
         toast.error("Informe um titulo para a oportunidade.");
         return;
       }
+
+      const saveCustomFields = async (entityId: number) => {
+        if (Object.keys(customValues).length === 0) {
+          return true;
+        }
+
+        try {
+          await saveCustomValuesMutation.mutateAsync({
+            entityId,
+            entityType: "opportunity",
+            values: Object.entries(customValues).map(([k, v]) => ({
+              definitionId: parseInt(k),
+              value: v,
+            })),
+          });
+          void utils.customFields.getValues.invalidate({ entityId, entityType: "opportunity" });
+          return true;
+        } catch (error) {
+          console.error("[opportunity.customFields] failed", {
+            opportunityId: entityId,
+            error,
+          });
+          void utils.customFields.getValues.invalidate({ entityId, entityType: "opportunity" });
+          toast.warning("Oportunidade salva, mas houve erro ao salvar campos personalizados.");
+          return false;
+        }
+      };
 
       const previousPipelineId = opportunity?.pipelineId as number | undefined;
       const currentListKey = previousPipelineId
@@ -280,40 +314,9 @@ export function OpportunityFormDialog({
           old ? { ...old, ...pendingCacheOpportunity } : old
         );
 
+        let updatedOpportunity: any;
         try {
-          const updatedOpportunity = await updateMutation.mutateAsync({ id: opportunity.id, ...payload });
-          const updatedCacheOpportunity = {
-            ...pendingCacheOpportunity,
-            ...(updatedOpportunity || {}),
-          };
-          uniqueCacheKeys.forEach((key) => updateOpenOpportunityCache(key, updatedCacheOpportunity));
-          utils.opportunities.getById.setData({ id: opportunity.id }, (old: any) =>
-            old ? { ...old, ...updatedCacheOpportunity } : updatedCacheOpportunity
-          );
-          if (Object.keys(customValues).length > 0) {
-            await saveCustomValuesMutation.mutateAsync({
-              entityId: opportunity.id,
-              entityType: "opportunity",
-              values: Object.entries(customValues).map(([k, v]) => ({
-                definitionId: parseInt(k),
-                value: v,
-              })),
-            });
-          }
-
-          void Promise.all([
-            utils.opportunities.list.invalidate({ pipelineId: payload.pipelineId, status: "open" }),
-            utils.opportunities.list.invalidate({ pipelineId: payload.pipelineId }),
-            utils.opportunities.list.invalidate(),
-            utils.opportunities.closedList.invalidate(),
-            utils.opportunities.getById.invalidate({ id: opportunity.id }),
-            utils.opportunities.stats.invalidate(),
-            utils.dashboard.stats.invalidate(),
-            utils.dashboard.followUpAlerts.invalidate(),
-            utils.customFields.getValues.invalidate({ entityId: opportunity.id, entityType: "opportunity" }),
-          ]);
-
-          toast.success("Oportunidade atualizada!");
+          updatedOpportunity = await updateMutation.mutateAsync({ id: opportunity.id, ...payload });
         } catch (error) {
           previousCaches.forEach(({ key, data }) => {
             utils.opportunities.list.setData(key, data);
@@ -321,18 +324,34 @@ export function OpportunityFormDialog({
           utils.opportunities.getById.setData({ id: opportunity.id }, previousById);
           throw error;
         }
+
+        const updatedCacheOpportunity = {
+          ...pendingCacheOpportunity,
+          ...(updatedOpportunity || {}),
+        };
+        uniqueCacheKeys.forEach((key) => updateOpenOpportunityCache(key, updatedCacheOpportunity));
+        utils.opportunities.getById.setData({ id: opportunity.id }, (old: any) =>
+          old ? { ...old, ...updatedCacheOpportunity } : updatedCacheOpportunity
+        );
+
+        void saveCustomFields(opportunity.id);
+
+        void Promise.all([
+          utils.opportunities.list.invalidate({ pipelineId: payload.pipelineId, status: "open" }),
+          utils.opportunities.list.invalidate({ pipelineId: payload.pipelineId }),
+          utils.opportunities.list.invalidate(),
+          utils.opportunities.closedList.invalidate(),
+          utils.opportunities.getById.invalidate({ id: opportunity.id }),
+          utils.opportunities.stats.invalidate(),
+          utils.dashboard.stats.invalidate(),
+          utils.dashboard.followUpAlerts.invalidate(),
+          utils.customFields.getValues.invalidate({ entityId: opportunity.id, entityType: "opportunity" }),
+        ]);
+
+        toast.success("Oportunidade atualizada!");
       } else {
         const newOpp = await createMutation.mutateAsync(payload);
-        if (Object.keys(customValues).length > 0) {
-          await saveCustomValuesMutation.mutateAsync({
-            entityId: newOpp.id,
-            entityType: "opportunity",
-            values: Object.entries(customValues).map(([k, v]) => ({
-              definitionId: parseInt(k),
-              value: v,
-            })),
-          });
-        }
+        void saveCustomFields(newOpp.id);
 
         void Promise.all([
           utils.opportunities.list.invalidate({ pipelineId: payload.pipelineId, status: "open" }),
@@ -354,15 +373,17 @@ export function OpportunityFormDialog({
         opportunityId: opportunity?.id,
         error,
       });
-      toast.error(`Erro inesperado: ${error.message || error}`);
-      await Promise.all([
+      toast.error("Erro ao salvar oportunidade.");
+      void Promise.all([
         utils.opportunities.list.invalidate(),
         utils.opportunities.closedList.invalidate(),
       ]);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const isLoading = createMutation.isPending || updateMutation.isPending;
+  const isLoading = isSubmitting;
 
   const openOutcomeDialog = (outcome: "won" | "lost" | "abandoned") => {
     setPendingOutcome(outcome);
