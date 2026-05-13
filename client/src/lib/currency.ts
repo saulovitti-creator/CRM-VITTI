@@ -1,54 +1,19 @@
 /**
  * currency.ts
  *
- * Utilities for BRL currency parsing/formatting.
+ * Helpers for the CRM currency contract:
+ * - database/backend: decimal reais as string, e.g. "10000.00"
+ * - user input: Brazilian currency text, e.g. "10.000,00"
+ * - display: formatted BRL, e.g. "R$ 10.000,00"
  */
 
-/**
- * Normalize currency text into backend decimal format.
- * Examples:
- * - "R$ 1.500,50" -> "1500.50"
- * - "1500,50" -> "1500.50"
- * - "1500.50" -> "1500.50"
- * - "20.000.000,00" -> "20000000.00"
- */
-export function parseCurrency(value: string | number): string {
-  if (value === null || value === undefined) return "";
+function sanitizeCurrencyText(value: string | number): string {
+  return String(value).trim().replace(/[^\d,.-]/g, "");
+}
 
-  const trimmed = String(value).trim();
-  if (!trimmed) return "";
-
-  const cleaned = trimmed.replace(/[^\d,.-]/g, "");
-  if (!cleaned) return "";
-
-  const hasComma = cleaned.includes(",");
-  const hasDot = cleaned.includes(".");
-
-  let normalized = cleaned;
-
-  if (hasComma && hasDot) {
-    if (cleaned.lastIndexOf(",") > cleaned.lastIndexOf(".")) {
-      normalized = cleaned.replace(/\./g, "").replace(",", ".");
-    } else {
-      normalized = cleaned.replace(/,/g, "");
-    }
-  } else if (hasComma) {
-    normalized = cleaned.replace(/\./g, "").replace(",", ".");
-  } else if (hasDot) {
-    const dotCount = (cleaned.match(/\./g) || []).length;
-    if (dotCount > 1) {
-      normalized = cleaned.replace(/\./g, "");
-    } else {
-      const [intPart, decPart] = cleaned.split(".");
-      // In BR input, a single dot with 3 digits after is usually a thousand separator.
-      if (decPart && decPart.length === 3) {
-        normalized = `${intPart}${decPart}`;
-      }
-    }
-  }
-
+function cleanupDecimalString(value: string): string {
   let sign = "";
-  let body = normalized;
+  let body = value;
 
   if (body.startsWith("-")) {
     sign = "-";
@@ -61,32 +26,100 @@ export function parseCurrency(value: string | number): string {
     body = body.slice(0, firstDot + 1) + body.slice(firstDot + 1).replace(/\./g, "");
   }
 
-  const finalValue = `${sign}${body}`;
-  if (!finalValue || finalValue === "-" || finalValue === ".") return "";
-  return finalValue;
+  const [integerPart, decimalPart] = body.split(".");
+  const normalizedInteger = integerPart.replace(/^0+(?=\d)/, "") || "0";
+
+  if (decimalPart !== undefined) {
+    return `${sign}${normalizedInteger}.${decimalPart.slice(0, 2)}`;
+  }
+
+  return `${sign}${normalizedInteger}`;
 }
 
 /**
- * Format a raw value into BRL display format.
+ * Normalizes values coming from the database/backend.
+ * A database value like "10000.00" must stay "10000.00", not become cents.
  */
-export function formatCurrency(value: string | number): string {
+export function normalizeDatabaseCurrencyToDecimal(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === "") return "";
 
-  const normalized = parseCurrency(value);
-  if (!normalized) return "";
+  const cleaned = sanitizeCurrencyText(value);
+  if (!cleaned) return "";
 
-  const [rawIntegerPart, rawDecimalPart = ""] = normalized.split(".");
-  let integerPart = rawIntegerPart.replace(/\D/g, "");
-  const decimalPart = rawDecimalPart.replace(/\D/g, "").slice(0, 2);
-
-  if (!integerPart) integerPart = "0";
-
-  integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-
-  let result = `R$ ${integerPart}`;
-  if (rawDecimalPart.length > 0) {
-    result += `,${decimalPart}`;
+  if (cleaned.includes(",") && cleaned.includes(".")) {
+    return cleanupDecimalString(cleaned.replace(/\./g, "").replace(",", "."));
   }
 
-  return result;
+  if (cleaned.includes(",")) {
+    return cleanupDecimalString(cleaned.replace(/\./g, "").replace(",", "."));
+  }
+
+  return cleanupDecimalString(cleaned);
 }
+
+/**
+ * Parses what the user typed as reais, accepting common Brazilian formats.
+ */
+export function parseUserCurrencyInput(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === "") return "";
+
+  const cleaned = sanitizeCurrencyText(value);
+  if (!cleaned) return "";
+
+  const hasComma = cleaned.includes(",");
+  const hasDot = cleaned.includes(".");
+
+  if (hasComma) {
+    return cleanupDecimalString(cleaned.replace(/\./g, "").replace(",", "."));
+  }
+
+  if (hasDot) {
+    const dotCount = (cleaned.match(/\./g) || []).length;
+
+    if (dotCount > 1) {
+      return cleanupDecimalString(cleaned.replace(/\./g, ""));
+    }
+
+    const [integerPart, decimalPart = ""] = cleaned.split(".");
+
+    if (decimalPart.length === 0) {
+      return cleanupDecimalString(integerPart);
+    }
+
+    if (decimalPart.length <= 2) {
+      return cleanupDecimalString(cleaned);
+    }
+
+    return cleanupDecimalString(`${integerPart}${decimalPart}`);
+  }
+
+  return cleanupDecimalString(cleaned);
+}
+
+/**
+ * Backward-compatible alias used by existing form code.
+ */
+export const parseCurrency = parseUserCurrencyInput;
+
+/**
+ * Formats decimal reais into BRL display text.
+ */
+export function formatCurrencyBRL(value: string | number | null | undefined): string {
+  const normalized = normalizeDatabaseCurrencyToDecimal(value);
+  if (!normalized) return "";
+
+  const numericValue = Number(normalized);
+  if (!Number.isFinite(numericValue)) return "";
+
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(numericValue);
+}
+
+/**
+ * Backward-compatible alias used by existing UI code.
+ */
+export const formatCurrency = formatCurrencyBRL;

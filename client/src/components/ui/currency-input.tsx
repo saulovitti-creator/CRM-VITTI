@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, forwardRef } from "react";
 import { Input } from "./input";
-import { formatCurrency, parseCurrency } from "@/lib/currency";
+import { formatCurrencyBRL, parseUserCurrencyInput } from "@/lib/currency";
 
 export interface CurrencyInputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange" | "value"> {
@@ -18,62 +18,39 @@ export interface CurrencyInputProps
 /**
  * CurrencyInput
  * 
- * Formats the input as BRL currency while the user types.
- * Filters out non-numeric characters on paste.
- * Manages cursor position to prevent jumping.
+ * Keeps typing fluid and emits decimal reais for the backend.
  */
 export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
   ({ value, onValueChange, className, ...props }, ref) => {
-    const [displayValue, setDisplayValue] = useState("");
+    const [displayValue, setDisplayValue] = useState(() => formatCurrencyBRL(value ?? ""));
+    const isFocusedRef = useRef(false);
     const internalRef = useRef<HTMLInputElement | null>(null);
 
-    // Sync external raw value to internal formatted display
     useEffect(() => {
-      // Only update if the parsed external value is different from the parsed internal display
-      // This prevents formatting overwrites while typing (e.g., losing a trailing comma)
-      const currentParsed = parseCurrency(displayValue);
-      const newParsed = parseCurrency(value ?? "");
-      
-      if (currentParsed !== newParsed) {
-        setDisplayValue(formatCurrency(value ?? ""));
+      if (!isFocusedRef.current) {
+        setDisplayValue(formatCurrencyBRL(value ?? ""));
       }
-    }, [value, displayValue]);
+    }, [value]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const el = e.target;
-      const currentCursorPosition = el.selectionStart || 0;
-      const oldLength = el.value.length;
-      const rawValue = el.value;
+      const rawValue = e.target.value;
+      const normalizedValue = parseUserCurrencyInput(rawValue);
 
-      // Extract raw digits and comma
-      const parsedValue = parseCurrency(rawValue);
-      // Format to "R$ 1.500,00"
-      const newFormattedValue = formatCurrency(parsedValue);
+      setDisplayValue(rawValue);
+      onValueChange?.(normalizedValue);
+    };
 
-      // We handle the edge case where the user types the exact same character
-      // or just changes non-numeric stuff that gets stripped.
-      setDisplayValue(newFormattedValue);
+    const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+      isFocusedRef.current = true;
+      props.onFocus?.(e);
+    };
 
-      if (onValueChange) {
-        onValueChange(parsedValue);
-      }
-
-      // Restore cursor position seamlessly
-      // Because formatting adds "R$ " and ".", the string length changes.
-      // We calculate the length difference to keep the cursor conceptually in the same place.
-      requestAnimationFrame(() => {
-        if (internalRef.current) {
-          const lengthDiff = newFormattedValue.length - oldLength;
-          let newCursorPosition = currentCursorPosition + lengthDiff;
-          
-          // Prevent cursor from moving before the "R$ " prefix
-          if (newCursorPosition < 3 && newFormattedValue.length > 0) {
-            newCursorPosition = 3;
-          }
-
-          internalRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
-        }
-      });
+    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+      isFocusedRef.current = false;
+      const normalizedValue = parseUserCurrencyInput(e.target.value);
+      setDisplayValue(formatCurrencyBRL(normalizedValue));
+      onValueChange?.(normalizedValue);
+      props.onBlur?.(e);
     };
 
     // Combine external ref and internal ref
@@ -86,22 +63,9 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
       }
     };
 
-    // Handle backspace gracefully to avoid jumping over thousand separators incorrectly
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (props.onKeyDown) {
         props.onKeyDown(e);
-      }
-      
-      const el = internalRef.current;
-      if (e.key === "Backspace" && el) {
-        const cursorPosition = el.selectionStart;
-        if (cursorPosition !== null && cursorPosition > 0) {
-          const charToDelete = el.value[cursorPosition - 1];
-          // If the user tries to delete a formatting character (space, dot, R, $),
-          // we don't prevent default, but the parsing will naturally ignore it.
-          // However, for better UX, we could move the cursor manually, but the natural flow usually works well
-          // when parsing strips it anyway.
-        }
       }
     };
 
@@ -113,6 +77,8 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
         inputMode="decimal"
         value={displayValue}
         onChange={handleChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         className={className}
       />
