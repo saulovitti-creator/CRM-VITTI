@@ -1,74 +1,90 @@
 /**
  * currency.ts
  *
- * Utilitários para formatação e parsing de moeda padrão BRL.
+ * Utilities for BRL currency parsing/formatting.
  */
 
 /**
- * Remove qualquer formatação (símbolos, espaços, pontos de milhar) e converte vírgula para ponto.
- * Mantém apenas os dígitos numéricos e um único ponto decimal, caso exista,
- * garantindo que a string resultante seja um float válido ou uma string limpa para o backend.
- *
- * @param value String bruta vinda do input (ex: "R$ 1.500,50" ou "1.500")
- * @returns String contendo o valor puro (ex: "1500.50" ou "1500")
+ * Normalize currency text into backend decimal format.
+ * Examples:
+ * - "R$ 1.500,50" -> "1500.50"
+ * - "1500,50" -> "1500.50"
+ * - "1500.50" -> "1500.50"
+ * - "20.000.000,00" -> "20000000.00"
  */
 export function parseCurrency(value: string | number): string {
   if (value === null || value === undefined) return "";
-  const stringValue = String(value);
-  
-  // Extrai apenas dígitos e vírgula
-  const clean = stringValue.replace(/[^\d,]/g, "");
-  
-  // Troca a vírgula pelo ponto para padrão numérico de banco de dados
-  return clean.replace(",", ".");
+
+  const trimmed = String(value).trim();
+  if (!trimmed) return "";
+
+  const cleaned = trimmed.replace(/[^\d,.-]/g, "");
+  if (!cleaned) return "";
+
+  const hasComma = cleaned.includes(",");
+  const hasDot = cleaned.includes(".");
+
+  let normalized = cleaned;
+
+  if (hasComma && hasDot) {
+    if (cleaned.lastIndexOf(",") > cleaned.lastIndexOf(".")) {
+      normalized = cleaned.replace(/\./g, "").replace(",", ".");
+    } else {
+      normalized = cleaned.replace(/,/g, "");
+    }
+  } else if (hasComma) {
+    normalized = cleaned.replace(/\./g, "").replace(",", ".");
+  } else if (hasDot) {
+    const dotCount = (cleaned.match(/\./g) || []).length;
+    if (dotCount > 1) {
+      normalized = cleaned.replace(/\./g, "");
+    } else {
+      const [intPart, decPart] = cleaned.split(".");
+      // In BR input, a single dot with 3 digits after is usually a thousand separator.
+      if (decPart && decPart.length === 3) {
+        normalized = `${intPart}${decPart}`;
+      }
+    }
+  }
+
+  let sign = "";
+  let body = normalized;
+
+  if (body.startsWith("-")) {
+    sign = "-";
+    body = body.slice(1);
+  }
+
+  body = body.replace(/[^0-9.]/g, "");
+  const firstDot = body.indexOf(".");
+  if (firstDot >= 0) {
+    body = body.slice(0, firstDot + 1) + body.slice(firstDot + 1).replace(/\./g, "");
+  }
+
+  const finalValue = `${sign}${body}`;
+  if (!finalValue || finalValue === "-" || finalValue === ".") return "";
+  return finalValue;
 }
 
 /**
- * Recebe um número (ou string pura) e formata para o padrão visual R$ 1.500,50.
- *
- * @param value Valor bruto (ex: "1500", "1500.50", ou número 1500)
- * @returns String formatada (ex: "R$ 1.500", "R$ 1.500,50")
+ * Format a raw value into BRL display format.
  */
 export function formatCurrency(value: string | number): string {
   if (value === null || value === undefined || value === "") return "";
-  
-  let stringValue = String(value);
 
-  // Se o valor já vier do banco com ponto como separador decimal (ex: "1500.50")
-  if (stringValue.includes('.')) {
-    stringValue = stringValue.replace('.', ',');
-  }
-  
-  // Separa a parte inteira da parte decimal
-  const parts = stringValue.split(',');
-  
-  // Remove tudo que não for dígito da parte inteira
-  let integerPart = parts[0].replace(/\D/g, "");
-  
-  // Se houver parte decimal, pegamos apenas os 2 primeiros dígitos
-  let decimalPart = parts.length > 1 ? parts[1].replace(/\D/g, "").substring(0, 2) : "";
+  const normalized = parseCurrency(value);
+  if (!normalized) return "";
 
-  // Se não sobrar nada, retorna string vazia
-  if (!integerPart && !decimalPart && stringValue !== ",") return "";
+  const [rawIntegerPart, rawDecimalPart = ""] = normalized.split(".");
+  let integerPart = rawIntegerPart.replace(/\D/g, "");
+  const decimalPart = rawDecimalPart.replace(/\D/g, "").slice(0, 2);
 
-  // Aplica os pontos de milhar na parte inteira (ex: "1500000" -> "1.500.000")
-  if (integerPart) {
-    integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  } else if (stringValue.startsWith(",")) {
-    // Se digitou apenas vírgula, assume "0"
-    integerPart = "0";
-  }
+  if (!integerPart) integerPart = "0";
 
-  let result = "";
-  if (integerPart) {
-    result = `R$ ${integerPart}`;
-  } else {
-    // Caso de ter acabado de apagar o último dígito, mas não quer perder o R$
-    return "";
-  }
+  integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
-  // Anexa a vírgula se ela foi digitada ou se existe parte decimal
-  if (parts.length > 1) {
+  let result = `R$ ${integerPart}`;
+  if (rawDecimalPart.length > 0) {
     result += `,${decimalPart}`;
   }
 
