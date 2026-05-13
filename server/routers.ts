@@ -69,6 +69,7 @@ import { TRPCError } from "@trpc/server";
 import { eq, inArray, or, and, asc } from "drizzle-orm";
 
 const MAX_IMPORT_ROWS = 1000;
+const OPPORTUNITY_MONETARY_MAX = 99_999_999.99;
 
 function normalizeMonetaryInput(value: string | null | undefined): string | null | undefined {
   if (value === undefined) return undefined;
@@ -124,6 +125,32 @@ function normalizeMonetaryInput(value: string | null | undefined): string | null
 
   const finalValue = `${sign}${body}`;
   if (!finalValue || finalValue === "-" || finalValue === ".") return null;
+
+  const numericValue = Number(finalValue);
+  if (!Number.isFinite(numericValue)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Valor monetario invalido.",
+    });
+  }
+
+  if (Math.abs(numericValue) > OPPORTUNITY_MONETARY_MAX) {
+    // Temporary compatibility for stale clients that still send currency in cents
+    // (for example, 1000000000 for R$ 10.000.000,00). The long-term contract is
+    // decimal reais as a string, matching opportunities.monetaryValue DECIMAL(10,2).
+    const legacyCentsPayload = !hasComma && !hasDot && /^-?\d+$/.test(cleaned) && cleaned.endsWith("00");
+    const centsAsDecimal = numericValue / 100;
+
+    if (legacyCentsPayload && Math.abs(centsAsDecimal) <= OPPORTUNITY_MONETARY_MAX) {
+      return centsAsDecimal.toFixed(2);
+    }
+
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Valor monetario excede o limite suportado.",
+    });
+  }
+
   return finalValue;
 }
 
