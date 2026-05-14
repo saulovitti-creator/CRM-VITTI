@@ -80,7 +80,7 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
           ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}
-          className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded text-muted-foreground/70 hover:bg-muted/70 hover:text-foreground cursor-grab active:cursor-grabbing"
+          className="absolute right-1 top-1 z-20 flex h-8 w-8 items-center justify-center rounded text-muted-foreground/70 hover:bg-muted/70 hover:text-foreground cursor-grab active:cursor-grabbing"
           style={{ touchAction: "none", userSelect: "none" }}
           role="button"
           tabIndex={0}
@@ -98,7 +98,7 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
             ref={setActivatorNodeRef}
             {...attributes}
             {...listeners}
-            className="absolute -left-2 -top-0.5 flex h-6 w-6 items-center justify-center rounded text-muted-foreground/70 hover:bg-muted/70 hover:text-foreground cursor-grab active:cursor-grabbing"
+            className="absolute -left-2 -top-0.5 z-20 flex h-6 w-6 items-center justify-center rounded text-muted-foreground/70 hover:bg-muted/70 hover:text-foreground cursor-grab active:cursor-grabbing"
             style={{ touchAction: "none", userSelect: "none" }}
             role="button"
             tabIndex={0}
