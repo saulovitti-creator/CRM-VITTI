@@ -75,34 +75,68 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
       aria-roledescription="Cartão arrastável"
       aria-label={`Oportunidade: ${opp.title}`}
     >
-      {/* Title + Delete */}
-      <div className="flex justify-between items-start gap-2 mb-1.5">
-        <div className="flex items-start gap-1.5 min-w-0">
-          {!isOverlay && (
-            <div
-              ref={setActivatorNodeRef}
-              {...attributes}
-              {...listeners}
-              className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground/70 hover:bg-muted/70 hover:text-foreground cursor-grab active:cursor-grabbing"
-              style={{ touchAction: "none", userSelect: "none" }}
-              role="button"
-              tabIndex={0}
-              aria-label={`Arrastar oportunidade ${opp.title}`}
-              title="Arrastar oportunidade"
-            >
-              <GripVertical className="w-3.5 h-3.5 pointer-events-none" />
-            </div>
-          )}
-          <h4 className="text-card-title leading-snug pr-2 min-w-0">{opp.title}</h4>
+      {!isOverlay && (
+        <div
+          ref={setActivatorNodeRef}
+          {...attributes}
+          {...listeners}
+          className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded text-muted-foreground/70 hover:bg-muted/70 hover:text-foreground cursor-grab active:cursor-grabbing"
+          style={{ touchAction: "none", userSelect: "none" }}
+          role="button"
+          tabIndex={0}
+          aria-label={`Arrastar oportunidade ${opp.title}`}
+          title="Arrastar oportunidade"
+        >
+          <GripVertical className="w-3.5 h-3.5 pointer-events-none" />
         </div>
+      )}
 
-        {/* Delete — only visible on hover, not during drag */}
-        {!isDragging && !isOverlay && (
+      {/* Title */}
+      <div className="relative mb-1.5 min-w-0 max-w-full pl-5 pr-12">
+        {!isOverlay && (
+          <div
+            ref={setActivatorNodeRef}
+            {...attributes}
+            {...listeners}
+            className="absolute -left-2 -top-0.5 flex h-6 w-6 items-center justify-center rounded text-muted-foreground/70 hover:bg-muted/70 hover:text-foreground cursor-grab active:cursor-grabbing"
+            style={{ touchAction: "none", userSelect: "none" }}
+            role="button"
+            tabIndex={0}
+            aria-label={`Arrastar oportunidade ${opp.title}`}
+            title="Arrastar oportunidade"
+          >
+            <GripVertical className="w-3.5 h-3.5 pointer-events-none" />
+          </div>
+        )}
+        <h4 className="text-card-title leading-snug min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
+          {opp.title}
+        </h4>
+      </div>
+
+      {/* Company */}
+      <div className="flex items-center text-xs text-muted-foreground mb-2">
+        <Building className="w-3 h-3 mr-1.5 shrink-0" />
+        <span className="truncate">
+          {opp.contactName} {opp.contactCompany ? `(${opp.contactCompany})` : ""}
+        </span>
+      </div>
+
+      {/* Monetary Value */}
+      {opp.monetaryValue !== null && opp.monetaryValue !== undefined && opp.monetaryValue !== "" && (
+        <div className="text-sm font-semibold text-primary tabular-nums">
+          R$ {Number(opp.monetaryValue).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+        </div>
+      )}
+
+      {/* Actions — only visible when not dragging */}
+      {!isDragging && !isOverlay && (
+        <div className="mt-2.5 flex items-center justify-between">
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <button
                 type="button"
-                className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded"
+                className="text-destructive/80 hover:text-destructive p-0.5 rounded transition-colors"
+                aria-label={`Excluir oportunidade ${opp.title}`}
                 onPointerDown={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => e.stopPropagation()}
@@ -137,27 +171,7 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-        )}
-      </div>
 
-      {/* Company */}
-      <div className="flex items-center text-xs text-muted-foreground mb-2">
-        <Building className="w-3 h-3 mr-1.5 shrink-0" />
-        <span className="truncate">
-          {opp.contactName} {opp.contactCompany ? `(${opp.contactCompany})` : ""}
-        </span>
-      </div>
-
-      {/* Monetary Value */}
-      {opp.monetaryValue !== null && opp.monetaryValue !== undefined && opp.monetaryValue !== "" && (
-        <div className="text-sm font-semibold text-primary tabular-nums">
-          R$ {Number(opp.monetaryValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-        </div>
-      )}
-
-      {/* Edit — only visible on hover, not during drag */}
-      {!isDragging && !isOverlay && (
-        <div className="mt-2.5 flex justify-end">
           <OpportunityFormDialog
             opportunity={opp}
             trigger={
