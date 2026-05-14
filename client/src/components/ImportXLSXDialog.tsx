@@ -112,16 +112,38 @@ function preValidate(rows: MappedRow[], mode: ImportMode): PreValidation {
   };
 }
 
+// ── Classificação de Mensagens ──
+function classifyImportMessages(backendAlerts: string[] | undefined) {
+  const alerts: string[] = [];
+  const info: string[] = [];
+
+  if (!backendAlerts) return { alerts, info };
+
+  for (const msg of backendAlerts) {
+    if (msg.includes("Valor estimado") && msg.includes("->")) {
+      info.push(msg);
+    } else if (msg.includes("Contato já existente reutilizado")) {
+      info.push(msg);
+    } else {
+      alerts.push(msg);
+    }
+  }
+
+  return { alerts, info };
+}
+
 // ── Helpers for report ──
-function getLineStatus(r: any): "success" | "warning" | "error" {
+function getLineStatus(r: any, classified: { alerts: string[], info: string[] }): "success" | "info" | "warning" | "error" {
   if (r.status === "error") return "error";
-  if (r.alerts && r.alerts.length > 0) return "warning";
+  if (classified.alerts.length > 0) return "warning";
+  if (classified.info.length > 0) return "info";
   return "success";
 }
 
-function getLineStatusLabel(status: "success" | "warning" | "error"): string {
+function getLineStatusLabel(status: "success" | "info" | "warning" | "error"): string {
   switch (status) {
     case "success": return "Importado";
+    case "info": return "Importado com observações";
     case "warning": return "Importado com alertas";
     case "error": return "Erro";
   }
@@ -144,11 +166,20 @@ export function ImportXLSXDialog() {
 
   // Compute report stats
   const reportStats = useMemo(() => {
-    if (!importResult?.results) return { linesWithAlerts: 0 };
-    const linesWithAlerts = importResult.results.filter(
-      (r: any) => r.status === "success" && r.alerts && r.alerts.length > 0
-    ).length;
-    return { linesWithAlerts };
+    if (!importResult?.results) return { linesWithAlerts: 0, linesWithInfo: 0 };
+    
+    let linesWithAlerts = 0;
+    let linesWithInfo = 0;
+
+    importResult.results.forEach((r: any) => {
+      if (r.status === "success") {
+        const classified = classifyImportMessages(r.alerts);
+        if (classified.alerts.length > 0) linesWithAlerts++;
+        else if (classified.info.length > 0) linesWithInfo++;
+      }
+    });
+
+    return { linesWithAlerts, linesWithInfo };
   }, [importResult]);
 
   // ── Reset state ──
@@ -235,39 +266,49 @@ export function ImportXLSXDialog() {
 
   // ── Download Report ──
   const handleDownloadReport = () => {
-    if (!importResult) return;
+    if (!importResult || !importResult.results) {
+      toast.error("Nenhum dado disponível para gerar o relatório.");
+      return;
+    }
 
-    const reportData = importResult.results.map((r: any) => {
-      const status = getLineStatus(r);
-      // Find original row data (rowIndex is Excel row, header=1, data starts at 2)
-      const originalRow = rawRows[r.rowIndex - 2];
+    try {
+      const reportData = importResult.results.map((r: any) => {
+        const classified = classifyImportMessages(r.alerts);
+        const status = getLineStatus(r, classified);
+        // Tenta encontrar a linha original (rowIndex é a linha do Excel, cabeçalho=1, dados começam em 2)
+        const originalRow = r.rowIndex ? rawRows[r.rowIndex - 2] : null;
 
-      return {
-        "Linha": r.rowIndex,
-        "Status": getLineStatusLabel(status),
-        "Tipo": status === "error" ? "Erro" : status === "warning" ? "Alerta" : "Sucesso",
-        "Nome": originalRow?.nome || "-",
-        "Empresa": originalRow?.empresa || "-",
-        "Telefone": originalRow?.telefone || "-",
-        "Email": originalRow?.email || "-",
-        "Contato": r.contactCreated ? "Novo" : r.contactId ? "Reutilizado" : "-",
-        "Oportunidade ID": r.opportunityId || "-",
-        "Erros": r.errors.length > 0 ? r.errors.join("; ") : "-",
-        "Alertas": r.alerts.length > 0 ? r.alerts.join("; ") : "-",
-      };
-    });
+        return {
+          "Linha": r.rowIndex || "-",
+          "Status": getLineStatusLabel(status),
+          "Tipo": status === "error" ? "Erro" : status === "warning" ? "Alerta" : status === "info" ? "Observação" : "Sucesso",
+          "Nome": originalRow?.nome || "-",
+          "Empresa": originalRow?.empresa || "-",
+          "Telefone": originalRow?.telefone || "-",
+          "Email": originalRow?.email || "-",
+          "Contato": r.contactCreated ? "Novo" : r.contactId ? "Reutilizado" : "-",
+          "Oportunidade ID": r.opportunityId || "-",
+          "Erros": r.errors?.length > 0 ? r.errors.join("; ") : "-",
+          "Alertas": classified.alerts.length > 0 ? classified.alerts.join("; ") : "-",
+          "Observações": classified.info.length > 0 ? classified.info.join("; ") : "-",
+        };
+      });
 
-    const ws = XLSX.utils.json_to_sheet(reportData);
-    ws["!cols"] = [
-      { wch: 8 }, { wch: 22 }, { wch: 10 },
-      { wch: 25 }, { wch: 25 }, { wch: 18 }, { wch: 28 },
-      { wch: 14 }, { wch: 18 },
-      { wch: 60 }, { wch: 60 },
-    ];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Relatório");
-    XLSX.writeFile(wb, "relatorio-importacao-crm-vitti.xlsx");
-    toast.success("Relatório baixado!");
+      const ws = XLSX.utils.json_to_sheet(reportData);
+      ws["!cols"] = [
+        { wch: 8 }, { wch: 28 }, { wch: 12 },
+        { wch: 25 }, { wch: 25 }, { wch: 18 }, { wch: 28 },
+        { wch: 14 }, { wch: 18 },
+        { wch: 60 }, { wch: 60 }, { wch: 60 },
+      ];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Relatório");
+      XLSX.writeFile(wb, "relatorio-importacao-crm-vitti.xlsx");
+      toast.success("Relatório baixado!");
+    } catch (error) {
+      console.error("[Download Report Error]", error);
+      toast.error("Falha ao montar arquivo do relatório.");
+    }
   };
 
   return (
@@ -451,7 +492,7 @@ export function ImportXLSXDialog() {
         {step === "report" && importResult && (
           <div className="space-y-5 py-4">
             {/* Summary */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-green-400">{importResult.summary.contactsCreated}</p>
                 <p className="text-xs text-muted-foreground">Contatos criados</p>
@@ -470,7 +511,11 @@ export function ImportXLSXDialog() {
               </div>
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-yellow-400">{reportStats.linesWithAlerts}</p>
-                <p className="text-xs text-muted-foreground">Linhas com alertas</p>
+                <p className="text-xs text-muted-foreground">Linhas c/ alertas</p>
+              </div>
+              <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-cyan-400">{reportStats.linesWithInfo}</p>
+                <p className="text-xs text-muted-foreground">Linhas c/ observações</p>
               </div>
               <div className="bg-card border border-border rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-muted-foreground">{importResult.summary.linesSkipped}</p>
@@ -492,7 +537,7 @@ export function ImportXLSXDialog() {
             {importResult.results.length > 0 && (
               <div className="max-h-52 overflow-y-auto rounded-lg border border-border">
                 <table className="w-full text-xs">
-                  <thead className="bg-muted/50 sticky top-0">
+                  <thead className="bg-muted sticky top-0 z-10">
                     <tr>
                       <th className="px-3 py-2 text-left w-14">Linha</th>
                       <th className="px-3 py-2 text-left w-36">Status</th>
@@ -501,22 +546,29 @@ export function ImportXLSXDialog() {
                   </thead>
                   <tbody>
                     {importResult.results.map((r: any, idx: number) => {
-                      const status = getLineStatus(r);
+                      const classified = classifyImportMessages(r.alerts);
+                      const status = getLineStatus(r, classified);
                       return (
                         <tr key={idx} className={`border-t border-border ${
                           status === "error" ? "bg-red-500/5" :
-                          status === "warning" ? "bg-yellow-500/5" : ""
+                          status === "warning" ? "bg-yellow-500/5" :
+                          status === "info" ? "bg-cyan-500/5" : ""
                         }`}>
-                          <td className="px-3 py-2 font-mono">{r.rowIndex}</td>
-                          <td className="px-3 py-2">
+                          <td className="px-3 py-3 align-top font-mono">{r.rowIndex}</td>
+                          <td className="px-3 py-3 align-top whitespace-nowrap">
                             {status === "success" && (
                               <span className="flex items-center gap-1 text-green-400">
                                 <CheckCircle className="w-3 h-3" /> OK
                               </span>
                             )}
+                            {status === "info" && (
+                              <span className="flex items-center gap-1 text-cyan-400">
+                                <Info className="w-3 h-3" /> OK c/ Observações
+                              </span>
+                            )}
                             {status === "warning" && (
                               <span className="flex items-center gap-1 text-yellow-400">
-                                <AlertTriangle className="w-3 h-3" /> OK com alertas
+                                <AlertTriangle className="w-3 h-3" /> OK c/ Alertas
                               </span>
                             )}
                             {status === "error" && (
@@ -525,15 +577,18 @@ export function ImportXLSXDialog() {
                               </span>
                             )}
                           </td>
-                          <td className="px-3 py-2 space-y-0.5">
-                            {r.errors.length > 0 && (
-                              <p className="text-red-400">{r.errors.join("; ")}</p>
+                          <td className="px-3 py-3 align-top break-words whitespace-normal space-y-1">
+                            {r.errors?.length > 0 && (
+                              <p className="text-red-400 leading-snug">{r.errors.join("; ")}</p>
                             )}
-                            {r.alerts.length > 0 && (
-                              <p className="text-yellow-400/80">{r.alerts.join("; ")}</p>
+                            {classified.alerts.length > 0 && (
+                              <p className="text-yellow-400/80 leading-snug">{classified.alerts.join("; ")}</p>
                             )}
-                            {r.errors.length === 0 && r.alerts.length === 0 && (
-                              <p className="text-muted-foreground">Importado com sucesso.</p>
+                            {classified.info.length > 0 && (
+                              <p className="text-cyan-400/80 leading-snug">{classified.info.join("; ")}</p>
+                            )}
+                            {(!r.errors || r.errors.length === 0) && classified.alerts.length === 0 && classified.info.length === 0 && (
+                              <p className="text-muted-foreground leading-snug">Importado com sucesso.</p>
                             )}
                           </td>
                         </tr>
