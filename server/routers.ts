@@ -814,9 +814,7 @@ export const appRouter = router({
         };
 
         /** Lowercase + trim. Para comparação de lookup (pipeline, estágio, tag). */
-        const normalizeLookupName = (s?: string | null): string => {
-          return normalizeText(s).toLowerCase();
-        };
+        const normalizeLookupName = (s?: string | null): string => normalizeText(s).toLowerCase();
 
         /** Remove espaços e converte para lowercase. */
         const normalizeEmail = (s?: string | null): string => {
@@ -895,6 +893,59 @@ export const appRouter = router({
           return { value: num };
         };
 
+        const formatDecimalCurrency = (value: number): string => value.toFixed(2);
+
+        const parseBrazilianMoneyV2 = (val?: string | null): { value: string | null; error?: string; transformed?: string } => {
+          if (!val || val.trim() === "") return { value: null };
+          const original = val.trim();
+          let s = original.replace(/^r\$\s*/i, "").trim();
+          if (!s) return { value: null };
+
+          if (s.startsWith("-")) {
+            return { value: null, error: `Valor estimado "${original}" invalido (negativo). Use apenas valores positivos.` };
+          }
+          if (/[a-zA-Z]/.test(s)) {
+            return { value: null, error: `Valor estimado "${original}" invalido. Use exemplos como 1500, 1500,00 ou R$ 1.500,00.` };
+          }
+
+          const hasDot = s.includes(".");
+          const hasComma = s.includes(",");
+          if (hasComma && hasDot && s.indexOf(",") < s.indexOf(".")) {
+            return { value: null, error: `Valor estimado "${original}" ambiguo (formato internacional). Use o formato brasileiro: 1.500,00.` };
+          }
+          if ((s.match(/,/g) || []).length > 1) {
+            return { value: null, error: `Valor estimado "${original}" invalido (multiplas virgulas).` };
+          }
+
+          let numericValue: number;
+          if (hasDot && !hasComma) {
+            const dotParts = s.split(".");
+            if (dotParts.length > 2) {
+              return { value: null, error: `Valor estimado "${original}" invalido (multiplos pontos sem virgula decimal).` };
+            }
+            numericValue = dotParts.length === 2 && dotParts[1].length === 3
+              ? parseFloat(s.replace(/\./g, ""))
+              : parseFloat(s);
+          } else if (hasComma) {
+            numericValue = parseFloat(s.replace(/\./g, "").replace(",", "."));
+          } else {
+            numericValue = parseFloat(s);
+          }
+
+          if (!Number.isFinite(numericValue) || numericValue < 0) {
+            return { value: null, error: `Valor estimado "${original}" invalido.` };
+          }
+          if (numericValue > OPPORTUNITY_MONETARY_MAX) {
+            return { value: null, error: `Valor estimado "${original}" excede o limite suportado de R$ 99.999.999,99.` };
+          }
+
+          const normalizedValue = formatDecimalCurrency(numericValue);
+          return {
+            value: normalizedValue,
+            transformed: original !== normalizedValue ? `"${original}" -> ${normalizedValue}` : undefined,
+          };
+        };
+
         // ── Processar cada linha ──
         type LineResult = {
           rowIndex: number;
@@ -914,8 +965,50 @@ export const appRouter = router({
         let linesSkipped = 0;
         let tagsIgnored = 0;
 
-        // Track newly-created contacts within this import batch
-        const batchContacts: { id: number; phone: string; email: string }[] = [];
+        const pipelineBucketsByName = new Map<string, Array<(typeof allPipelines)[number]>>();
+        for (const pipeline of allPipelines) {
+          const key = normalizeLookupName(pipeline.name);
+          const bucket = pipelineBucketsByName.get(key) ?? [];
+          bucket.push(pipeline);
+          pipelineBucketsByName.set(key, bucket);
+        }
+
+        const stagesByPipelineId = new Map<number, Array<(typeof allStages)[number]>>();
+        const stageBucketsByPipelineId = new Map<number, Map<string, Array<(typeof allStages)[number]>>>();
+        const firstActiveStageByPipelineId = new Map<number, (typeof allStages)[number]>();
+        for (const stage of allStages) {
+          const stageList = stagesByPipelineId.get(stage.pipelineId) ?? [];
+          stageList.push(stage);
+          stagesByPipelineId.set(stage.pipelineId, stageList);
+
+          const stageMap = stageBucketsByPipelineId.get(stage.pipelineId) ?? new Map<string, Array<(typeof allStages)[number]>>();
+          const stageKey = normalizeLookupName(stage.name);
+          const stageBucket = stageMap.get(stageKey) ?? [];
+          stageBucket.push(stage);
+          stageMap.set(stageKey, stageBucket);
+          stageBucketsByPipelineId.set(stage.pipelineId, stageMap);
+
+          if (!firstActiveStageByPipelineId.has(stage.pipelineId) && stage.isActiveInFunnel !== false) {
+            firstActiveStageByPipelineId.set(stage.pipelineId, stage);
+          }
+        }
+
+        const tagIdsByName = new Map<string, Array<number>>();
+        for (const tag of allTags) {
+          const key = normalizeLookupName(tag.name);
+          const bucket = tagIdsByName.get(key) ?? [];
+          bucket.push(tag.id);
+          tagIdsByName.set(key, bucket);
+        }
+
+        const contactIdByPhone = new Map<string, number>();
+        const contactIdByEmail = new Map<string, number>();
+        for (const contact of allContacts) {
+          const phoneKey = normalizePhoneFn(contact.phone);
+          const emailKey = normalizeEmail(contact.email);
+          if (phoneKey && !contactIdByPhone.has(phoneKey)) contactIdByPhone.set(phoneKey, contact.id);
+          if (emailKey && !contactIdByEmail.has(emailKey)) contactIdByEmail.set(emailKey, contact.id);
+        }
 
         for (let i = 0; i < rows.length; i++) {
           const row = rows[i];
@@ -965,7 +1058,7 @@ export const appRouter = router({
           // ── 3. Validar campos de oportunidade (se modo 2) ──
           let resolvedPipelineId: number | null = null;
           let resolvedStageId: number | null = null;
-          let parsedMonetaryValue: number | null = null;
+          let parsedMonetaryValue: string | null = null;
 
           if (mode === "contacts_and_opportunities") {
             const pipelineName = normalizeText(row.pipeline);
@@ -974,7 +1067,7 @@ export const appRouter = router({
             } else {
               // Buscar pipeline por nome (normalizeLookupName)
               const normalizedPipeName = normalizeLookupName(pipelineName);
-              const matchingPipelines = allPipelines.filter(p => normalizeLookupName(p.name) === normalizedPipeName);
+              const matchingPipelines = pipelineBucketsByName.get(normalizedPipeName) ?? [];
 
               if (matchingPipelines.length === 0) {
                 errors.push(`Pipeline "${pipelineName}" não encontrado.`);
@@ -985,11 +1078,10 @@ export const appRouter = router({
 
                 // Resolver estágio
                 const estagioName = normalizeText(row.estagioInicial);
-                const pipeStages = allStages.filter(s => s.pipelineId === resolvedPipelineId);
 
                 if (!estagioName) {
                   // Fallback: primeiro estágio ativo
-                  const activeStage = pipeStages.find(s => s.isActiveInFunnel !== false);
+                  const activeStage = firstActiveStageByPipelineId.get(resolvedPipelineId);
                   if (activeStage) {
                     resolvedStageId = activeStage.id;
                     alerts.push(`Estágio vazio: será usado "${activeStage.name}".`);
@@ -998,7 +1090,7 @@ export const appRouter = router({
                   }
                 } else {
                   const normalizedStageName = normalizeLookupName(estagioName);
-                  const matchingStages = pipeStages.filter(s => normalizeLookupName(s.name) === normalizedStageName);
+                  const matchingStages = stageBucketsByPipelineId.get(resolvedPipelineId)?.get(normalizedStageName) ?? [];
                   
                   if (matchingStages.length === 0) {
                     errors.push(`Estágio "${estagioName}" não encontrado no pipeline "${pipelineName}".`);
@@ -1012,7 +1104,7 @@ export const appRouter = router({
             }
 
             // Validar valor estimado com parser brasileiro
-            const moneyResult = parseBrazilianMoney(row.valorEstimado);
+            const moneyResult = parseBrazilianMoneyV2(row.valorEstimado);
             if (moneyResult.error) {
               errors.push(moneyResult.error);
             } else {
@@ -1037,20 +1129,10 @@ export const appRouter = router({
 
           // Verifica no DB existente
           if (telefone) {
-            const match = allContacts.find(c => normalizePhoneFn(c.phone) === telefone);
-            if (match) contactId = match.id;
-            if (!contactId) {
-              const batchMatch = batchContacts.find(c => normalizePhoneFn(c.phone) === telefone);
-              if (batchMatch) contactId = batchMatch.id;
-            }
+            contactId = contactIdByPhone.get(telefone) ?? null;
           }
           if (!contactId && email) {
-            const match = allContacts.find(c => normalizeEmail(c.email) === email);
-            if (match) contactId = match.id;
-            if (!contactId) {
-              const batchMatch = batchContacts.find(c => normalizeEmail(c.email) === email);
-              if (batchMatch) contactId = batchMatch.id;
-            }
+            contactId = contactIdByEmail.get(email) ?? null;
           }
 
           if (contactId) {
@@ -1063,9 +1145,11 @@ export const appRouter = router({
           let matchingTagId: number | null = null;
           if (tagName) {
             const normalizedTagName = normalizeLookupName(tagName);
-            const matchingTag = allTags.find(t => normalizeLookupName(t.name) === normalizedTagName);
-            if (matchingTag) {
-              matchingTagId = matchingTag.id;
+            const matchingTagIds = tagIdsByName.get(normalizedTagName) ?? [];
+            if (matchingTagIds.length === 1) {
+              matchingTagId = matchingTagIds[0];
+            } else if (matchingTagIds.length > 1) {
+              errors.push(`Tag ambigua: mais de uma tag compativel com "${tagName}" foi encontrada.`);
             } else {
               alerts.push(`Tag "${tagName}" não encontrada. Registro importado sem essa tag.`);
               tagsIgnored++;
@@ -1073,6 +1157,12 @@ export const appRouter = router({
           }
 
           // ── 7. Transação Segura Por Linha (DB Insert) ──
+          if (errors.length > 0) {
+            linesWithError++;
+            results.push({ rowIndex, status: "error", errors, alerts });
+            continue;
+          }
+
           try {
             const txResult = await db.transaction(async (tx) => {
               let txContactId = contactId;
@@ -1112,7 +1202,7 @@ export const appRouter = router({
                   pipelineId: resolvedPipelineId,
                   stageId: resolvedStageId,
                   title: oppTitle,
-                  monetaryValue: parsedMonetaryValue !== null ? parsedMonetaryValue.toString() : undefined,
+                  monetaryValue: parsedMonetaryValue ?? undefined,
                   source: origem || undefined,
                   notes: observacoes || undefined,
                   segment: segmento || undefined,
@@ -1131,7 +1221,8 @@ export const appRouter = router({
             // Se a transação deu commit, salvamos o progresso
             if (txResult.contactCreated && txResult.contactId) {
               contactsCreated++;
-              batchContacts.push({ id: txResult.contactId, phone: telefone, email: email });
+              if (telefone) contactIdByPhone.set(telefone, txResult.contactId);
+              if (email) contactIdByEmail.set(email, txResult.contactId);
             } else if (contactExisted) {
               contactsReused++;
             }
@@ -1148,6 +1239,16 @@ export const appRouter = router({
             });
 
           } catch (e: any) {
+            const rawMessage = e?.message ? String(e.message).toLowerCase() : "";
+            if (rawMessage.includes("out of range") || rawMessage.includes("data truncated")) {
+              e.message = "Valor monetario fora do limite suportado.";
+            } else if (rawMessage.includes("foreign key")) {
+              e.message = "Pipeline ou estagio invalido para esta linha.";
+            } else if (rawMessage.includes("duplicate")) {
+              e.message = "Conflito de dado duplicado na linha.";
+            } else {
+              e.message = "Erro ao gravar a linha. Verifique os dados e tente novamente.";
+            }
             // Se falhou dentro da transação, TUDO dessa linha foi revertido (inclusive o contato recém-criado)
             errors.push(`Erro na gravação (transação abortada): ${e.message}`);
             linesWithError++;
