@@ -1,7 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Building, GripVertical, Trash2 } from "lucide-react";
-import { useEffect } from "react";
 import { OpportunityFormDialog } from "../OpportunityFormDialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -9,12 +8,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-
-const dndDebug = (...args: unknown[]) => {
-  if (typeof window !== "undefined" && localStorage.getItem("DEBUG_DND") === "true") {
-    console.log("[DND DEBUG][KanbanCard]", ...args);
-  }
-};
 
 interface KanbanCardProps {
   opp: any;
@@ -73,24 +66,11 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
     !isDragging && !isOverlay && !isLoading && !hasError && "kanban-card-idle",
   ].filter(Boolean).join(" ");
 
-  useEffect(() => {
-    dndDebug("render", {
-      id: opp.id,
-      title: opp.title,
-      isDragging,
-      isLoading,
-      hasError,
-      isOverlay,
-    });
-  }, [opp.id, opp.title, isDragging, isLoading, hasError, isOverlay]);
-
   return (
     <div
       ref={setNodeRef}
-      style={{ ...style, touchAction: "none" }}
-      className={`${cardClasses} select-none cursor-grab active:cursor-grabbing`}
-      {...attributes}
-      {...listeners}
+      style={style}
+      className={`${cardClasses} select-none`}
       role="listitem"
       aria-roledescription="Cartão arrastável"
       aria-label={`Oportunidade: ${opp.title}`}
@@ -99,9 +79,16 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
       <div className="flex justify-between items-start gap-2 mb-1.5">
         <div className="flex items-start gap-1.5 min-w-0">
           {!isOverlay && (
-            <div className="mt-0.5 rounded p-0.5 text-muted-foreground/70">
+            <button
+              type="button"
+              ref={setActivatorNodeRef}
+              {...attributes}
+              {...listeners}
+              className="mt-0.5 rounded p-0.5 text-muted-foreground/70 cursor-grab active:cursor-grabbing touch-none"
+              aria-label={`Arrastar oportunidade ${opp.title}`}
+            >
               <GripVertical className="w-3.5 h-3.5 pointer-events-none" />
-            </div>
+            </button>
           )}
           <h4 className="text-card-title leading-snug pr-2 min-w-0">{opp.title}</h4>
         </div>

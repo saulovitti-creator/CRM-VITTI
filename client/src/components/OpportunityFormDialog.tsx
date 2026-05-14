@@ -19,12 +19,6 @@ import { DynamicFieldRenderer } from "./DynamicFieldRenderer";
 import { parseCurrency } from "@/lib/currency";
 import { ContactAutocomplete, type ContactAutocompleteOption } from "./ContactAutocomplete";
 
-const modalDebug = (...args: unknown[]) => {
-  if (typeof window !== "undefined" && localStorage.getItem("DEBUG_MODAL") === "true") {
-    console.log("[OFD]", ...args);
-  }
-};
-
 interface OpportunityFormDialogProps {
   opportunity?: any;
   defaultContactId?: number;
@@ -99,12 +93,6 @@ export function OpportunityFormDialog({
 
   // Custom Fields State
   const [customValues, setCustomValues] = useState<Record<number, string | null>>({});
-
-  useEffect(() => {
-    modalDebug("mounted", { opportunityId: opportunity?.id });
-    return () => modalDebug("unmounted", { opportunityId: opportunity?.id });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const { data: customFields } = trpc.customFields.listDefinitions.useQuery(
     { model: "opportunity" },
@@ -378,9 +366,6 @@ export function OpportunityFormDialog({
         toast.success("Oportunidade criada!");
       }
       
-      modalDebug("explicit setOpen(false): submit success", {
-        opportunityId: opportunity?.id,
-      });
       setOpen(false);
       onSuccess?.();
     } catch (error: any) {
@@ -465,10 +450,6 @@ export function OpportunityFormDialog({
       setOutcomeDialogOpen(false);
       setPendingOutcome(null);
       setOutcomeReason("");
-      modalDebug("explicit setOpen(false): closeWithOutcome success", {
-        opportunityId: opportunity?.id,
-        outcome: pendingOutcome,
-      });
       setOpen(false);
       onSuccess?.();
     } catch (error: any) {
@@ -485,20 +466,7 @@ export function OpportunityFormDialog({
     <>
     <Dialog
       open={open}
-      onOpenChange={(nextOpen) => {
-        modalDebug("onOpenChange", {
-          nextOpen,
-          opportunityId: opportunity?.id,
-          activeElementTag: typeof document !== "undefined" ? document.activeElement?.tagName : undefined,
-          activeElementClass:
-            typeof document !== "undefined"
-              ? (document.activeElement as HTMLElement | null)?.className
-              : undefined,
-          title: formData.title,
-          stack: new Error().stack,
-        });
-        setOpen(nextOpen);
-      }}
+      onOpenChange={setOpen}
     >
       <DialogTrigger asChild>
         {trigger || (
@@ -511,34 +479,22 @@ export function OpportunityFormDialog({
       <DialogContent
         className="max-w-lg "
         onPointerDownOutside={(e) => {
-          modalDebug("pointerDownOutside", e.target);
           e.preventDefault();
         }}
         onInteractOutside={(e) => {
-          modalDebug("interactOutside", e.target);
           e.preventDefault();
         }}
         onFocusOutside={(e) => {
-          modalDebug("focusOutside", e.target);
           e.preventDefault();
         }}
         onPointerDownCapture={(e) => {
-          modalDebug("pointerDownCapture", e.target);
           e.stopPropagation();
         }}
         onMouseDownCapture={(e) => {
-          modalDebug("mouseDownCapture", e.target);
           e.stopPropagation();
         }}
         onTouchStartCapture={(e) => {
-          modalDebug("touchStartCapture", e.target);
           e.stopPropagation();
-        }}
-        onFocusCapture={(e) => {
-          modalDebug("focusCapture", e.target);
-        }}
-        onBlurCapture={(e) => {
-          modalDebug("blurCapture", e.target);
         }}
       >
         <DialogHeader>
@@ -556,12 +512,7 @@ export function OpportunityFormDialog({
             <Label className="text-foreground">Título / Nome do Negócio *</Label>
             <Input
               value={formData.title}
-              onFocus={(e) => modalDebug("title focus", e.target)}
-              onClick={(e) => modalDebug("title click", e.target)}
-              onPointerDown={(e) => modalDebug("title pointerdown", e.target)}
-              onMouseDown={(e) => modalDebug("title mousedown", e.target)}
               onChange={(e) => {
-                modalDebug("title change", e.target.value);
                 setFormData({ ...formData, title: e.target.value });
               }}
               required
@@ -752,9 +703,6 @@ export function OpportunityFormDialog({
                             utils.opportunities.list.invalidate();
           utils.opportunities.closedList.invalidate();
                             toast.success("Oportunidade excluída com sucesso");
-                            modalDebug("explicit setOpen(false): delete success", {
-                              opportunityId: opportunity?.id,
-                            });
                             setOpen(false);
                             if (onSuccess) onSuccess();
                           } catch (error: any) {
@@ -773,9 +721,6 @@ export function OpportunityFormDialog({
             </div>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => {
-                modalDebug("explicit setOpen(false): cancel button", {
-                  opportunityId: opportunity?.id,
-                });
                 setOpen(false);
               }}
                 className="border-border text-foreground">
@@ -797,27 +742,21 @@ export function OpportunityFormDialog({
         showCloseButton={false}
         onEscapeKeyDown={(event) => event.preventDefault()}
         onPointerDownOutside={(event) => {
-          modalDebug("outcome pointerDownOutside", event.target);
           event.preventDefault();
         }}
         onInteractOutside={(event) => {
-          modalDebug("outcome interactOutside", event.target);
           event.preventDefault();
         }}
         onFocusOutside={(event) => {
-          modalDebug("outcome focusOutside", event.target);
           event.preventDefault();
         }}
         onPointerDownCapture={(e) => {
-          modalDebug("outcome pointerDownCapture", e.target);
           e.stopPropagation();
         }}
         onMouseDownCapture={(e) => {
-          modalDebug("outcome mouseDownCapture", e.target);
           e.stopPropagation();
         }}
         onTouchStartCapture={(e) => {
-          modalDebug("outcome touchStartCapture", e.target);
           e.stopPropagation();
         }}
       >
