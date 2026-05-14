@@ -79,16 +79,19 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
       <div className="flex justify-between items-start gap-2 mb-1.5">
         <div className="flex items-start gap-1.5 min-w-0">
           {!isOverlay && (
-            <button
-              type="button"
+            <div
               ref={setActivatorNodeRef}
               {...attributes}
               {...listeners}
-              className="mt-0.5 rounded p-0.5 text-muted-foreground/70 cursor-grab active:cursor-grabbing touch-none"
+              className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground/70 hover:bg-muted/70 hover:text-foreground cursor-grab active:cursor-grabbing"
+              style={{ touchAction: "none", userSelect: "none" }}
+              role="button"
+              tabIndex={0}
               aria-label={`Arrastar oportunidade ${opp.title}`}
+              title="Arrastar oportunidade"
             >
               <GripVertical className="w-3.5 h-3.5 pointer-events-none" />
-            </button>
+            </div>
           )}
           <h4 className="text-card-title leading-snug pr-2 min-w-0">{opp.title}</h4>
         </div>
