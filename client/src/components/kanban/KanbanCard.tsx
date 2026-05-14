@@ -58,8 +58,8 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
     isOverlay && "kanban-card-overlay",
     // Ghost/placeholder left behind
     isDragging && !isOverlay && "kanban-card-ghost",
-    // Loading pulse
-    isLoading && "kanban-card-loading",
+    // Keep the card interactive while the stage move is being confirmed.
+    isLoading && !isDragging && !isOverlay && "kanban-card-idle opacity-90",
     // Error flash
     hasError && "kanban-card-error",
     // Default idle + hover

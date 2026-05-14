@@ -473,7 +473,14 @@ export function OpportunityFormDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-lg ">
+      <DialogContent
+        className="max-w-lg "
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        onPointerDownCapture={(e) => e.stopPropagation()}
+        onMouseDownCapture={(e) => e.stopPropagation()}
+        onTouchStartCapture={(e) => e.stopPropagation()}
+      >
         <DialogHeader>
           <DialogTitle className="text-foreground">
             {opportunity ? "Editar Oportunidade" : "Nova Oportunidade"}
@@ -716,6 +723,9 @@ export function OpportunityFormDialog({
         onEscapeKeyDown={(event) => event.preventDefault()}
         onPointerDownOutside={(event) => event.preventDefault()}
         onInteractOutside={(event) => event.preventDefault()}
+        onPointerDownCapture={(e) => e.stopPropagation()}
+        onMouseDownCapture={(e) => e.stopPropagation()}
+        onTouchStartCapture={(e) => e.stopPropagation()}
       >
         <DialogHeader>
           <DialogTitle className="text-foreground">Registrar desfecho</DialogTitle>

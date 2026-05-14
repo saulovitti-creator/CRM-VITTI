@@ -19,7 +19,7 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { SearchX } from "lucide-react";
+import { Building, GripVertical, SearchX } from "lucide-react";
 
 // --- Temporary DnD debug helper (activate: localStorage.setItem("DEBUG_DND","true")) ---
 const dndDebug = (...args: unknown[]) => {
@@ -35,6 +35,38 @@ interface KanbanBoardProps {
   pipelineId: string;
   isFiltered?: boolean;
   onClearFilters?: () => void;
+}
+
+function KanbanCardOverlay({ opp }: { opp: any }) {
+  return (
+    <div
+      className="kanban-card kanban-card-overlay bg-card p-3 rounded-[10px] border select-none"
+      role="presentation"
+      aria-hidden="true"
+    >
+      <div className="flex justify-between items-start gap-2 mb-1.5">
+        <div className="flex items-start gap-1.5 min-w-0">
+          <div className="mt-0.5 rounded p-0.5 text-muted-foreground/70">
+            <GripVertical className="w-3.5 h-3.5 pointer-events-none" />
+          </div>
+          <h4 className="text-card-title leading-snug pr-2 min-w-0">{opp.title}</h4>
+        </div>
+      </div>
+
+      <div className="flex items-center text-xs text-muted-foreground mb-2">
+        <Building className="w-3 h-3 mr-1.5 shrink-0" />
+        <span className="truncate">
+          {opp.contactName} {opp.contactCompany ? `(${opp.contactCompany})` : ""}
+        </span>
+      </div>
+
+      {opp.monetaryValue !== null && opp.monetaryValue !== undefined && opp.monetaryValue !== "" && (
+        <div className="text-sm font-semibold text-primary tabular-nums">
+          R$ {Number(opp.monetaryValue).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /**
@@ -67,7 +99,7 @@ export function KanbanBoard({ stages, opportunities, isLoading, pipelineId, isFi
   // --- Sensors ---
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 5 },
+      activationConstraint: { distance: 8 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
@@ -292,14 +324,9 @@ export function KanbanBoard({ stages, opportunities, isLoading, pipelineId, isFi
         </div>
 
         {/* DragOverlay — the floating card that follows the cursor */}
-        <DragOverlay
-          dropAnimation={{
-            duration: 250,
-            easing: "cubic-bezier(0.25, 1, 0.5, 1)",
-          }}
-        >
+        <DragOverlay dropAnimation={null}>
           {activeId !== null && activeOpp ? (
-            <KanbanCard opp={activeOpp} isOverlay />
+            <KanbanCardOverlay opp={activeOpp} />
           ) : null}
         </DragOverlay>
       </DndContext>
