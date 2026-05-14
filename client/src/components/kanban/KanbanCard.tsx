@@ -135,7 +135,7 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
             <AlertDialogTrigger asChild>
               <button
                 type="button"
-                className="text-destructive/80 hover:text-destructive p-0.5 rounded transition-colors"
+                className="text-destructive/80 hover:text-destructive p-0.5 rounded opacity-0 pointer-events-none transition-[color,opacity] group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto"
                 aria-label={`Excluir oportunidade ${opp.title}`}
                 onPointerDown={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
