@@ -1,6 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Building, GripVertical, Trash2 } from "lucide-react";
+import { useEffect } from "react";
 import { OpportunityFormDialog } from "../OpportunityFormDialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -8,6 +9,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+
+const dndDebug = (...args: unknown[]) => {
+  if (typeof window !== "undefined" && localStorage.getItem("DEBUG_DND") === "true") {
+    console.log("[DND DEBUG][KanbanCard]", ...args);
+  }
+};
 
 interface KanbanCardProps {
   opp: any;
@@ -65,6 +72,17 @@ export function KanbanCard({ opp, isOverlay = false, isLoading = false, hasError
     // Default idle + hover
     !isDragging && !isOverlay && !isLoading && !hasError && "kanban-card-idle",
   ].filter(Boolean).join(" ");
+
+  useEffect(() => {
+    dndDebug("render", {
+      id: opp.id,
+      title: opp.title,
+      isDragging,
+      isLoading,
+      hasError,
+      isOverlay,
+    });
+  }, [opp.id, opp.title, isDragging, isLoading, hasError, isOverlay]);
 
   return (
     <div

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -118,6 +118,10 @@ export function KanbanBoard({ stages, opportunities, isLoading, pipelineId, isFi
     ? opportunities?.find((o) => o.id === activeId)
     : null;
 
+  useEffect(() => {
+    dndDebug("state", { activeId, activeOverId, loadingCardId });
+  }, [activeId, activeOverId, loadingCardId]);
+
   if (activeId && !activeOpp) {
     dndDebug("activeOpp NOT FOUND", { activeId, activeIdType: typeof activeId, opportunitiesCount: opportunities?.length, firstOppId: opportunities?.[0]?.id, firstOppIdType: typeof opportunities?.[0]?.id });
   }
@@ -167,6 +171,10 @@ export function KanbanBoard({ stages, opportunities, isLoading, pipelineId, isFi
 
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
+    dndDebug("handleDragEnd", {
+      active: active?.id,
+      over: over?.id,
+    });
 
     // Reset visual states
     setActiveId(null);
@@ -272,11 +280,12 @@ export function KanbanBoard({ stages, opportunities, isLoading, pipelineId, isFi
   }, [opportunities, pipelineId, stages, moveMutation, utils]);
 
   const handleDragCancel = useCallback(() => {
+    dndDebug("handleDragCancel");
     setActiveId(null);
     setActiveOverId(null);
     setLoadingCardId(null);
     setLiveMessage("Arraste cancelado");
-  }, [activeId]);
+  }, []);
 
   return (
     <>
