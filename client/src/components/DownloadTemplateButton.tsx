@@ -20,7 +20,7 @@ export function DownloadTemplateButton() {
           "Nome da Oportunidade": "Venda CRM - Clínica São Lucas",
           "Pipeline": "Pipeline Principal",
           "Estágio Inicial": "",
-          "Valor Estimado": "15000",
+          "Valor Estimado": "15.000,00",
           "Origem": "Indicação",
           "Tags": "Quente",
           "Observações": "Cliente indicado pelo parceiro X",
@@ -34,7 +34,7 @@ export function DownloadTemplateButton() {
           "Cidade": "São Paulo",
           "Nome da Oportunidade": "",
           "Pipeline": "Pipeline Principal",
-          "Estágio Inicial": "Entrar em contato",
+          "Estágio Inicial": "",
           "Valor Estimado": "8500",
           "Origem": "Site",
           "Tags": "",
@@ -85,12 +85,12 @@ export function DownloadTemplateButton() {
         { "Campo": "Email", "Obrigatório": "Sim *", "Descrição": "Email do contato. Será convertido para letras minúsculas automaticamente. Obrigatório se 'Telefone' estiver vazio." },
         { "Campo": "Segmento", "Obrigatório": "Não", "Descrição": "Segmento de atuação (ex: Saúde, Tecnologia, Alimentação)." },
         { "Campo": "Cidade", "Obrigatório": "Não", "Descrição": "Cidade do contato." },
-        { "Campo": "Nome da Oportunidade", "Obrigatório": "Não", "Descrição": "Nome do negócio. Se vazio, será gerado como 'Venda - [Empresa]'." },
+        { "Campo": "Nome da Oportunidade", "Obrigatório": "Não", "Descrição": "Nome do negócio. Se vazio, o sistema gera automaticamente no formato 'Venda - [Empresa]'. Se Empresa também estiver vazia, usa 'Venda - [Nome]'." },
         { "Campo": "Pipeline", "Obrigatório": "Sim **", "Descrição": "Nome do pipeline no CRM. Aceita espaços extras e diferença de maiúsculas/minúsculas. O pipeline deve existir no CRM — não será criado automaticamente." },
         { "Campo": "Estágio Inicial", "Obrigatório": "Não", "Descrição": "Nome do estágio dentro do pipeline informado. Aceita espaços extras e diferença de maiúsculas/minúsculas. Se vazio, será usado o primeiro estágio ativo. Não será criado automaticamente." },
-        { "Campo": "Valor Estimado", "Obrigatório": "Não", "Descrição": "Valor numérico. Aceita: 1500, 1500.00, 1500,00, 1.500, 1.500,00, R$ 1.500,00. NÃO aceita: formato internacional (1,500.00), valores negativos ou texto." },
+        { "Campo": "Valor Estimado", "Obrigatório": "Não", "Descrição": "Opcional. Valor em reais (R$). Aceita: 1500, 1.500, 1500,00, 1.500,00, R$ 1.500,00. Limite máximo: R$ 99.999.999,99 — valores acima serão rejeitados. NÃO aceita: formato internacional (1,500.00), valores negativos ou texto." },
         { "Campo": "Origem", "Obrigatório": "Não", "Descrição": "Origem do contato/negócio (ex: Site, Indicação, Prospecção Ativa)." },
-        { "Campo": "Tags", "Obrigatório": "Não", "Descrição": "Nome de UMA ÚNICA tag existente no CRM. Se a tag não existir, o registro será importado sem ela (com alerta). Tags não são criadas automaticamente." },
+        { "Campo": "Tags", "Obrigatório": "Não", "Descrição": "Aceita apenas UMA tag por linha. Informe o nome exato de uma tag já cadastrada no CRM. Se a tag informada não existir, o registro será importado sem ela (com alerta). Tags NÃO são criadas automaticamente pela importação." },
         { "Campo": "Observações", "Obrigatório": "Não", "Descrição": "Notas ou observações sobre a oportunidade." },
         { "Campo": "", "Obrigatório": "", "Descrição": "" },
         { "Campo": "REGRAS GERAIS", "Obrigatório": "", "Descrição": "" },
@@ -102,7 +102,7 @@ export function DownloadTemplateButton() {
         { "Campo": "NORMALIZAÇÃO AUTOMÁTICA", "Obrigatório": "", "Descrição": "" },
         { "Campo": "Telefone", "Obrigatório": "", "Descrição": "Parênteses, hífens e espaços serão removidos. Apenas os dígitos serão salvos." },
         { "Campo": "Email", "Obrigatório": "", "Descrição": "Será convertido para letras minúsculas. Espaços serão removidos." },
-        { "Campo": "Valor Estimado", "Obrigatório": "", "Descrição": "Prefixo R$ será removido. Ponto de milhar será tratado corretamente. O valor será salvo como número decimal." },
+        { "Campo": "Valor Estimado", "Obrigatório": "", "Descrição": "Prefixo R$ será removido. Ponto de milhar será tratado corretamente. O valor será salvo como número decimal. Máximo: R$ 99.999.999,99." },
         { "Campo": "Pipeline / Estágio / Tags", "Obrigatório": "", "Descrição": "Espaços extras serão removidos. Comparação será feita ignorando maiúsculas/minúsculas." },
         { "Campo": "Textos em geral", "Obrigatório": "", "Descrição": "Espaços no início/fim e espaços duplicados no meio serão removidos automaticamente." },
       ];
@@ -119,8 +119,24 @@ export function DownloadTemplateButton() {
       XLSX.utils.book_append_sheet(wb, ws, "Dados");
       XLSX.utils.book_append_sheet(wb, wsInstructions, "Instruções");
 
-      // ── Download ──
-      XLSX.writeFile(wb, "template_importacao_crm_vitti.xlsx");
+      // ── Download 100% Client-Side (Base64 Data URI) ──
+      // Essa abordagem previne que o navegador ignore o nome do arquivo usando a URL UUID do Blob
+      const base64Data = XLSX.write(wb, { bookType: "xlsx", type: "base64" });
+      const mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+      const dataUri = `data:${mimeType};base64,${base64Data}`;
+      
+      const link = document.createElement("a");
+      link.href = dataUri;
+      link.download = "template_importacao_crm_vitti.xlsx";
+      
+      // Alguns navegadores exigem que o elemento esteja visível no DOM
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      
+      // Limpeza segura sem timeout, pois Data URI não precisa de revokeObjectURL
+      document.body.removeChild(link);
+
       toast.success("Template baixado com sucesso!");
     } catch (error) {
       console.error("Erro ao gerar template:", error);
