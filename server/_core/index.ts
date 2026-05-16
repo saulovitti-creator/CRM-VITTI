@@ -197,6 +197,21 @@ async function applyPendingMigrations() {
   } catch (error) {
     console.error("[Migration] pipeline_stages migration failed:", error);
   }
+
+  try {
+    const hasPipelines = await tableExists(db, "pipelines");
+    if (hasPipelines) {
+      // Check if any pipeline is default
+      const [defaultPipeline] = await db.execute(sql`SELECT id FROM pipelines WHERE isDefault = true LIMIT 1`);
+      if (!defaultPipeline) {
+        // Set the oldest pipeline as default
+        await db.execute(sql`UPDATE pipelines SET isDefault = true ORDER BY createdAt ASC LIMIT 1`);
+        console.log("[Migration] Set oldest pipeline as default (isDefault = true).");
+      }
+    }
+  } catch (error) {
+    console.error("[Migration] Set default pipeline migration failed:", error);
+  }
 }
 
 async function startServer() {

@@ -1262,6 +1262,14 @@ export async function moveOpportunityToStage(id: number, stageId: number) {
 
   // Check if stage is final
   const [stage] = await db.select().from(pipelineStages).where(eq(pipelineStages.id, stageId));
+  if (!stage) throw new Error("Estágio não encontrado.");
+
+  const [opp] = await db.select({ pipelineId: opportunities.pipelineId }).from(opportunities).where(eq(opportunities.id, id));
+  if (!opp) throw new Error("Oportunidade não encontrada.");
+
+  if (opp.pipelineId !== stage.pipelineId) {
+    throw new Error("Não é possível mover a oportunidade para um estágio de outro funil.");
+  }
 
   const updateData: any = { stageId };
 

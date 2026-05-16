@@ -510,7 +510,7 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .query(({ input }) => getPipelineById(input.id)),
 
-    create: protectedProcedure
+    create: adminProcedure
       .input(z.object({
         name: z.string().min(1),
         stages: z.array(z.object({
@@ -522,7 +522,7 @@ export const appRouter = router({
       }))
       .mutation(({ input }) => createPipeline(input)),
 
-    update: protectedProcedure
+    update: adminProcedure
       .input(z.object({
         id: z.number(),
         name: z.string().optional(),
@@ -532,12 +532,12 @@ export const appRouter = router({
         return updatePipeline(id, data);
       }),
 
-    delete: protectedProcedure
+    delete: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(({ input }) => deletePipeline(input.id)),
 
     // --- Stages ---
-    createStage: protectedProcedure
+    createStage: adminProcedure
       .input(z.object({
         pipelineId: z.number(),
         name: z.string().min(1),
@@ -548,7 +548,7 @@ export const appRouter = router({
       }))
       .mutation(({ input }) => createPipelineStage(input)),
 
-    updateStage: protectedProcedure
+    updateStage: adminProcedure
       .input(z.object({
         id: z.number(),
         name: z.string().optional(),
@@ -562,11 +562,11 @@ export const appRouter = router({
         return updatePipelineStage(id, data);
       }),
 
-    deleteStage: protectedProcedure
+    deleteStage: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(({ input }) => deletePipelineStage(input.id)),
 
-    reorderStages: protectedProcedure
+    reorderStages: adminProcedure
       .input(z.object({
         pipelineId: z.number(),
         stageIds: z.array(z.number()),
@@ -1097,7 +1097,12 @@ export const appRouter = router({
                   } else if (matchingStages.length > 1) {
                     errors.push(`Estágio ambíguo: mais de um estágio compatível com "${estagioName}" foi encontrado no pipeline "${pipelineName}". Corrija os estágios antes de importar.`);
                   } else {
-                    resolvedStageId = matchingStages[0].id;
+                    const stageMatch = matchingStages[0];
+                    if (stageMatch.isActiveInFunnel === false) {
+                      errors.push(`Estágio "${estagioName}" está inativo no funil. Não é possível importar oportunidades abertas para estágios inativos.`);
+                    } else {
+                      resolvedStageId = stageMatch.id;
+                    }
                   }
                 }
               }
