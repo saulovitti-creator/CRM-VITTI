@@ -47,13 +47,13 @@ export default function Dashboard() {
   };
 
   const chartData = useMemo(() => {
-    const monthly = stats?.opportunitiesCreatedByMonth || stats?.opportunitiesByMonth;
+    const monthly = stats?.opportunitiesCreatedByMonth;
     if (!monthly) return [];
     return monthly.map((m: any) => {
       const [year, month] = m.month.split("-");
       return { label: `${monthNames[month]}/${year.slice(2)}`, count: m.count };
     });
-  }, [stats?.opportunitiesCreatedByMonth, stats?.opportunitiesByMonth]);
+  }, [stats?.opportunitiesCreatedByMonth]);
 
   const maxChart = useMemo(() => Math.max(...chartData.map((d: any) => d.count), 1), [chartData]);
 
@@ -137,7 +137,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-label">Taxa de Conversão</p>
-                  <p className="text-3xl font-bold text-foreground mt-1 tabular-nums">{stats?.conversionRate ?? stats?.taxaConversao ?? 0}%</p>
+                  <p className="text-3xl font-bold text-foreground mt-1 tabular-nums">{stats?.conversionRate ?? 0}%</p>
                   <p className="text-metadata mt-1">{stats?.wonOpportunities || 0} de {stats?.closedOpportunities || 0} finalizadas</p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-[var(--success-light)] flex items-center justify-center">
@@ -188,7 +188,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-label">Valor em Aberto</p>
                   <p className="text-2xl font-bold text-foreground mt-1 tabular-nums">
-                    {formatCurrency(stats?.openValue ?? stats?.dinheiroNaMesa?.implementacao ?? 0)}
+                    {formatCurrency(stats?.openValue ?? 0)}
                   </p>
                   <p className="text-metadata mt-1">Soma das oportunidades abertas</p>
                 </div>
@@ -203,7 +203,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-label">Receita Ganha</p>
                   <p className="text-2xl font-bold text-foreground mt-1 tabular-nums">
-                    {formatCurrency(stats?.wonValue ?? stats?.valorTotalGanho ?? 0)}
+                    {formatCurrency(stats?.wonValue ?? 0)}
                   </p>
                   <p className="text-metadata mt-1">{stats?.wonOpportunities || 0} oportunidades ganhas</p>
                 </div>
@@ -218,7 +218,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-label">Oportunidades Criadas</p>
                   <p className="text-2xl font-bold text-foreground mt-1 tabular-nums">
-                    {stats?.totalCreatedOpportunities ?? stats?.totalOpportunities ?? 0}
+                    {stats?.totalCreatedOpportunities ?? 0}
                   </p>
                   <p className="text-metadata mt-1">Criadas no período filtrado</p>
                 </div>
@@ -327,7 +327,7 @@ export default function Dashboard() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Thermometer className="w-4 h-4 text-destructive" /> Oportunidades Frias (sem contato há 3+ dias)
+                <Thermometer className="w-4 h-4 text-destructive" /> Sem atividade recente (7+ dias)
                 <span className="ml-auto badge-error text-xs font-semibold px-2 py-0.5 rounded-md">
                   {stats?.coldOpportunities || 0}
                 </span>
@@ -336,7 +336,7 @@ export default function Dashboard() {
             <CardContent>
               {alerts.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-[var(--success)] text-sm font-medium">Nenhuma oportunidade fria! Todas contatadas recentemente.</p>
+                  <p className="text-[var(--success)] text-sm font-medium">Nenhuma oportunidade inativa! Todas com atividade recente.</p>
                 </div>
               ) : (
                 <div className="space-y-2 max-h-72 overflow-y-auto pr-2 custom-scrollbar">
@@ -354,7 +354,7 @@ export default function Dashboard() {
                           <p className="text-muted-foreground text-xs">{opportunity.contactName || "Sem contato"} - {opportunity.status}</p>
                         </div>
                         <span className="badge-error text-xs font-medium px-2 py-1 rounded-md whitespace-nowrap ml-3">
-                          {daysSince !== null ? `${daysSince}d atrás` : "Nunca"}
+                          {daysSince !== null ? `${daysSince}d sem atividade` : "Nunca"}
                         </span>
                       </div>
                     );

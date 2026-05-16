@@ -94,6 +94,24 @@ export async function getUserByOpenId(openId: string) {
 }
 
 
+// ===================== INACTIVITY THRESHOLD (centralizado) =====================
+
+/**
+ * Retorna o número de dias sem atividade para considerar uma oportunidade "inativa".
+ *
+ * Centralizado aqui para facilitar parametrização futura por pipeline, segmento
+ * ou configuração do cliente. Hoje retorna um valor padrão fixo.
+ *
+ * @param _context — reservado para uso futuro (ex: { pipelineId, segment })
+ */
+export function getInactivityThresholdDays(_context?: {
+  pipelineId?: number;
+  segment?: string;
+}): number {
+  // TODO: futuramente buscar de uma tabela de configurações
+  return 7;
+}
+
 // ===================== DASHBOARD (Opportunities-based) =====================
 
 export async function getDashboardStats(pipelineId?: number, dataInicial?: Date, dataFinal?: Date) {
@@ -160,31 +178,20 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
     opportunitiesByStage: {},
     opportunitiesCreatedByMonth: [],
     opportunitiesClosedByMonth: [],
-    dinheiroNaMesa: {
-      implementacao: 0,
-      recorrencia: 0,
-    },
-    valorTotalGanho: 0,
     tempoMedioFunil: 0,
     opportunitiesBySegment: {},
-    opportunitiesByMonth: [],
     coldOpportunities: 0,
-    totalOpportunities: 0,
-    taxaConversao: 0,
-    taxaDropout: 0,
   };
 
   try {
     const [createdRes] = await db.select({ c: drizzleCount() }).from(opportunities).where(createdPeriodFilter);
     result.totalCreatedOpportunities = toNumber(createdRes?.c);
-    result.totalOpportunities = result.totalCreatedOpportunities;
 
     const [openRes] = await db.select({ c: drizzleCount(), totalVal: sum(opportunities.monetaryValue) })
       .from(opportunities)
       .where(openFilter);
     result.openOpportunities = toNumber(openRes?.c);
     result.openValue = toNumber(openRes?.totalVal);
-    result.dinheiroNaMesa.implementacao = result.openValue;
 
     const statusRes = await db.select({ status: opportunities.status, c: drizzleCount() })
       .from(opportunities)
@@ -205,7 +212,6 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
       .where(wonFilter);
     result.wonOpportunities = toNumber(wonRes?.c);
     result.wonValue = toNumber(wonRes?.totalVal);
-    result.valorTotalGanho = result.wonValue;
 
     const [lostRes] = await db.select({ c: drizzleCount() })
       .from(opportunities)
@@ -222,8 +228,6 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
     result.lossRate = result.closedOpportunities > 0 ? Number(((result.lostOpportunities / result.closedOpportunities) * 100).toFixed(1)) : 0;
     result.abandonmentRate = result.closedOpportunities > 0 ? Number(((result.abandonedOpportunities / result.closedOpportunities) * 100).toFixed(1)) : 0;
     result.dropoutRate = result.closedOpportunities > 0 ? Number((((result.lostOpportunities + result.abandonedOpportunities) / result.closedOpportunities) * 100).toFixed(1)) : 0;
-    result.taxaConversao = result.conversionRate;
-    result.taxaDropout = result.dropoutRate;
     result.opportunitiesByStatus = {
       open: result.openOpportunities,
       won: result.wonOpportunities,
@@ -251,7 +255,6 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
       .groupBy(sql`1`)
       .orderBy(sql`1`);
     result.opportunitiesCreatedByMonth = monthlyRes.map((r: any) => ({ month: r.month, count: toNumber(r.c) }));
-    result.opportunitiesByMonth = result.opportunitiesCreatedByMonth;
   } catch (error) {
     console.error("[dashboard.stats] created monthly metrics failed", error);
   }
@@ -308,14 +311,52 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
   }
 
   try {
-    // "Frios" = open opps created > 7 days ago (no contact field, use createdAt proxy)
-    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const [friosRes] = await db.select({ c: drizzleCount() }).from(opportunities).where(
-      whereFor(openFilter, lte(opportunities.createdAt, cutoff))
-    );
+    // "Sem atividade recente" = oportunidades abertas cujo Last Touch > threshold dias.
+    // Last Touch = MAX(opp.createdAt, última nota, última tarefa concluída).
+    const thresholdDays = getInactivityThresholdDays(pipelineId ? { pipelineId } : undefined);
+    const cutoff = new Date(Date.now() - thresholdDays * 24 * 60 * 60 * 1000);
+
+    // Sub-query: última nota por oportunidade
+    const lastNoteSubquery = db
+      .select({
+        oppId: opportunityNotes.opportunityId,
+        lastNoteAt: sql<Date>`MAX(${opportunityNotes.createdAt})`.as("lastNoteAt"),
+      })
+      .from(opportunityNotes)
+      .groupBy(opportunityNotes.opportunityId)
+      .as("ln");
+
+    // Sub-query: última tarefa concluída por oportunidade
+    const lastTaskSubquery = db
+      .select({
+        oppId: opportunityTasks.opportunityId,
+        lastTaskAt: sql<Date>`MAX(${opportunityTasks.completedAt})`.as("lastTaskAt"),
+      })
+      .from(opportunityTasks)
+      .where(isNotNull(opportunityTasks.completedAt))
+      .groupBy(opportunityTasks.opportunityId)
+      .as("lt");
+
+    const lastTouchExpr = sql<Date>`GREATEST(
+      ${opportunities.createdAt},
+      COALESCE(ln.lastNoteAt, ${opportunities.createdAt}),
+      COALESCE(lt.lastTaskAt, ${opportunities.createdAt})
+    )`;
+
+    const [friosRes] = await db
+      .select({ c: drizzleCount() })
+      .from(opportunities)
+      .leftJoin(lastNoteSubquery, eq(opportunities.id, lastNoteSubquery.oppId))
+      .leftJoin(lastTaskSubquery, eq(opportunities.id, lastTaskSubquery.oppId))
+      .where(whereFor(
+        pipelineCondition,
+        eq(opportunities.status, "open"),
+        sql`${lastTouchExpr} <= ${cutoff}`
+      ));
+
     result.coldOpportunities = toNumber(friosRes?.c);
   } catch (error) {
-    console.error("[dashboard.stats] cold opportunities failed", error);
+    console.error("[dashboard.stats] cold opportunities (last touch) failed", error);
   }
 
   try {
@@ -340,17 +381,57 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
 export async function getFollowUpAlerts(daysSinceContact: number = 7) {
   const db = await getDb();
   if (!db) return [];
-  const cutoff = new Date(Date.now() - daysSinceContact * 24 * 60 * 60 * 1000);
-  const results = await db.select({
-    id: opportunities.id,
-    companyName: contacts.company,
-    contactName: contacts.name,
-    status: opportunities.status,
-    lastContactAt: opportunities.createdAt,
-  }).from(opportunities)
+
+  const thresholdDays = getInactivityThresholdDays();
+  // Usa o maior entre o parâmetro recebido e o threshold centralizado
+  const effectiveDays = Math.max(daysSinceContact, thresholdDays);
+  const cutoff = new Date(Date.now() - effectiveDays * 24 * 60 * 60 * 1000);
+
+  // Sub-query: última nota por oportunidade
+  const lastNoteSubquery = db
+    .select({
+      oppId: opportunityNotes.opportunityId,
+      lastNoteAt: sql<Date>`MAX(${opportunityNotes.createdAt})`.as("lastNoteAt"),
+    })
+    .from(opportunityNotes)
+    .groupBy(opportunityNotes.opportunityId)
+    .as("ln2");
+
+  // Sub-query: última tarefa concluída por oportunidade
+  const lastTaskSubquery = db
+    .select({
+      oppId: opportunityTasks.opportunityId,
+      lastTaskAt: sql<Date>`MAX(${opportunityTasks.completedAt})`.as("lastTaskAt"),
+    })
+    .from(opportunityTasks)
+    .where(isNotNull(opportunityTasks.completedAt))
+    .groupBy(opportunityTasks.opportunityId)
+    .as("lt2");
+
+  const lastTouchExpr = sql<Date>`GREATEST(
+    ${opportunities.createdAt},
+    COALESCE(ln2.lastNoteAt, ${opportunities.createdAt}),
+    COALESCE(lt2.lastTaskAt, ${opportunities.createdAt})
+  )`;
+
+  const results = await db
+    .select({
+      id: opportunities.id,
+      companyName: contacts.company,
+      contactName: contacts.name,
+      status: opportunities.status,
+      lastContactAt: lastTouchExpr,
+    })
+    .from(opportunities)
     .innerJoin(contacts, eq(opportunities.contactId, contacts.id))
-    .where(and(eq(opportunities.status, "open"), lte(opportunities.createdAt, cutoff)))
-    .orderBy(opportunities.createdAt);
+    .leftJoin(lastNoteSubquery, eq(opportunities.id, lastNoteSubquery.oppId))
+    .leftJoin(lastTaskSubquery, eq(opportunities.id, lastTaskSubquery.oppId))
+    .where(and(
+      eq(opportunities.status, "open"),
+      sql`${lastTouchExpr} <= ${cutoff}`
+    ))
+    .orderBy(sql`${lastTouchExpr} ASC`);
+
   return results;
 }
 
