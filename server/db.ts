@@ -179,6 +179,7 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
     opportunitiesCreatedByMonth: [],
     opportunitiesClosedByMonth: [],
     tempoMedioFunil: 0,
+    averageWonSalesCycleDays: 0,
     opportunitiesBySegment: {},
     coldOpportunities: 0,
   };
@@ -212,6 +213,12 @@ export async function getDashboardStats(pipelineId?: number, dataInicial?: Date,
       .where(wonFilter);
     result.wonOpportunities = toNumber(wonRes?.c);
     result.wonValue = toNumber(wonRes?.totalVal);
+
+    // Ciclo Médio de Vendas Ganhas: média de dias entre createdAt e wonAt
+    const [cycleRes] = await db.select({
+      avgDays: sql<number>`AVG(DATEDIFF(${opportunities.wonAt}, ${opportunities.createdAt}))`,
+    }).from(opportunities).where(wonFilter);
+    result.averageWonSalesCycleDays = cycleRes?.avgDays != null ? Number(Number(cycleRes.avgDays).toFixed(1)) : 0;
 
     const [lostRes] = await db.select({ c: drizzleCount() })
       .from(opportunities)

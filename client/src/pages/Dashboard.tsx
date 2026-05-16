@@ -16,6 +16,7 @@ import {
   Loader2,
   Trophy,
   Thermometer,
+  Timer,
 } from "lucide-react";
 
 export default function Dashboard() {
@@ -181,7 +182,7 @@ export default function Dashboard() {
         </div>
 
         {/* KPI Cards Row 2 - Financeiro */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardContent className="py-5 px-5">
               <div className="flex items-center justify-between">
@@ -223,6 +224,22 @@ export default function Dashboard() {
                   <p className="text-metadata mt-1">Criadas no período filtrado</p>
                 </div>
                 <Trophy className="w-6 h-6 text-[var(--warning)] opacity-40" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Ciclo Médio de Vendas */}
+          <Card>
+            <CardContent className="py-5 px-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-label">Ciclo Médio de Vendas</p>
+                  <p className="text-2xl font-bold text-foreground mt-1 tabular-nums">
+                    {stats?.averageWonSalesCycleDays ?? 0} dias
+                  </p>
+                  <p className="text-metadata mt-1">Vendas ganhas no período</p>
+                </div>
+                <Timer className="w-6 h-6 text-primary opacity-40" />
               </div>
             </CardContent>
           </Card>
