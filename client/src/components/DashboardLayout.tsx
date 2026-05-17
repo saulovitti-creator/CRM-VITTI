@@ -218,7 +218,7 @@ function DashboardLayoutContent({
                   </Avatar>
                   <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
                     <p className="text-sm font-medium truncate leading-none text-sidebar-foreground">
-                      {user?.name || "-"}
+                      {user?.name || "-"} {user?.role === "admin" && <span className="ml-2 bg-primary/10 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">Admin</span>}
                     </p>
                     <p className="text-xs text-muted-foreground truncate mt-1">
                       {user?.email || "-"}
@@ -261,7 +261,10 @@ function DashboardLayoutContent({
             </div>
             <div className="flex items-center gap-3">
               <ThemeToggle />
-              <span className="text-sm text-muted-foreground">{user?.name || ""}</span>
+              <span className="text-sm text-muted-foreground flex items-center gap-2">
+                {user?.name || ""}
+                {user?.role === "admin" && <span className="bg-primary/10 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">Admin</span>}
+              </span>
               <Avatar className="h-7 w-7">
                 <AvatarFallback className="text-[10px] font-medium bg-primary/10 text-primary">
                   {user?.name?.charAt(0).toUpperCase()}

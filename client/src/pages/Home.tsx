@@ -8,8 +8,10 @@ import { DownloadTemplateButton } from "@/components/DownloadTemplateButton";
 import { ContactsList } from "@/components/ContactsList";
 import { OpportunityKanban } from "@/components/OpportunityKanban";
 import { Users, Briefcase, Settings2, Tags } from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 export default function Home() {
+  const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<"contacts" | "opportunities">("opportunities");
   
   const [tagManagementOpen, setTagManagementOpen] = useState(false);
@@ -32,23 +34,27 @@ export default function Home() {
             <DownloadTemplateButton />
             <ImportXLSXDialog />
             
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setTagManagementOpen(true)}
-            >
-              <Tags className="w-4 h-4 mr-2" />
-              Gerenciar Tags
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setCustomFieldsModalOpen(true)}
-            >
-              <Settings2 className="w-4 h-4 mr-2" />
-              Campos Personalizados
-            </Button>
+            {isAdmin && (
+              <>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setTagManagementOpen(true)}
+                >
+                  <Tags className="w-4 h-4 mr-2" />
+                  Gerenciar Tags
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setCustomFieldsModalOpen(true)}
+                >
+                  <Settings2 className="w-4 h-4 mr-2" />
+                  Campos Personalizados
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
