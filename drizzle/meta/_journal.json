@@ -43,6 +43,13 @@
       "when": 1778623143958,
       "tag": "0005_even_cerebro",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1779135059591,
+      "tag": "0006_loud_jazinda",
+      "breakpoints": true
     }
   ]
 }

@@ -108,5 +108,9 @@ temp/
 
 # Backups
 outputs/backups/
-*.sql
+outputs/**/*.sql
 *.dump
+
+# Local workspace artifacts
+.codex/
+outputs/
